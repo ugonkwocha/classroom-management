@@ -1,5 +1,4 @@
 import { Student, Class, WaitlistEntry } from '@/types';
-import { calculateAge, getProgramLevel } from '@/lib/utils';
 
 export interface AssignmentResult {
   assigned: Array<{ studentId: string; classId: string }>;
@@ -14,34 +13,34 @@ export function assignStudentsToClasses(
   const assigned: Array<{ studentId: string; classId: string }> = [];
   const waitlisted: Array<{ studentId: string; programLevel: string }> = [];
 
-  // Get unassigned students
-  const unassignedStudents = students.filter((s) => !s.classId);
+  // Get unassigned students (those with no assigned enrollments)
+  const unassignedStudents = students.filter(
+    (s) => s.programEnrollments.length === 0 ||
+           s.programEnrollments.every((e) => e.status === 'waitlist')
+  );
 
-  // Sort students by priority (returning students first, then those with siblings)
+  // Sort students by priority (returning students first)
   const sortedStudents = unassignedStudents.sort((a, b) => {
-    const priorityA = (a.isReturning ? 100 : 0) + (a.hasSiblings ? 50 : 0);
-    const priorityB = (b.isReturning ? 100 : 0) + (b.hasSiblings ? 50 : 0);
+    const priorityA = a.isReturningStudent ? 100 : 0;
+    const priorityB = b.isReturningStudent ? 100 : 0;
     return priorityB - priorityA;
   });
 
-  // Try to assign each student
+  // Try to assign each student to any available class
   for (const student of sortedStudents) {
     try {
-      const age = calculateAge(student.dateOfBirth);
-      const programLevel = getProgramLevel(age);
-
-      // Find available classes for this program
+      // Find available classes (not at capacity)
       const availableClasses = classes.filter(
-        (cls) =>
-          cls.programLevel === programLevel &&
-          cls.students.length < cls.capacity
+        (cls) => cls.students.length < cls.capacity
       );
 
       if (availableClasses.length > 0) {
-        // Assign to the class with the most capacity
-        const selectedClass = availableClasses.reduce((prev, curr) =>
-          (curr.students.length > prev.students.length) ? curr : prev
-        );
+        // Assign to the class with the most available capacity
+        const selectedClass = availableClasses.reduce((prev, curr) => {
+          const prevAvailable = prev.capacity - prev.students.length;
+          const currAvailable = curr.capacity - curr.students.length;
+          return currAvailable > prevAvailable ? curr : prev;
+        });
 
         assigned.push({
           studentId: student.id,
@@ -51,6 +50,8 @@ export function assignStudentsToClasses(
         // Add to waitlist if no space available
         const existingWaitlistEntry = existingWaitlist.find((w) => w.studentId === student.id);
         if (!existingWaitlistEntry) {
+          // Use the first class's program level as a generic placeholder
+          const programLevel = classes.length > 0 ? classes[0].programLevel : 'AI Explorers';
           waitlisted.push({
             studentId: student.id,
             programLevel,
@@ -73,10 +74,7 @@ export function calculateWaitlistPriority(
   let priority = 0;
 
   // Returning students get higher priority
-  if (student.isReturning) priority += 100;
-
-  // Students with siblings get higher priority
-  if (student.hasSiblings) priority += 50;
+  if (student.isReturningStudent) priority += 100;
 
   // Earlier in waitlist gets higher priority (time-based)
   if (existingWaitlistEntry) {
@@ -130,13 +128,8 @@ export function canAssignStudentToClass(
     return false;
   }
 
-  // Check if student's program matches the class program
-  if (student.programLevel !== classData.programLevel) {
-    return false;
-  }
-
-  // Check if student is already in a class
-  if (student.classId && student.classId !== classData.id) {
+  // Check if student is already in this class
+  if (student.programEnrollments.some((e) => e.classId === classData.id && e.status === 'assigned')) {
     return false;
   }
 
@@ -148,8 +141,6 @@ export function getAvailableClassesForStudent(
   classes: Class[]
 ): Class[] {
   return classes.filter(
-    (cls) =>
-      cls.programLevel === student.programLevel &&
-      cls.students.length < cls.capacity
+    (cls) => cls.students.length < cls.capacity
   );
 }
