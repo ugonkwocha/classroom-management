@@ -24,8 +24,8 @@ export function StudentList({ students, onView, onEdit, onDelete }: StudentListP
     <div className="space-y-3">
       {students.map((student) => {
         const age = student.dateOfBirth ? calculateAge(student.dateOfBirth) : null;
-        const enrollmentCount = student.programEnrollments.length;
-        const historyCount = student.courseHistory.length;
+        const enrollmentCount = student.programEnrollments?.length || 0;
+        const historyCount = student.courseHistory?.length || 0;
 
         return (
           <div

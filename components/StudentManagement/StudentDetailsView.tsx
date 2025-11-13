@@ -99,13 +99,13 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
 
       {/* Course History Section */}
       <CourseHistorySection
-        courseHistory={student.courseHistory}
+        courseHistory={student.courseHistory || []}
         getCourseName={getCourseName}
       />
 
       {/* Program Enrollments Section */}
       <ProgramEnrollmentsSection
-        enrollments={student.programEnrollments}
+        enrollments={student.programEnrollments || []}
         classes={classes}
         programs={programs}
         getProgramName={getProgramName}

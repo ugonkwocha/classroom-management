@@ -81,7 +81,7 @@ export function ClassManagement() {
           {filteredClasses.map((classData) => {
             // Get students enrolled in this class
             const enrolledStudents = students.filter((student) =>
-              student.programEnrollments.some((enrollment) => enrollment.classId === classData.id)
+              student.programEnrollments && student.programEnrollments.some((enrollment) => enrollment.classId === classData.id)
             );
             const studentCount = enrolledStudents.length;
 
@@ -90,7 +90,7 @@ export function ClassManagement() {
               // Remove excess students from class
               const excessStudents = enrolledStudents.slice(classData.capacity);
               excessStudents.forEach((student) => {
-                const updatedEnrollments = student.programEnrollments.map((e) =>
+                const updatedEnrollments = (student.programEnrollments || []).map((e) =>
                   e.classId === classData.id ? { ...e, classId: undefined } : e
                 );
                 updateStudent(student.id, { programEnrollments: updatedEnrollments });

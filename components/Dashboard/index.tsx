@@ -33,7 +33,7 @@ export function Dashboard() {
             status: 'assigned' as const,
           };
           const updatedEnrollments = [
-            ...student.programEnrollments,
+            ...(student.programEnrollments || []),
             newEnrollment,
           ];
           updateStudent(studentId, { programEnrollments: updatedEnrollments });

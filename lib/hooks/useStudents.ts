@@ -34,10 +34,11 @@ export function useStudents() {
     }
   }, [students, isLoaded]);
 
-  const addStudent = (student: Omit<Student, 'id'>) => {
+  const addStudent = (student: Omit<Student, 'id' | 'createdAt'>) => {
     const newStudent: Student = {
       ...student,
       id: generateId(),
+      createdAt: new Date().toISOString(),
     };
     setStudents((prev) => [...prev, newStudent]);
     return newStudent;
@@ -119,7 +120,7 @@ export function useStudents() {
           ? {
               ...student,
               programEnrollments: [
-                ...student.programEnrollments,
+                ...(student.programEnrollments || []),
                 { ...enrollment, id: generateId() },
               ],
             }
@@ -134,7 +135,7 @@ export function useStudents() {
         student.id === studentId
           ? {
               ...student,
-              programEnrollments: student.programEnrollments.filter((e) => e.id !== enrollmentId),
+              programEnrollments: (student.programEnrollments || []).filter((e) => e.id !== enrollmentId),
             }
           : student
       )
@@ -151,7 +152,7 @@ export function useStudents() {
         student.id === studentId
           ? {
               ...student,
-              programEnrollments: student.programEnrollments.map((e) =>
+              programEnrollments: (student.programEnrollments || []).map((e) =>
                 e.id === enrollmentId ? { ...e, ...updates } : e
               ),
             }
@@ -164,13 +165,13 @@ export function useStudents() {
   const getStudentEnrollmentsForProgram = (studentId: string, programId: string) => {
     const student = getStudent(studentId);
     if (!student) return [];
-    return student.programEnrollments.filter((e) => e.programId === programId);
+    return (student.programEnrollments || []).filter((e) => e.programId === programId);
   };
 
   // Get all students in waitlist for a specific program/batch
   const getWaitlistedStudents = (programId: string, batchNumber: number) => {
     return students.filter((student) =>
-      student.programEnrollments.some(
+      student.programEnrollments && student.programEnrollments.some(
         (e) => e.programId === programId && e.batchNumber === batchNumber && e.status === 'waitlist'
       )
     );
