@@ -5,7 +5,7 @@ import { useStudents, useClasses, useWaitlist } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
 import { assignStudentsToClasses, calculateWaitlistPriority } from '@/lib/assignment';
-import { calculateAge } from '@/lib/utils';
+import { calculateAge, generateId } from '@/lib/utils';
 
 export function Dashboard() {
   const { students, isLoaded: studentsLoaded, updateStudent } = useStudents();
@@ -19,12 +19,28 @@ export function Dashboard() {
 
     // Apply assignments
     result.assigned.forEach(({ studentId, classId }) => {
-      updateStudent(studentId, { classId });
-      const classData = classes.find((c) => c.id === classId);
-      if (classData) {
-        updateClass(classId, {
-          students: [...classData.students, studentId],
-        });
+      const student = students.find((s) => s.id === studentId);
+      if (student) {
+        // Add enrollment record for the student
+        const classData = classes.find((c) => c.id === classId);
+        if (classData) {
+          const newEnrollment = {
+            id: generateId(),
+            programId: classData.programId,
+            batchNumber: classData.batch,
+            classId,
+            enrollmentDate: new Date().toISOString(),
+            status: 'assigned' as const,
+          };
+          const updatedEnrollments = [
+            ...student.programEnrollments,
+            newEnrollment,
+          ];
+          updateStudent(studentId, { programEnrollments: updatedEnrollments });
+          updateClass(classId, {
+            students: [...classData.students, studentId],
+          });
+        }
       }
     });
 
@@ -59,7 +75,9 @@ export function Dashboard() {
   // Calculate actual enrolled students (respecting capacity limits)
   let totalEnrolled = 0;
   classes.forEach((cls) => {
-    const enrolledInClass = students.filter((s) => s.classId === cls.id).length;
+    const enrolledInClass = students.filter((s) =>
+      s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+    ).length;
     totalEnrolled += Math.min(enrolledInClass, cls.capacity);
   });
 

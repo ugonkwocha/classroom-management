@@ -80,7 +80,9 @@ export function ClassManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClasses.map((classData) => {
             // Get students enrolled in this class
-            const enrolledStudents = students.filter((s) => s.classId === classData.id);
+            const enrolledStudents = students.filter((student) =>
+              student.programEnrollments.some((enrollment) => enrollment.classId === classData.id)
+            );
             const studentCount = enrolledStudents.length;
 
             // Validate and fix over-capacity issues
@@ -88,7 +90,10 @@ export function ClassManagement() {
               // Remove excess students from class
               const excessStudents = enrolledStudents.slice(classData.capacity);
               excessStudents.forEach((student) => {
-                updateStudent(student.id, { classId: undefined });
+                const updatedEnrollments = student.programEnrollments.map((e) =>
+                  e.classId === classData.id ? { ...e, classId: undefined } : e
+                );
+                updateStudent(student.id, { programEnrollments: updatedEnrollments });
               });
             }
 

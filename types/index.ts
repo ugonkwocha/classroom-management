@@ -22,16 +22,46 @@ export interface Program {
   createdAt: string;
 }
 
+// Course history entry for tracking courses student has taken
+export interface CourseHistory {
+  id: string;
+  courseId: string;
+  courseName: string; // for quick reference
+  programId?: string;
+  programName?: string;
+  batch?: number;
+  year?: number;
+  completionStatus: 'completed' | 'in-progress' | 'dropped';
+  startDate?: string;
+  endDate?: string;
+  performanceNotes?: string;
+  dateAdded: string;
+}
+
+// Program enrollment entry for tracking student's enrollment in each program
+export interface ProgramEnrollment {
+  id: string;
+  programId: string;
+  batchNumber: number;
+  classId?: string; // May not be assigned immediately (waitlist)
+  enrollmentDate: string;
+  status: 'waitlist' | 'assigned' | 'completed' | 'dropped';
+}
+
 export interface Student {
   id: string;
-  name: string;
-  dateOfBirth: string;
-  contactInfo: string;
-  programLevel: ProgramLevel;
-  classId?: string;
-  priority: number;
-  isReturning: boolean;
-  hasSiblings: boolean;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  dateOfBirth?: string;
+  isReturningStudent: boolean;
+  courseHistory: CourseHistory[]; // Past courses taken
+  programEnrollments: ProgramEnrollment[]; // Current & past program enrollments
+  paymentStatus: 'pending' | 'confirmed' | 'completed';
+  createdAt: string;
 }
 
 export interface Teacher {
