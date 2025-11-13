@@ -76,7 +76,7 @@ export function Dashboard() {
   let totalEnrolled = 0;
   classes.forEach((cls) => {
     const enrolledInClass = students.filter((s) =>
-      s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+      s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
     ).length;
     totalEnrolled += Math.min(enrolledInClass, cls.capacity);
   });
@@ -89,17 +89,17 @@ export function Dashboard() {
   const programDistribution = {
     'AI Explorers': classes.filter((c) => c.programLevel === 'AI Explorers').reduce((count, cls) => {
       return count + students.filter((s) =>
-        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
       ).length;
     }, 0),
     'AI Creators': classes.filter((c) => c.programLevel === 'AI Creators').reduce((count, cls) => {
       return count + students.filter((s) =>
-        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
       ).length;
     }, 0),
     'AI Innovators': classes.filter((c) => c.programLevel === 'AI Innovators').reduce((count, cls) => {
       return count + students.filter((s) =>
-        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
       ).length;
     }, 0),
   };
@@ -162,7 +162,7 @@ export function Dashboard() {
           <Button
             variant="primary"
             onClick={handleAutoAssign}
-            disabled={students.filter((s) => s.programEnrollments.every((e) => e.status !== 'waitlist')).length === students.length}
+            disabled={students.filter((s) => s.programEnrollments && s.programEnrollments.every((e) => e.status !== 'waitlist')).length === students.length}
           >
             Run Auto-Assign
           </Button>
@@ -174,7 +174,7 @@ export function Dashboard() {
         <Card>
           <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
           <p className="text-3xl font-bold text-purple-600">
-            {students.filter((s) => s.programEnrollments.length === 0 || s.programEnrollments.every((e) => e.status === 'waitlist')).length}
+            {students.filter((s) => !s.programEnrollments || s.programEnrollments.length === 0 || s.programEnrollments.every((e) => e.status === 'waitlist')).length}
           </p>
           <p className="text-sm text-gray-600 mt-2">
             Pending assignment to classes
