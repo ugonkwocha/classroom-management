@@ -1,0 +1,105 @@
+'use client';
+
+import { useState } from 'react';
+import { usePrograms } from '@/lib/hooks';
+import { Program } from '@/types';
+import { Card, Modal } from '@/components/ui';
+import { ProgramForm } from './ProgramForm';
+import { ProgramList } from './ProgramList';
+import { ProgramDetailsView } from './ProgramDetailsView';
+
+export function ProgramsManagement() {
+  const { programs, isLoaded, addProgram, updateProgram, deleteProgram } = usePrograms();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | undefined>();
+  const [viewingProgram, setViewingProgram] = useState<Program | undefined>();
+  const [filter, setFilter] = useState<string>('');
+
+  const filteredPrograms = programs.filter((program) =>
+    program.name.toLowerCase().includes(filter.toLowerCase()) ||
+    program.season.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const handleSubmit = (programData: Omit<Program, 'id' | 'createdAt'>) => {
+    if (editingProgram) {
+      updateProgram(editingProgram.id, programData);
+      setEditingProgram(undefined);
+    } else {
+      addProgram(programData);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleEdit = (program: Program) => {
+    setEditingProgram(program);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this program? Classes associated with it will not be deleted.')) {
+      deleteProgram(id);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProgram(undefined);
+  };
+
+  const handleView = (program: Program) => {
+    setViewingProgram(program);
+  };
+
+  const handleCloseDetailsView = () => {
+    setViewingProgram(undefined);
+  };
+
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <input
+          type="text"
+          placeholder="Search programs..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+        >
+          + Add Program
+        </button>
+      </div>
+
+      <Card className="bg-blue-50 border-blue-200">
+        <p className="text-sm text-blue-800">
+          ℹ️ Programs define the structure of your courses (batches and time slots). Default programs for Transcend AI Academy are pre-loaded.
+        </p>
+      </Card>
+
+      <Card>
+        <ProgramList
+          programs={filteredPrograms}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onView={handleView}
+        />
+      </Card>
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingProgram ? 'Edit Program' : 'Add New Program'}>
+        <ProgramForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingProgram} />
+      </Modal>
+
+      <Modal isOpen={!!viewingProgram} onClose={handleCloseDetailsView} title="" size="lg">
+        {viewingProgram && (
+          <ProgramDetailsView program={viewingProgram} onClose={handleCloseDetailsView} />
+        )}
+      </Modal>
+    </div>
+  );
+}

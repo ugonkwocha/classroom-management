@@ -35,7 +35,7 @@ export function Dashboard() {
         const priority = calculateWaitlistPriority(student, undefined, waitlist);
         addToWaitlist({
           studentId,
-          programLevel,
+          programLevel: programLevel as any,
           priority,
           timestamp: new Date().toISOString(),
         });
@@ -55,9 +55,16 @@ export function Dashboard() {
 
   const totalStudents = students.length;
   const totalClasses = classes.length;
-  const totalEnrolled = students.filter((s) => s.classId).length;
+
+  // Calculate actual enrolled students (respecting capacity limits)
+  let totalEnrolled = 0;
+  classes.forEach((cls) => {
+    const enrolledInClass = students.filter((s) => s.classId === cls.id).length;
+    totalEnrolled += Math.min(enrolledInClass, cls.capacity);
+  });
+
   const waitlistCount = waitlist.length;
-  const totalCapacity = totalClasses * 6;
+  const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
   // Group students by program

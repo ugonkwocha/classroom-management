@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
+import { CoursesManagement } from '@/components/CoursesManagement';
+import { ProgramsManagement } from '@/components/ProgramsManagement';
 import { WaitlistManagement } from '@/components/Waitlist';
 import { Button } from '@/components/ui';
 
-type Tab = 'dashboard' | 'students' | 'classes' | 'waitlist';
+type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'waitlist';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -20,6 +22,8 @@ export default function Home() {
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'students', label: 'Students' },
+    { id: 'courses', label: 'Courses' },
+    { id: 'programs', label: 'Programs' },
     { id: 'classes', label: 'Classes' },
     { id: 'waitlist', label: 'Waitlist' },
   ];
@@ -74,6 +78,8 @@ export default function Home() {
           <>
             {activeTab === 'dashboard' && <Dashboard />}
             {activeTab === 'students' && <StudentManagement />}
+            {activeTab === 'courses' && <CoursesManagement />}
+            {activeTab === 'programs' && <ProgramsManagement />}
             {activeTab === 'classes' && <ClassManagement />}
             {activeTab === 'waitlist' && <WaitlistManagement />}
           </>

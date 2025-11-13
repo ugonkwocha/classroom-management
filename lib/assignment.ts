@@ -119,3 +119,37 @@ export function promoteFromWaitlist(
 
   return promoted;
 }
+
+export function canAssignStudentToClass(
+  student: Student,
+  classData: Class,
+  students: Student[]
+): boolean {
+  // Check if class is at capacity
+  if (classData.students.length >= classData.capacity) {
+    return false;
+  }
+
+  // Check if student's program matches the class program
+  if (student.programLevel !== classData.programLevel) {
+    return false;
+  }
+
+  // Check if student is already in a class
+  if (student.classId && student.classId !== classData.id) {
+    return false;
+  }
+
+  return true;
+}
+
+export function getAvailableClassesForStudent(
+  student: Student,
+  classes: Class[]
+): Class[] {
+  return classes.filter(
+    (cls) =>
+      cls.programLevel === student.programLevel &&
+      cls.students.length < cls.capacity
+  );
+}

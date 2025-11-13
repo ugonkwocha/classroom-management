@@ -1,4 +1,25 @@
 export type ProgramLevel = 'AI Explorers' | 'AI Creators' | 'AI Innovators';
+export type ProgramType = 'WeekendClub' | 'HolidayCamp';
+export type Season = 'January' | 'Easter' | 'May' | 'Summer' | 'October';
+
+export interface Course {
+  id: string;
+  name: string;
+  description: string;
+  programLevels: ProgramLevel[];
+  createdAt: string;
+}
+
+export interface Program {
+  id: string;
+  name: string;
+  type: ProgramType;
+  season: Season;
+  year: number;
+  batches: number;
+  slots: string[];
+  createdAt: string;
+}
 
 export interface Student {
   id: string;
@@ -15,7 +36,11 @@ export interface Student {
 export interface Class {
   id: string;
   name: string;
+  courseId: string;
+  programId: string;
   programLevel: ProgramLevel;
+  batch: number;
+  slot: string;
   schedule: string;
   students: string[];
   capacity: number;

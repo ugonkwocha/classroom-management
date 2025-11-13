@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useClasses, useStudents } from '@/lib/hooks';
 import { Class } from '@/types';
-import { Card, Modal } from '@/components/ui';
+import { Card, Modal, Button } from '@/components/ui';
 import { ClassForm } from './ClassForm';
 import { ClassCard } from './ClassCard';
+import { canAssignStudentToClass } from '@/lib/assignment';
 
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
-  const { students } = useStudents();
+  const { students, updateStudent } = useStudents();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
@@ -77,14 +78,26 @@ export function ClassManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClasses.map((classData) => {
-            const studentCount = students.filter((s) => s.classId === classData.id).length;
+            // Get students enrolled in this class
+            const enrolledStudents = students.filter((s) => s.classId === classData.id);
+            const studentCount = enrolledStudents.length;
+
+            // Validate and fix over-capacity issues
+            if (studentCount > classData.capacity) {
+              // Remove excess students from class
+              const excessStudents = enrolledStudents.slice(classData.capacity);
+              excessStudents.forEach((student) => {
+                updateStudent(student.id, { classId: undefined });
+              });
+            }
+
             return (
               <ClassCard
                 key={classData.id}
                 classData={classData}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                studentCount={studentCount}
+                studentCount={Math.min(studentCount, classData.capacity)}
               />
             );
           })}
@@ -92,7 +105,7 @@ export function ClassManagement() {
       )}
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingClass ? 'Edit Class' : 'Create New Class'}>
-        <ClassForm onSubmit={handleSubmit} initialData={editingClass} />
+        <ClassForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingClass} />
       </Modal>
     </div>
   );
