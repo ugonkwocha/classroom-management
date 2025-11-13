@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Program, Class } from '@/types';
 import { Badge, Button } from '@/components/ui';
-import { useClasses, useStudents } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers } from '@/lib/hooks';
 
 interface ProgramDetailsViewProps {
   program: Program;
@@ -13,6 +13,7 @@ interface ProgramDetailsViewProps {
 export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps) {
   const { classes } = useClasses();
   const { students } = useStudents();
+  const { teachers } = useTeachers();
   const [filter, setFilter] = useState('');
 
   // Get all classes for this program
@@ -22,12 +23,16 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
 
   // Filter classes based on search
   const filteredClasses = useMemo(() => {
-    return programClasses.filter((cls) =>
-      cls.name.toLowerCase().includes(filter.toLowerCase()) ||
-      cls.teacher.toLowerCase().includes(filter.toLowerCase()) ||
-      cls.programLevel.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [programClasses, filter]);
+    return programClasses.filter((cls) => {
+      const teacher = cls.teacherId ? teachers.find((t) => t.id === cls.teacherId) : null;
+      const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : '';
+      return (
+        cls.name.toLowerCase().includes(filter.toLowerCase()) ||
+        teacherName.toLowerCase().includes(filter.toLowerCase()) ||
+        cls.programLevel.toLowerCase().includes(filter.toLowerCase())
+      );
+    });
+  }, [programClasses, filter, teachers]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -123,7 +128,14 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
                     <div className="flex gap-2 mt-2">
                       <Badge variant="primary">{classData.programLevel}</Badge>
                       <Badge variant="info">Batch {classData.batch}</Badge>
-                      <Badge variant="success">{classData.teacher}</Badge>
+                      <Badge variant="success">
+                        {classData.teacherId
+                          ? (() => {
+                              const teacher = teachers.find((t) => t.id === classData.teacherId);
+                              return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned';
+                            })()
+                          : 'Unassigned'}
+                      </Badge>
                     </div>
                   </div>
                 </div>

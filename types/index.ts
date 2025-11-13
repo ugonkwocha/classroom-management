@@ -1,6 +1,7 @@
 export type ProgramLevel = 'AI Explorers' | 'AI Creators' | 'AI Innovators';
 export type ProgramType = 'WeekendClub' | 'HolidayCamp';
 export type Season = 'January' | 'Easter' | 'May' | 'Summer' | 'October';
+export type TeacherStatus = 'Active' | 'Inactive' | 'On Leave';
 
 export interface Course {
   id: string;
@@ -33,6 +34,19 @@ export interface Student {
   hasSiblings: boolean;
 }
 
+export interface Teacher {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  bio?: string;
+  profilePhoto?: string;
+  status: TeacherStatus;
+  qualifiedCourses: string[]; // Array of course IDs
+  createdAt: string;
+}
+
 export interface Class {
   id: string;
   name: string;
@@ -44,7 +58,7 @@ export interface Class {
   schedule: string;
   students: string[];
   capacity: number;
-  teacher: string;
+  teacherId?: string; // Optional: teachers can be assigned later
   createdAt: string;
 }
 

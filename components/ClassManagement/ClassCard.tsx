@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Class } from '@/types';
+import { Class, Teacher } from '@/types';
 import { Badge, Button } from '@/components/ui';
 
 interface ClassCardProps {
@@ -9,9 +9,10 @@ interface ClassCardProps {
   onEdit: (classData: Class) => void;
   onDelete: (id: string) => void;
   studentCount: number;
+  teacher?: Teacher;
 }
 
-export function ClassCard({ classData, onEdit, onDelete, studentCount }: ClassCardProps) {
+export function ClassCard({ classData, onEdit, onDelete, studentCount, teacher }: ClassCardProps) {
   const capacity = classData.capacity;
   const percentage = Math.round((studentCount / capacity) * 100);
   const isFull = studentCount >= capacity;
@@ -27,7 +28,9 @@ export function ClassCard({ classData, onEdit, onDelete, studentCount }: ClassCa
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-gray-900">{classData.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">Teacher: {classData.teacher}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
+          </p>
         </div>
         <Badge variant={isFull ? 'warning' : 'success'}>
           {isFull ? 'FULL' : 'AVAILABLE'}

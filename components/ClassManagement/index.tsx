@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useClasses, useStudents } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers } from '@/lib/hooks';
 import { Class } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
 import { ClassForm } from './ClassForm';
@@ -11,6 +11,7 @@ import { canAssignStudentToClass } from '@/lib/assignment';
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
   const { students, updateStudent } = useStudents();
+  const { teachers } = useTeachers();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
@@ -91,6 +92,8 @@ export function ClassManagement() {
               });
             }
 
+            const teacher = classData.teacherId ? teachers.find((t) => t.id === classData.teacherId) : undefined;
+
             return (
               <ClassCard
                 key={classData.id}
@@ -98,6 +101,7 @@ export function ClassManagement() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 studentCount={Math.min(studentCount, classData.capacity)}
+                teacher={teacher}
               />
             );
           })}

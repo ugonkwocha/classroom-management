@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Class, ProgramLevel } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
-import { useCourses, usePrograms, useClasses } from '@/lib/hooks';
+import { useCourses, usePrograms, useClasses, useTeachers } from '@/lib/hooks';
 
 interface ClassFormProps {
   onSubmit: (classData: Omit<Class, 'id' | 'createdAt'>) => void;
@@ -16,6 +16,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
   const { courses, isLoaded: coursesLoaded } = useCourses();
   const { programs, isLoaded: programsLoaded } = usePrograms();
   const { classes } = useClasses();
+  const { teachers, isLoaded: teachersLoaded } = useTeachers();
 
   const [formData, setFormData] = useState({
     courseId: initialData?.courseId || '',
@@ -23,7 +24,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
     programLevel: initialData?.programLevel || '',
     batch: String(initialData?.batch || 1),
     slot: initialData?.slot || '',
-    teacher: initialData?.teacher || '',
+    teacherId: initialData?.teacherId || '',
     capacity: initialData?.capacity || 6,
   });
 
@@ -92,7 +93,6 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
     if (!formData.programLevel) newErrors.programLevel = 'Program level is required';
     if (!formData.batch) newErrors.batch = 'Batch is required';
     if (!formData.slot) newErrors.slot = 'Time slot is required';
-    if (!formData.teacher.trim()) newErrors.teacher = 'Teacher name is required';
     if (formData.capacity < 1) newErrors.capacity = 'Capacity must be at least 1';
     if (formData.capacity > 50) newErrors.capacity = 'Capacity cannot exceed 50 students';
     if (!Number.isInteger(formData.capacity)) newErrors.capacity = 'Capacity must be a whole number';
@@ -113,6 +113,37 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       return;
     }
 
+    // If a teacher is selected, validate:
+    // 1. Teacher is qualified for this course
+    // 2. Teacher is not already teaching at this same time slot in this batch
+    if (formData.teacherId) {
+      const selectedTeacher = teachers.find((t) => t.id === formData.teacherId);
+      if (selectedTeacher) {
+        // Check if teacher is qualified for this course
+        if (!selectedTeacher.qualifiedCourses.includes(formData.courseId)) {
+          setErrors({ form: 'Selected teacher is not qualified to teach this course' });
+          return;
+        }
+
+        // Check if teacher is available at this time slot
+        const conflictingClass = classes.find(
+          (cls) =>
+            cls.teacherId === formData.teacherId &&
+            cls.programId === formData.programId &&
+            cls.batch === parseInt(formData.batch) &&
+            cls.slot === formData.slot &&
+            (!initialData || cls.id !== initialData.id) // Exclude current class being edited
+        );
+
+        if (conflictingClass) {
+          setErrors({
+            form: 'Selected teacher is already assigned to another class at this time slot',
+          });
+          return;
+        }
+      }
+    }
+
     onSubmit({
       name: generatedClassName,
       courseId: formData.courseId,
@@ -121,7 +152,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       batch: parseInt(formData.batch),
       slot: formData.slot,
       schedule: formData.slot,
-      teacher: formData.teacher,
+      teacherId: formData.teacherId || undefined,
       students: initialData?.students || [],
       capacity: Math.floor(formData.capacity),
     });
@@ -132,13 +163,13 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       programLevel: '',
       batch: '1',
       slot: '',
-      teacher: '',
+      teacherId: '',
       capacity: 6,
     });
     setErrors({});
   };
 
-  if (!coursesLoaded || !programsLoaded) {
+  if (!coursesLoaded || !programsLoaded || !teachersLoaded) {
     return <div className="text-center py-4 text-gray-500">Loading...</div>;
   }
 
@@ -227,14 +258,23 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
         </div>
       )}
 
-      <Input
-        label="Teacher Name"
-        type="text"
-        placeholder="Instructor name"
-        value={formData.teacher}
-        onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
-        error={errors.teacher}
-      />
+      {selectedCourse && (
+        <Select
+          label="Teacher (Optional)"
+          options={[
+            { value: '', label: 'Unassigned - Assign later' },
+            ...teachers
+              .filter((t) => t.status === 'Active' && t.qualifiedCourses.includes(formData.courseId))
+              .map((t) => ({
+                value: t.id,
+                label: `${t.firstName} ${t.lastName}`,
+              })),
+          ]}
+          value={formData.teacherId}
+          onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+          error={errors.teacherId}
+        />
+      )}
 
       <Input
         label="Class Capacity"
