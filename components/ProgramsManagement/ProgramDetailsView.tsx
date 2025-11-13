@@ -40,7 +40,9 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
     let totalEnrolled = 0;
 
     programClasses.forEach((cls) => {
-      const classStudents = students.filter((s) => s.classId === cls.id);
+      const classStudents = students.filter(
+        (s) => s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id)
+      );
       totalCapacity += cls.capacity;
       totalEnrolled += Math.min(classStudents.length, cls.capacity);
     });
@@ -112,7 +114,9 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
       ) : (
         <div className="space-y-3">
           {filteredClasses.map((classData) => {
-            const classStudents = students.filter((s) => s.classId === classData.id);
+            const classStudents = students.filter(
+              (s) => s.programEnrollments && s.programEnrollments.some((e) => e.classId === classData.id)
+            );
             const enrolledCount = Math.min(classStudents.length, classData.capacity);
             const availableSlots = classData.capacity - enrolledCount;
             const utilizationPercent = (enrolledCount / classData.capacity) * 100;
