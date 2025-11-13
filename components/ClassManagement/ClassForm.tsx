@@ -68,17 +68,29 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
         );
       });
 
-      // Always assign a suffix based on how many similar classes exist
-      // If this is the first, it gets -A. If there's already one, this gets -B, etc.
-      const suffixIndex = similarClasses.length; // 0 = A, 1 = B, 2 = C, etc.
-      const suffixCharCode = 65 + suffixIndex; // ASCII code for A is 65
+      // Extract existing suffixes from similar classes
+      const existingSuffixes = new Set<string>();
+      similarClasses.forEach((cls) => {
+        const match = cls.name.match(new RegExp(`^${escapedBaseName}-([A-Z])$`));
+        if (match) {
+          existingSuffixes.add(match[1]);
+        }
+      });
 
-      if (suffixCharCode > 90) {
+      // Find the first available letter (A, B, C, etc.)
+      let suffixIndex = 0;
+      let suffixChar = String.fromCharCode(65 + suffixIndex); // Start with A
+      while (existingSuffixes.has(suffixChar) && suffixIndex < 26) {
+        suffixIndex++;
+        suffixChar = String.fromCharCode(65 + suffixIndex);
+      }
+
+      if (suffixIndex >= 26) {
         console.warn('Too many classes with the same configuration (more than 26)');
         return baseName; // Fallback to base name if we run out of letters
       }
 
-      const finalName = `${baseName}-${String.fromCharCode(suffixCharCode)}`;
+      const finalName = `${baseName}-${suffixChar}`;
       return finalName;
     }
     return '';

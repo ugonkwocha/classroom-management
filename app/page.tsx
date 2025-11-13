@@ -6,10 +6,11 @@ import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
 import { CoursesManagement } from '@/components/CoursesManagement';
 import { ProgramsManagement } from '@/components/ProgramsManagement';
+import { TeachersManagement } from '@/components/TeachersManagement';
 import { WaitlistManagement } from '@/components/Waitlist';
 import { Button } from '@/components/ui';
 
-type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'waitlist';
+type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'waitlist';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -25,6 +26,7 @@ export default function Home() {
     { id: 'courses', label: 'Courses' },
     { id: 'programs', label: 'Programs' },
     { id: 'classes', label: 'Classes' },
+    { id: 'teachers', label: 'Teachers' },
     { id: 'waitlist', label: 'Waitlist' },
   ];
 
@@ -81,6 +83,7 @@ export default function Home() {
             {activeTab === 'courses' && <CoursesManagement />}
             {activeTab === 'programs' && <ProgramsManagement />}
             {activeTab === 'classes' && <ClassManagement />}
+            {activeTab === 'teachers' && <TeachersManagement />}
             {activeTab === 'waitlist' && <WaitlistManagement />}
           </>
         )}
