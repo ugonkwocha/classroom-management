@@ -85,11 +85,23 @@ export function Dashboard() {
   const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
-  // Group students by program
+  // Group students by program level (based on their class assignments)
   const programDistribution = {
-    'AI Explorers': students.filter((s) => s.programLevel === 'AI Explorers').length,
-    'AI Creators': students.filter((s) => s.programLevel === 'AI Creators').length,
-    'AI Innovators': students.filter((s) => s.programLevel === 'AI Innovators').length,
+    'AI Explorers': classes.filter((c) => c.programLevel === 'AI Explorers').reduce((count, cls) => {
+      return count + students.filter((s) =>
+        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+      ).length;
+    }, 0),
+    'AI Creators': classes.filter((c) => c.programLevel === 'AI Creators').reduce((count, cls) => {
+      return count + students.filter((s) =>
+        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+      ).length;
+    }, 0),
+    'AI Innovators': classes.filter((c) => c.programLevel === 'AI Innovators').reduce((count, cls) => {
+      return count + students.filter((s) =>
+        s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+      ).length;
+    }, 0),
   };
 
   return (
@@ -150,7 +162,7 @@ export function Dashboard() {
           <Button
             variant="primary"
             onClick={handleAutoAssign}
-            disabled={students.filter((s) => !s.classId).length === 0}
+            disabled={students.filter((s) => s.programEnrollments.every((e) => e.status !== 'waitlist')).length === students.length}
           >
             Run Auto-Assign
           </Button>
@@ -162,7 +174,7 @@ export function Dashboard() {
         <Card>
           <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
           <p className="text-3xl font-bold text-purple-600">
-            {students.filter((s) => !s.classId).length}
+            {students.filter((s) => s.programEnrollments.length === 0 || s.programEnrollments.every((e) => e.status === 'waitlist')).length}
           </p>
           <p className="text-sm text-gray-600 mt-2">
             Pending assignment to classes
