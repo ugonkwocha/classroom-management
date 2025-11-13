@@ -46,6 +46,7 @@ export interface ProgramEnrollment {
   classId?: string; // May not be assigned immediately (waitlist)
   enrollmentDate: string;
   status: 'waitlist' | 'assigned' | 'completed' | 'dropped';
+  paymentStatus?: 'pending' | 'confirmed' | 'completed'; // Program-specific payment status
 }
 
 export interface Student {

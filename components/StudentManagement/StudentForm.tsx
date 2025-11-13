@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Student, CourseHistory } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
 import { useCourses } from '@/lib/hooks';
+import { calculateAge } from '@/lib/utils';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => void;
@@ -117,13 +118,22 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
           />
         </div>
 
-        <Input
-          label="Date of Birth"
-          type="date"
-          value={formData.dateOfBirth}
-          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-          className="mt-3"
-        />
+        <div>
+          <Input
+            label="Date of Birth"
+            type="date"
+            value={formData.dateOfBirth}
+            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+            className="mt-3"
+          />
+          {formData.dateOfBirth && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-900">
+                <span className="font-semibold">Age:</span> {calculateAge(formData.dateOfBirth)} years old
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contact Information Section */}

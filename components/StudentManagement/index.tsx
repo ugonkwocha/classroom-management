@@ -113,7 +113,7 @@ export function StudentManagement() {
       </Modal>
 
       {/* Details Modal for Viewing */}
-      <Modal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} title="Student Details">
+      <Modal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} title="Student Details" size="xl">
         {viewingStudent && (
           <StudentDetailsView
             student={viewingStudent}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Program, Class } from '@/types';
+import { Program, Class, CourseHistory } from '@/types';
 import { Button } from '@/components/ui';
 
 interface AssignmentModalProps {
@@ -10,6 +10,7 @@ interface AssignmentModalProps {
   programs: Program[];
   classes: Class[];
   assignedClassIds: string[]; // Track which classes student is already in
+  courseHistory: CourseHistory[];
   onAssign: (studentId: string, programId: string, classId: string) => void;
   onCancel: () => void;
 }
@@ -20,12 +21,15 @@ export function AssignmentModal({
   programs,
   classes,
   assignedClassIds,
+  courseHistory,
   onAssign,
   onCancel,
 }: AssignmentModalProps) {
   const [step, setStep] = useState<'program' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedClass, setSelectedClass] = useState<string>('');
+  const [showCourseWarning, setShowCourseWarning] = useState(false);
+  const [takenCourseNames, setTakenCourseNames] = useState<string[]>([]);
 
   // Filter classes by selected program
   const programClasses = selectedProgram
@@ -40,8 +44,31 @@ export function AssignmentModal({
 
   const handleAssign = () => {
     if (selectedProgram && selectedClass) {
+      // Check if student has taken the course in this class before
+      const selectedClassData = classes.find((c) => c.id === selectedClass);
+      if (selectedClassData) {
+        const previouslyCourses = courseHistory
+          .filter((h) => h.courseId === selectedClassData.courseId)
+          .map((h) => h.courseName);
+
+        if (previouslyCourses.length > 0) {
+          setTakenCourseNames(previouslyCourses);
+          setShowCourseWarning(true);
+          return;
+        }
+      }
+
+      // If no previous courses, proceed with assignment
       onAssign(studentId, selectedProgram, selectedClass);
-      onCancel(); // Close modal after assignment
+      onCancel();
+    }
+  };
+
+  const handleConfirmReassignment = () => {
+    if (selectedProgram && selectedClass) {
+      onAssign(studentId, selectedProgram, selectedClass);
+      setShowCourseWarning(false);
+      onCancel();
     }
   };
 
@@ -49,6 +76,47 @@ export function AssignmentModal({
     setStep('program');
     setSelectedClass('');
   };
+
+  if (showCourseWarning) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h4 className="font-semibold text-yellow-900 mb-2">Course History Alert</h4>
+          <p className="text-sm text-yellow-800 mb-3">
+            <span className="font-semibold">{studentName}</span> has previously taken:
+          </p>
+          <ul className="space-y-1 mb-4">
+            {takenCourseNames.map((courseName, index) => (
+              <li key={index} className="text-sm text-yellow-800 flex items-start">
+                <span className="mr-2">•</span>
+                <span>{courseName}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-sm text-yellow-800">
+            Would you like to reassign them to this course?
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowCourseWarning(false)}
+            className="flex-1"
+          >
+            Cancel Assignment
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirmReassignment}
+            className="flex-1"
+          >
+            Confirm Reassignment
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

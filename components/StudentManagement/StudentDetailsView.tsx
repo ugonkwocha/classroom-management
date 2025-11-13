@@ -6,8 +6,9 @@ import { useClasses, usePrograms, useCourses, useStudents } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
 import { CourseHistorySection } from './CourseHistorySection';
 import { ProgramEnrollmentsSection } from './ProgramEnrollmentsSection';
+import { PaymentStatusSection } from './PaymentStatusSection';
 import { AssignmentModal } from './AssignmentModal';
-import { generateId } from '@/lib/utils';
+import { generateId, calculateAge } from '@/lib/utils';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -21,6 +22,8 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
   const { courses } = useCourses();
   const { updateStudent } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Get full names of courses from IDs
   const getCourseName = (courseId: string): string => {
@@ -39,6 +42,14 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     return (student.programEnrollments || [])
       .filter((e) => e.status === 'assigned')
       .map((e) => e.classId);
+  };
+
+  // Update payment status for a specific program enrollment
+  const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'pending' | 'confirmed' | 'completed') => {
+    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+      e.id === enrollmentId ? { ...e, paymentStatus } : e
+    );
+    updateStudent(student.id, { programEnrollments: updatedEnrollments });
   };
 
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
@@ -70,10 +81,38 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         students: [...classData.students, studentId],
       });
     }
+
+    // Show success message
+    const className = classData?.name || 'Unknown Class';
+    const programName = programs.find((p) => p.id === programId)?.name || 'Unknown Program';
+    setSuccessMessage(`Successfully assigned ${student.firstName} ${student.lastName} to ${className} (${programName})`);
+    setShowSuccessMessage(true);
+    setIsAssignmentModalOpen(false);
+
+    // Auto-close success message after 3 seconds
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
   };
 
   return (
     <div className="space-y-6">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+          <span className="text-green-600 text-xl">✓</span>
+          <div className="flex-1">
+            <p className="font-semibold text-green-900">{successMessage}</p>
+          </div>
+          <button
+            onClick={() => setShowSuccessMessage(false)}
+            className="text-green-600 hover:text-green-800 text-lg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Student Header */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-200">
         <div className="flex justify-between items-start mb-4">
@@ -129,6 +168,12 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
               {student.isReturningStudent ? '🔄 Returning' : '🆕 New'}
             </p>
           </div>
+          {student.dateOfBirth && (
+            <div className="min-w-0">
+              <p className="text-xs text-gray-600 font-semibold">Age</p>
+              <p className="text-sm text-gray-900">{calculateAge(student.dateOfBirth)} years old</p>
+            </div>
+          )}
         </div>
 
         {/* Parent Contact (if available) */}
@@ -156,6 +201,15 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         getCourseName={getCourseName}
       />
 
+      {/* Payment Status Section */}
+      {(student.programEnrollments || []).length > 0 && (
+        <PaymentStatusSection
+          enrollments={student.programEnrollments || []}
+          programs={programs}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
+        />
+      )}
+
       {/* Program Enrollments Section */}
       <ProgramEnrollmentsSection
         enrollments={student.programEnrollments || []}
@@ -178,6 +232,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
           programs={programs}
           classes={classes}
           assignedClassIds={getAssignedClassIds()}
+          courseHistory={student.courseHistory || []}
           onAssign={handleAssignStudent}
           onCancel={() => setIsAssignmentModalOpen(false)}
         />

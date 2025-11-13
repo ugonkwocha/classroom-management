@@ -139,6 +139,20 @@ export function ProgramEnrollmentsSection({
                 </div>
               )}
 
+              {/* Payment Status */}
+              {enrollment.paymentStatus && (
+                <div className="mt-3 pt-3 border-t border-current border-opacity-20">
+                  <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                  <p className={`text-sm font-semibold ${
+                    enrollment.paymentStatus === 'completed' ? 'text-green-600' :
+                    enrollment.paymentStatus === 'confirmed' ? 'text-blue-600' :
+                    'text-amber-600'
+                  }`}>
+                    {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1)}
+                  </p>
+                </div>
+              )}
+
               {/* Enrollment Date */}
               <div className="mt-3 pt-3 border-t border-current border-opacity-20">
                 <p className="text-xs text-gray-600">
