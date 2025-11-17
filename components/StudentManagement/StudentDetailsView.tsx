@@ -145,6 +145,55 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     }, 3000);
   };
 
+  // Promote student from waitlist to assigned class
+  const handlePromoteFromWaitlist = (enrollmentId: string, classId: string, studentId: string) => {
+    const classData = classes.find((c) => c.id === classId);
+    const enrollment = student.programEnrollments?.find((e) => e.id === enrollmentId);
+    const program = programs.find((p) => p.id === enrollment?.programId);
+
+    if (!classData || !enrollment || !program) return;
+
+    // Update enrollment: change status from 'waitlist' to 'assigned' and add classId
+    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+      e.id === enrollmentId ? { ...e, status: 'assigned' as const, classId } : e
+    );
+
+    // Create course history entry with "in-progress" status
+    const newCourseHistory = {
+      id: generateId(),
+      courseId: classData.courseId || '',
+      courseName: classData.name || 'Unknown Course',
+      programId: program.id || '',
+      programName: program.name || 'Unknown Program',
+      batch: enrollment.batchNumber || 1,
+      year: program.year,
+      completionStatus: 'in-progress' as const,
+      startDate: new Date().toISOString(),
+      dateAdded: new Date().toISOString(),
+    };
+
+    const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
+
+    // Update student with new enrollment and course history
+    updateStudent(studentId, {
+      programEnrollments: updatedEnrollments,
+      courseHistory: updatedCourseHistory,
+    });
+
+    // Add student to the class
+    updateClass(classId, {
+      students: [...classData.students, studentId],
+    });
+
+    // Show success message
+    const className = classData.name || 'Unknown Class';
+    setSuccessMessage(`✓ Promoted ${student.firstName} ${student.lastName} to ${className}`);
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+  };
+
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
     // Check if student is already assigned to this class
     const assignedClasses = getAssignedClassIds();
@@ -344,6 +393,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         onUnassignFromClass={handleUnassignFromClass}
         onUnassignFromProgram={handleUnassignFromProgram}
         onMarkAsCompleted={handleMarkAsCompleted}
+        onPromoteFromWaitlist={handlePromoteFromWaitlist}
         studentId={student.id}
       />
 

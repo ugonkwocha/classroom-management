@@ -12,6 +12,7 @@ interface ProgramEnrollmentsSectionProps {
   onUnassignFromClass?: (enrollmentId: string, classId: string, studentId: string) => void;
   onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
   onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
+  onPromoteFromWaitlist?: (enrollmentId: string, classId: string, studentId: string) => void;
   studentId?: string;
 }
 
@@ -24,12 +25,14 @@ export function ProgramEnrollmentsSection({
   onUnassignFromClass,
   onUnassignFromProgram,
   onMarkAsCompleted,
+  onPromoteFromWaitlist,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
-  // Only show enrollments that have a class assignment (classId present)
+  // Separate enrollments: those with class assignment and those on waitlist
   const classEnrollments = enrollments.filter((e) => e.classId);
+  const waitlistEnrollments = enrollments.filter((e) => e.status === 'waitlist' && !e.classId);
 
-  if (classEnrollments.length === 0) {
+  if (classEnrollments.length === 0 && waitlistEnrollments.length === 0) {
     return (
       <Card>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Class Assignments</h3>
@@ -41,7 +44,7 @@ export function ProgramEnrollmentsSection({
   }
 
   const assignedCount = classEnrollments.filter((e) => e.status === 'assigned').length;
-  const waitlistCount = classEnrollments.filter((e) => e.status === 'waitlist').length;
+  const waitlistCount = enrollments.filter((e) => e.status === 'waitlist').length;
   const completedCount = classEnrollments.filter((e) => e.status === 'completed').length;
   const droppedCount = classEnrollments.filter((e) => e.status === 'dropped').length;
 
@@ -222,6 +225,116 @@ export function ProgramEnrollmentsSection({
           );
         })}
       </div>
+
+      {/* Waitlist Section */}
+      {waitlistEnrollments.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Waitlist ({waitlistEnrollments.length})</h4>
+          <div className="space-y-3">
+            {waitlistEnrollments.map((enrollment) => {
+              const program = programs.find((p) => p.id === enrollment.programId);
+              const availableClasses = classes.filter((c) => {
+                // Show classes for this program that haven't reached capacity
+                return (
+                  c.programId === enrollment.programId &&
+                  !c.isArchived &&
+                  c.students.length < c.capacity
+                );
+              });
+
+              return (
+                <div key={enrollment.id} className="p-4 rounded-lg border bg-amber-50 border-amber-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {getProgramName(enrollment.programId)}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Batch {enrollment.batchNumber}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 rounded text-xs font-semibold bg-amber-200 text-amber-800">
+                      On Waitlist
+                    </span>
+                  </div>
+
+                  {/* Enrollment Date */}
+                  <div className="mb-4 pt-3 border-t border-amber-200">
+                    <p className="text-xs text-gray-600">
+                      Waitlisted: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  {/* Payment Status */}
+                  {enrollment.paymentStatus && (
+                    <div className="mb-4 pt-3 border-t border-amber-200">
+                      <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                      <p className={`text-sm font-semibold ${
+                        enrollment.paymentStatus === 'completed' ? 'text-green-600' :
+                        enrollment.paymentStatus === 'confirmed' ? 'text-blue-600' :
+                        'text-amber-600'
+                      }`}>
+                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Promotion Section */}
+                  {availableClasses.length > 0 ? (
+                    <div className="mt-4 pt-4 border-t border-amber-200">
+                      <p className="text-sm font-semibold text-gray-900 mb-3">Promote to Class</p>
+                      <div className="space-y-2">
+                        {availableClasses.map((classData) => (
+                          <button
+                            key={classData.id}
+                            onClick={() => {
+                              const studentCount = classData.students.length;
+                              const availableSpots = classData.capacity - studentCount;
+                              if (window.confirm(
+                                `Promote student to ${classData.name}? (${availableSpots} spot${availableSpots !== 1 ? 's' : ''} available)`
+                              )) {
+                                onPromoteFromWaitlist?.(enrollment.id, classData.id, studentId || '');
+                              }
+                            }}
+                            className="w-full text-left p-3 rounded border border-amber-300 bg-white hover:bg-amber-50 transition-colors"
+                          >
+                            <p className="font-medium text-gray-900">{classData.name}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {classData.students.length} / {classData.capacity} students
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 pt-4 border-t border-amber-200">
+                      <p className="text-sm text-gray-600 italic">No available classes for this program at this time.</p>
+                    </div>
+                  )}
+
+                  {/* Unassign Option */}
+                  {onUnassignFromProgram && (
+                    <div className="mt-3 pt-3 border-t border-amber-200">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                            onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                          }
+                        }}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Remove from Waitlist
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
