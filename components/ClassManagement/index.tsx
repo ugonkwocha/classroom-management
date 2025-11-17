@@ -39,7 +39,28 @@ export function ClassManagement() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this class?')) {
+    const classToDelete = classes.find((c) => c.id === id);
+    if (!classToDelete) return;
+
+    const confirmMessage = `Are you sure you want to delete this class? ${
+      classToDelete.students.length > 0
+        ? `${classToDelete.students.length} student(s) assigned to this class will be moved back to unassigned status.`
+        : ''
+    }`;
+
+    if (window.confirm(confirmMessage)) {
+      // Reassign students from deleted class back to unassigned status
+      classToDelete.students.forEach((studentId) => {
+        const student = students.find((s) => s.id === studentId);
+        if (student && student.programEnrollments) {
+          const updatedEnrollments = student.programEnrollments.map((enrollment) =>
+            enrollment.classId === id ? { ...enrollment, classId: undefined } : enrollment
+          );
+          updateStudent(studentId, { programEnrollments: updatedEnrollments });
+        }
+      });
+
+      // Delete the class
       deleteClass(id);
     }
   };
