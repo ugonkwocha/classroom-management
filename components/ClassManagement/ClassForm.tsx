@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Class, ProgramLevel } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
 import { useCourses, usePrograms, useClasses, useTeachers } from '@/lib/hooks';
+import { formatClassName } from '@/lib/utils';
 
 interface ClassFormProps {
   onSubmit: (classData: Omit<Class, 'id' | 'createdAt'>) => void;
@@ -55,7 +56,13 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
   // Generate class name dynamically with suffix based on count of similar classes
   const generatedClassName = useMemo(() => {
     if (selectedCourse && selectedProgram && formData.batch && formData.slot) {
-      const baseName = `${selectedCourse.name} - ${selectedProgram.season} - Batch ${formData.batch} - ${formData.slot}`;
+      const baseName = formatClassName(
+        selectedCourse.name,
+        selectedProgram.season,
+        selectedProgram.year,
+        formData.batch,
+        formData.slot
+      );
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
       // Find all existing classes with the same configuration (base name with or without suffix)
@@ -299,7 +306,8 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       />
 
       <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-        <p>💡 Class name is auto-generated from: Course + Season + Batch + Time Slot</p>
+        <p>💡 Class name is auto-generated from: Course + Month Year + Batch + Time Slot</p>
+        <p className="mt-1">Example: "Scratch 101 - Jan 2026 - Batch 1 - Sat 10am-12pm-A"</p>
         <p className="mt-1">Set the maximum capacity (1-50). Default is 6 students per class</p>
       </div>
 
