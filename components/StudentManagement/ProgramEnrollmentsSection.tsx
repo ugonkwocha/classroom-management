@@ -1,7 +1,7 @@
 'use client';
 
 import { ProgramEnrollment, Class, Program } from '@/types';
-import { Card } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
 
 interface ProgramEnrollmentsSectionProps {
   enrollments: ProgramEnrollment[];
@@ -9,6 +9,9 @@ interface ProgramEnrollmentsSectionProps {
   programs: Program[];
   getProgramName: (programId: string) => string;
   getCourseName: (courseId: string) => string;
+  onUnassignFromClass?: (enrollmentId: string, classId: string, studentId: string) => void;
+  onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
+  studentId?: string;
 }
 
 export function ProgramEnrollmentsSection({
@@ -17,30 +20,36 @@ export function ProgramEnrollmentsSection({
   programs,
   getProgramName,
   getCourseName,
+  onUnassignFromClass,
+  onUnassignFromProgram,
+  studentId,
 }: ProgramEnrollmentsSectionProps) {
-  if (enrollments.length === 0) {
+  // Only show enrollments that have a class assignment (classId present)
+  const classEnrollments = enrollments.filter((e) => e.classId);
+
+  if (classEnrollments.length === 0) {
     return (
       <Card>
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Program Enrollments</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Class Assignments</h3>
         <p className="text-gray-600 text-center py-6">
-          This student hasn't been enrolled in any programs yet.
+          This student hasn't been assigned to any classes yet.
         </p>
       </Card>
     );
   }
 
-  const assignedCount = enrollments.filter((e) => e.status === 'assigned').length;
-  const waitlistCount = enrollments.filter((e) => e.status === 'waitlist').length;
-  const completedCount = enrollments.filter((e) => e.status === 'completed').length;
-  const droppedCount = enrollments.filter((e) => e.status === 'dropped').length;
+  const assignedCount = classEnrollments.filter((e) => e.status === 'assigned').length;
+  const waitlistCount = classEnrollments.filter((e) => e.status === 'waitlist').length;
+  const completedCount = classEnrollments.filter((e) => e.status === 'completed').length;
+  const droppedCount = classEnrollments.filter((e) => e.status === 'dropped').length;
 
   return (
     <Card>
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Program Enrollments</h3>
+          <h3 className="text-lg font-bold text-gray-900">Class Assignments</h3>
           <p className="text-sm text-gray-600 mt-1">
-            {enrollments.length} enrollment{enrollments.length !== 1 ? 's' : ''}
+            {classEnrollments.length} assignment{classEnrollments.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex gap-6 text-sm">
@@ -64,7 +73,7 @@ export function ProgramEnrollmentsSection({
       </div>
 
       <div className="space-y-3">
-        {enrollments.map((enrollment) => {
+        {classEnrollments.map((enrollment) => {
           const program = programs.find((p) => p.id === enrollment.programId);
           const classData = enrollment.classId
             ? classes.find((c) => c.id === enrollment.classId)
@@ -158,6 +167,38 @@ export function ProgramEnrollmentsSection({
                 <p className="text-xs text-gray-600">
                   Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
                 </p>
+              </div>
+
+              {/* Unassign Actions */}
+              <div className="mt-4 pt-4 border-t border-current border-opacity-20 flex gap-2">
+                {classData && onUnassignFromClass && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`Remove ${classData.name} assignment? The student will remain enrolled in the program.`)) {
+                        onUnassignFromClass(enrollment.id, classData.id, studentId || '');
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    Unassign from Class
+                  </Button>
+                )}
+                {onUnassignFromProgram && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                        onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                      }
+                    }}
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Unassign from Program
+                  </Button>
+                )}
               </div>
             </div>
           );

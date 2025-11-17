@@ -20,7 +20,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
   const { classes, updateClass } = useClasses();
   const { programs } = usePrograms();
   const { courses } = useCourses();
-  const { updateStudent } = useStudents();
+  const { updateStudent, students } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -40,8 +40,8 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
   // Get list of class IDs the student is already assigned to
   const getAssignedClassIds = (): string[] => {
     return (student.programEnrollments || [])
-      .filter((e) => e.status === 'assigned')
-      .map((e) => e.classId);
+      .filter((e) => e.status === 'assigned' && e.classId)
+      .map((e) => e.classId as string);
   };
 
   // Update payment status for a specific program enrollment
@@ -52,6 +52,56 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     updateStudent(student.id, { programEnrollments: updatedEnrollments });
   };
 
+  // Unassign student from a class (keep program enrollment)
+  const handleUnassignFromClass = (enrollmentId: string, classId: string, studentId: string) => {
+    // Remove classId from enrollment but keep the program enrollment
+    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+      e.id === enrollmentId ? { ...e, classId: undefined } : e
+    );
+    updateStudent(studentId, { programEnrollments: updatedEnrollments });
+
+    // Remove student from the class
+    const classData = classes.find((c) => c.id === classId);
+    if (classData) {
+      updateClass(classId, {
+        students: classData.students.filter((id) => id !== studentId),
+      });
+    }
+
+    // Show success message
+    setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${classData?.name || 'the class'}`);
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+  };
+
+  // Unassign student from a program entirely (remove program enrollment)
+  const handleUnassignFromProgram = (enrollmentId: string, programId: string, studentId: string) => {
+    // Remove the entire program enrollment
+    const enrollmentToRemove = student.programEnrollments?.find((e) => e.id === enrollmentId);
+    const updatedEnrollments = (student.programEnrollments || []).filter((e) => e.id !== enrollmentId);
+    updateStudent(studentId, { programEnrollments: updatedEnrollments });
+
+    // If the enrollment has a classId, also remove from the class
+    if (enrollmentToRemove?.classId) {
+      const classData = classes.find((c) => c.id === enrollmentToRemove.classId);
+      if (classData) {
+        updateClass(enrollmentToRemove.classId, {
+          students: classData.students.filter((id) => id !== studentId),
+        });
+      }
+    }
+
+    // Show success message
+    const programName = programs.find((p) => p.id === programId)?.name || 'Program';
+    setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${programName} (refund/unable to attend)`);
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+  };
+
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
     // Check if student is already assigned to this class
     const assignedClasses = getAssignedClassIds();
@@ -60,18 +110,37 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       return;
     }
 
-    // Create new enrollment
-    const newEnrollment: ProgramEnrollment = {
-      id: generateId(),
-      programId,
-      batchNumber: 1, // Default batch number
-      classId,
-      enrollmentDate: new Date().toISOString(),
-      status: 'assigned',
-    };
+    // Check if payment is confirmed for this program
+    const programEnrollment = (student.programEnrollments || []).find((e) => e.programId === programId);
+    if (!programEnrollment || programEnrollment.paymentStatus !== 'confirmed') {
+      alert('Cannot assign student to this program. Payment must be confirmed first. Please update the payment status in the Payment Status section.');
+      return;
+    }
 
-    // Add enrollment to student
-    const updatedEnrollments = [...(student.programEnrollments || []), newEnrollment];
+    // Update existing enrollment or create new one
+    let foundExistingEnrollment = false;
+    const updatedEnrollments = (student.programEnrollments || []).map((e) => {
+      if (e.programId === programId && !e.classId) {
+        foundExistingEnrollment = true;
+        return { ...e, classId, status: 'assigned' as const };
+      }
+      return e;
+    });
+
+    // If no existing enrollment without classId was found, create a new one
+    if (!foundExistingEnrollment) {
+      const newEnrollment: ProgramEnrollment = {
+        id: generateId(),
+        programId,
+        batchNumber: 1,
+        classId,
+        enrollmentDate: new Date().toISOString(),
+        status: 'assigned',
+        paymentStatus: 'confirmed',
+      };
+      updatedEnrollments.push(newEnrollment);
+    }
+
     updateStudent(studentId, { programEnrollments: updatedEnrollments });
 
     // Add student to class
@@ -153,16 +222,6 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
             <p className="text-sm text-gray-900 break-words">{student.phone}</p>
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-            <p className={`text-sm font-semibold ${
-              student.paymentStatus === 'completed' ? 'text-green-600' :
-              student.paymentStatus === 'confirmed' ? 'text-blue-600' :
-              'text-amber-600'
-            }`}>
-              {student.paymentStatus.charAt(0).toUpperCase() + student.paymentStatus.slice(1)}
-            </p>
-          </div>
-          <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Student Type</p>
             <p className="text-sm text-gray-900">
               {student.isReturningStudent ? '🔄 Returning' : '🆕 New'}
@@ -217,6 +276,9 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         programs={programs}
         getProgramName={getProgramName}
         getCourseName={getCourseName}
+        onUnassignFromClass={handleUnassignFromClass}
+        onUnassignFromProgram={handleUnassignFromProgram}
+        studentId={student.id}
       />
 
       {/* Assignment Modal */}
@@ -231,8 +293,10 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
           studentName={`${student.firstName} ${student.lastName}`}
           programs={programs}
           classes={classes}
+          students={students}
           assignedClassIds={getAssignedClassIds()}
           courseHistory={student.courseHistory || []}
+          studentProgramEnrollments={student.programEnrollments || []}
           onAssign={handleAssignStudent}
           onCancel={() => setIsAssignmentModalOpen(false)}
         />
