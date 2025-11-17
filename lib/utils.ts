@@ -90,3 +90,19 @@ export function formatClassName(courseName: string, season: string, year: number
   // Format: Course - Month Year - Batch X - Slot
   return `${courseName} - ${abbreviatedSeason} ${year} - Batch ${batch} - ${formattedSlot}`;
 }
+
+export function extractClassInfo(className: string): { courseName: string; season: string; batch: string; slot: string; suffix: string } | null {
+  // Parse class name in format: "CourseName - Month - Batch X - Slot-Suffix"
+  // Example: "Scratch 101 - January - Batch 1 - Saturday 10am-12pm-A"
+  const match = className.match(/^(.+?)\s+-\s+(\w+)\s+-\s+Batch\s+(\d+)\s+-\s+(.+?)(-[A-Z])?$/);
+  if (!match) return null;
+
+  const [, courseName, season, batch, slot, suffix = ''] = match;
+  return {
+    courseName: courseName.trim(),
+    season: season.trim(),
+    batch,
+    slot: slot.trim(),
+    suffix: suffix.trim(),
+  };
+}

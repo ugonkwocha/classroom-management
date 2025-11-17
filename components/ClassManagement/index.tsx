@@ -6,6 +6,7 @@ import { Class } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
 import { ClassForm } from './ClassForm';
 import { ClassCard } from './ClassCard';
+import { ClassNameMigration } from './ClassNameMigration';
 import { canAssignStudentToClass } from '@/lib/assignment';
 
 export function ClassManagement() {
@@ -54,6 +55,8 @@ export function ClassManagement() {
 
   return (
     <div className="space-y-4">
+      <ClassNameMigration />
+
       <div className="flex gap-3">
         <input
           type="text"
