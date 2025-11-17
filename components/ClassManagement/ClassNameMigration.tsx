@@ -44,7 +44,7 @@ export function ClassNameMigration() {
 
   const needsMigration = classes.some(c => {
     const longDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return longDays.some(day => c.name.includes(` - ${day}`));
+    return longDays.some(day => c.name.includes(day));
   });
 
   if (!needsMigration && !result) {

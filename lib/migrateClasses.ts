@@ -23,14 +23,15 @@ export function migrateClassNamesToNewFormat(
 
   const updatedClasses = classes.map((classItem) => {
     try {
-      // Check if class name is already in new format (contains year)
-      // New format: "CourseName - Mon/Tue/Wed/etc - Batch X - Slot"
-      // Old format: "CourseName - January/February/etc - Batch X - Slot"
+      // Check if class name is already in new format (contains abbreviated day like "Sat")
+      // New format: "CourseName - Month Year - Batch X - Sat 10am-12pm"
+      // Old format: "CourseName - January - Batch X - Saturday 10am-12pm"
 
-      const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const hasNewFormat = shortDays.some(day => classItem.name.includes(` - ${day}`));
+      const longDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const hasOldFormat = longDays.some(day => classItem.name.includes(day));
 
-      if (hasNewFormat) {
+      if (!hasOldFormat) {
+        // Already in new format
         result.skipped++;
         return classItem;
       }
