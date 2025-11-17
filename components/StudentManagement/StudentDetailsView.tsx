@@ -194,6 +194,35 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     }, 3000);
   };
 
+  // Add student to waitlist for a program
+  const handleAddToWaitlist = (studentId: string, programId: string) => {
+    const program = programs.find((p) => p.id === programId);
+    if (!program) return;
+
+    // Create new waitlist enrollment
+    const newEnrollment: ProgramEnrollment = {
+      id: generateId(),
+      programId,
+      batchNumber: 1,
+      enrollmentDate: new Date().toISOString(),
+      status: 'waitlist',
+      paymentStatus: 'pending',
+    };
+
+    const updatedEnrollments = [...(student.programEnrollments || []), newEnrollment];
+
+    updateStudent(studentId, {
+      programEnrollments: updatedEnrollments,
+    });
+
+    // Show success message
+    setSuccessMessage(`✓ Added ${student.firstName} ${student.lastName} to ${program.name} waitlist`);
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+  };
+
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
     // Check if student is already assigned to this class
     const assignedClasses = getAssignedClassIds();
@@ -401,7 +430,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       <Modal
         isOpen={isAssignmentModalOpen}
         onClose={() => setIsAssignmentModalOpen(false)}
-        title="Assign Student to Class"
+        title="Manage Student Enrollment"
         size="lg"
       >
         <AssignmentModal
@@ -414,6 +443,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
           courseHistory={student.courseHistory || []}
           studentProgramEnrollments={student.programEnrollments || []}
           onAssign={handleAssignStudent}
+          onAddToWaitlist={handleAddToWaitlist}
           onCancel={() => setIsAssignmentModalOpen(false)}
         />
       </Modal>

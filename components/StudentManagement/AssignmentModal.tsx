@@ -14,6 +14,7 @@ interface AssignmentModalProps {
   courseHistory: CourseHistory[];
   studentProgramEnrollments: ProgramEnrollment[]; // Program enrollments to check payment status
   onAssign: (studentId: string, programId: string, classId: string) => void;
+  onAddToWaitlist?: (studentId: string, programId: string) => void;
   onCancel: () => void;
 }
 
@@ -27,8 +28,10 @@ export function AssignmentModal({
   courseHistory,
   studentProgramEnrollments,
   onAssign,
+  onAddToWaitlist,
   onCancel,
 }: AssignmentModalProps) {
+  const [mode, setMode] = useState<'choice' | 'assign' | 'waitlist'>('choice');
   const [step, setStep] = useState<'program' | 'payment' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedClass, setSelectedClass] = useState<string>('');
@@ -102,6 +105,13 @@ export function AssignmentModal({
     }
   };
 
+  const handleAssignModeBack = () => {
+    setMode('choice');
+    setStep('program');
+    setSelectedProgram('');
+    setSelectedClass('');
+  };
+
   if (showCourseWarning) {
     return (
       <div className="space-y-4">
@@ -143,6 +153,126 @@ export function AssignmentModal({
     );
   }
 
+  // Handle choice mode
+  if (mode === 'choice') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">How would you like to enroll {studentName}?</h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Choose to assign them to a class directly, or add them to the waitlist if classes are full.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {/* Assign to Class Option */}
+          <button
+            onClick={() => {
+              setMode('assign');
+              setStep('program');
+            }}
+            className="w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">📚</div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">Assign to Class</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Enroll student directly in an available class with course history tracking.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Waitlist Option */}
+          <button
+            onClick={() => setMode('waitlist')}
+            className="w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition-colors"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⏳</div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">Add to Waitlist</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Add student to waitlist for a program. Promote to class when spots become available.
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <Button variant="outline" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle waitlist mode
+  if (mode === 'waitlist') {
+    const enrolledProgramIds = studentProgramEnrollments.map((e) => e.programId);
+    const availablePrograms = programs.filter(
+      (p) => !enrolledProgramIds.includes(p.id)
+    );
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Add to Waitlist</h3>
+          <p className="text-sm text-gray-600">
+            Select a program to add <span className="font-semibold">{studentName}</span> to the waitlist.
+          </p>
+        </div>
+
+        {availablePrograms.length === 0 ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              This student is already enrolled in all available programs.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {availablePrograms.map((program) => (
+              <button
+                key={program.id}
+                onClick={() => {
+                  if (onAddToWaitlist) {
+                    onAddToWaitlist(studentId, program.id);
+                    onCancel();
+                  }
+                }}
+                className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-500 transition-colors"
+              >
+                <p className="font-semibold text-gray-900">
+                  {program.name} - {program.season} {program.year}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Type: {program.type} | Batches: {program.batches}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <Button
+            variant="outline"
+            onClick={() => setMode('choice')}
+            className="flex-1"
+          >
+            Back
+          </Button>
+          <Button variant="outline" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle assign mode
   return (
     <div className="space-y-6">
       <div>
@@ -294,6 +424,11 @@ export function AssignmentModal({
       )}
 
       <div className="flex gap-3 pt-4 border-t border-gray-200">
+        {step === 'program' && (
+          <Button variant="outline" onClick={handleAssignModeBack} className="flex-1">
+            Back
+          </Button>
+        )}
         {(step === 'class' || step === 'payment') && (
           <Button variant="outline" onClick={handleBack} className="flex-1">
             Back
