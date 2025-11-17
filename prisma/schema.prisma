@@ -1,0 +1,218 @@
+// Academy Enrollment Management System - Prisma Schema
+// Optimized for PostgreSQL with indexing for 1000s of students
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Teachers ====================
+model Teacher {
+  id                String   @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String   @unique
+  phone             String
+  bio               String?
+  profilePhoto      String?
+  status            TeacherStatus @default(ACTIVE)
+  qualifiedCourses  String[] // Array of course IDs
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  classes           Class[]
+
+  @@index([email])
+  @@index([status])
+}
+
+enum TeacherStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+// ==================== Courses ====================
+model Course {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  programLevels     ProgramLevel[] // Array: Creators, Innovators, Inventors
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  classes           Class[]
+
+  @@index([name])
+}
+
+enum ProgramLevel {
+  CREATORS
+  INNOVATORS
+  INVENTORS
+}
+
+// ==================== Programs ====================
+model Program {
+  id                String   @id @default(cuid())
+  name              String
+  type              ProgramType
+  season            Season
+  year              Int
+  batches           Int
+  slots             String[] // Time slots for this program
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  classes           Class[]
+  enrollments       ProgramEnrollment[]
+
+  @@unique([name, season, year])
+  @@index([season])
+  @@index([year])
+}
+
+enum ProgramType {
+  WEEKEND_CLUB
+  HOLIDAY_CAMP
+}
+
+enum Season {
+  JANUARY
+  EASTER
+  MAY
+  SUMMER
+  OCTOBER
+}
+
+// ==================== Classes ====================
+model Class {
+  id                String   @id @default(cuid())
+  name              String
+  courseId          String
+  programId         String
+  programLevel      ProgramLevel
+  batch             Int
+  slot              String
+  schedule          String
+  capacity          Int
+  students          String[] // Array of student IDs
+  teacherId         String?
+  isArchived        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  teacher           Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  enrollments       ProgramEnrollment[]
+
+  @@unique([name])
+  @@index([programId])
+  @@index([courseId])
+  @@index([teacherId])
+  @@index([isArchived])
+}
+
+// ==================== Students ====================
+model Student {
+  id                String   @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String   @unique
+  phone             String
+  dateOfBirth       DateTime?
+  isReturningStudent Boolean  @default(false)
+  paymentStatus     PaymentStatus @default(PENDING)
+  parentEmail       String?
+  parentPhone       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  enrollments       ProgramEnrollment[]
+  courseHistory     CourseHistory[]
+
+  @@index([email])
+  @@index([isReturningStudent])
+  @@index([dateOfBirth])
+}
+
+// ==================== Program Enrollments ====================
+model ProgramEnrollment {
+  id                String   @id @default(cuid())
+  studentId         String
+  programId         String
+  classId           String?  // Null for waitlist
+  batchNumber       Int      @default(1)
+  enrollmentDate    DateTime @default(now())
+  status            EnrollmentStatus
+  paymentStatus     PaymentStatus @default(PENDING)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  class             Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([programId])
+  @@index([classId])
+  @@index([status])
+}
+
+enum EnrollmentStatus {
+  WAITLIST
+  ASSIGNED
+  COMPLETED
+  DROPPED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+}
+
+// ==================== Course History ====================
+model CourseHistory {
+  id                String   @id @default(cuid())
+  studentId         String
+  courseId          String
+  courseName        String
+  programId         String
+  programName       String
+  batch             Int      @default(1)
+  year              Int?
+  completionStatus  CompletionStatus
+  startDate         DateTime?
+  endDate           DateTime?
+  performanceNotes  String?
+  dateAdded         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([completionStatus])
+  @@index([dateAdded])
+}
+
+enum CompletionStatus {
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
