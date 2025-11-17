@@ -159,11 +159,11 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           <Card>
             <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
             <p className="text-3xl font-bold text-purple-600">
-              {students.filter((s) =>
-                s.programEnrollments &&
-                s.programEnrollments.length > 0 &&
-                s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId)
-              ).length}
+              {students.filter((s) => {
+                if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
+                // Student is unassigned if they have at least one enrollment without a classId
+                return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+              }).length}
             </p>
             <p className="text-sm text-gray-600 mt-2">
               Enrolled in program, awaiting class assignment
@@ -220,13 +220,17 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {students
               .filter((s) => {
-                const hasUnassigned = s.programEnrollments && s.programEnrollments.length > 0 && s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
-                if (!hasUnassigned) return false;
+                if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
 
                 if (detailsModal.programFilter) {
-                  return s.programEnrollments?.some((e) => e.programId === detailsModal.programFilter);
+                  // Show student only if this specific program enrollment is unassigned
+                  return s.programEnrollments.some((e) =>
+                    e.programId === detailsModal.programFilter && e.status === 'assigned' && !e.classId
+                  );
                 }
-                return true;
+
+                // Show student if they have any unassigned enrollment
+                return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
               })
               .map((student) => (
                 <button
@@ -247,13 +251,15 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
                 </button>
               ))}
             {students.filter((s) => {
-              const hasUnassigned = s.programEnrollments && s.programEnrollments.length > 0 && s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
-              if (!hasUnassigned) return false;
+              if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
 
               if (detailsModal.programFilter) {
-                return s.programEnrollments?.some((e) => e.programId === detailsModal.programFilter);
+                return s.programEnrollments.some((e) =>
+                  e.programId === detailsModal.programFilter && e.status === 'assigned' && !e.classId
+                );
               }
-              return true;
+
+              return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
             }).length === 0 && (
               <p className="text-center text-gray-500 py-4">No unassigned students</p>
             )}
