@@ -1,69 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { useStudents, useClasses, useWaitlist } from '@/lib/hooks';
-import { Card, Button, Modal } from '@/components/ui';
+import { useStudents, useClasses, useWaitlist, usePrograms } from '@/lib/hooks';
+import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
-import { assignStudentsToClasses, calculateWaitlistPriority } from '@/lib/assignment';
-import { calculateAge, generateId } from '@/lib/utils';
+import { calculateAge, getProgramLevel } from '@/lib/utils';
 
-export function Dashboard() {
-  const { students, isLoaded: studentsLoaded, updateStudent } = useStudents();
-  const { classes, isLoaded: classesLoaded, updateClass } = useClasses();
-  const { waitlist, isLoaded: waitlistLoaded, addToWaitlist, removeFromWaitlist } = useWaitlist();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [assignmentResult, setAssignmentResult] = useState<{ assigned: number; waitlisted: number }>({ assigned: 0, waitlisted: 0 });
+interface DashboardProps {
+  onSelectStudent?: (studentId: string) => void;
+}
 
-  const handleAutoAssign = () => {
-    const result = assignStudentsToClasses(students, classes, waitlist);
-
-    // Apply assignments
-    result.assigned.forEach(({ studentId, classId }) => {
-      const student = students.find((s) => s.id === studentId);
-      if (student) {
-        // Add enrollment record for the student
-        const classData = classes.find((c) => c.id === classId);
-        if (classData) {
-          const newEnrollment = {
-            id: generateId(),
-            programId: classData.programId,
-            batchNumber: classData.batch,
-            classId,
-            enrollmentDate: new Date().toISOString(),
-            status: 'assigned' as const,
-          };
-          const updatedEnrollments = [
-            ...(student.programEnrollments || []),
-            newEnrollment,
-          ];
-          updateStudent(studentId, { programEnrollments: updatedEnrollments });
-          updateClass(classId, {
-            students: [...classData.students, studentId],
-          });
-        }
-      }
-    });
-
-    // Add to waitlist
-    result.waitlisted.forEach(({ studentId, programLevel }) => {
-      const student = students.find((s) => s.id === studentId);
-      if (student && !waitlist.find((w) => w.studentId === studentId)) {
-        const priority = calculateWaitlistPriority(student, undefined, waitlist);
-        addToWaitlist({
-          studentId,
-          programLevel: programLevel as any,
-          priority,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    });
-
-    setAssignmentResult({
-      assigned: result.assigned.length,
-      waitlisted: result.waitlisted.length,
-    });
-    setIsModalOpen(true);
-  };
+export function Dashboard({ onSelectStudent }: DashboardProps) {
+  const { students, isLoaded: studentsLoaded } = useStudents();
+  const { classes, isLoaded: classesLoaded } = useClasses();
+  const { waitlist, isLoaded: waitlistLoaded } = useWaitlist();
+  const { programs } = usePrograms();
+  const [selectedProgram, setSelectedProgram] = useState<string>(''); // Filter by program
+  const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({ type: null, programFilter: '' });
 
   if (!studentsLoaded || !classesLoaded || !waitlistLoaded) {
     return <div>Loading...</div>;
@@ -85,24 +38,40 @@ export function Dashboard() {
   const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
-  // Group students by program level (based on their class assignments)
-  const programDistribution = {
-    'AI Explorers': classes.filter((c) => c.programLevel === 'AI Explorers').reduce((count, cls) => {
-      return count + students.filter((s) =>
-        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
-      ).length;
-    }, 0),
-    'AI Creators': classes.filter((c) => c.programLevel === 'AI Creators').reduce((count, cls) => {
-      return count + students.filter((s) =>
-        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
-      ).length;
-    }, 0),
-    'AI Innovators': classes.filter((c) => c.programLevel === 'AI Innovators').reduce((count, cls) => {
-      return count + students.filter((s) =>
-        s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
-      ).length;
-    }, 0),
+  // Group students by program level (based on their age)
+  // If a program is selected, filter students by that program's enrollments
+  const getFilteredStudents = (programLevelName: string) => {
+    return students.filter((s) => {
+      if (!s.dateOfBirth) return false;
+      const age = calculateAge(s.dateOfBirth);
+      try {
+        const studentLevel = getProgramLevel(age);
+        if (studentLevel !== programLevelName) return false;
+
+        if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
+
+        // If a specific program is selected, filter by that program
+        if (selectedProgram) {
+          return s.programEnrollments.some((e) => e.programId === selectedProgram);
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    }).length;
   };
+
+  const programDistribution = {
+    'Creators': getFilteredStudents('Creators'),
+    'Innovators': getFilteredStudents('Innovators'),
+    'Inventors': getFilteredStudents('Inventors'),
+  };
+
+  // Get total students in the filtered view
+  const filteredStudentsCount = selectedProgram
+    ? students.filter((s) => s.programEnrollments && s.programEnrollments.some((e) => e.programId === selectedProgram)).length
+    : Object.values(programDistribution).reduce((sum, count) => sum + count, 0);
 
   return (
     <div className="space-y-6">
@@ -136,84 +105,233 @@ export function Dashboard() {
 
       {/* Program Distribution */}
       <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Program Distribution</h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Program Distribution</h2>
+          <div className="flex gap-2">
+            <select
+              value={selectedProgram}
+              onChange={(e) => setSelectedProgram(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">All Programs</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name} - {program.season} {program.year}
+                </option>
+              ))}
+            </select>
+            {selectedProgram && (
+              <button
+                onClick={() => setSelectedProgram('')}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
           {Object.entries(programDistribution).map(([program, count]) => (
             <div key={program} className="p-4 bg-purple-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">{program}</p>
               <p className="text-2xl font-bold text-purple-600">{count}</p>
               <p className="text-xs text-gray-500 mt-2">
-                {Math.round((count / totalStudents) * 100) || 0}% of students
+                {Math.round((count / filteredStudentsCount) * 100) || 0}% of students
               </p>
             </div>
           ))}
-        </div>
-      </Card>
-
-      {/* Auto-Assign Section */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Auto-Assign Students</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Automatically assign all unassigned students to appropriate classes
+          <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <p className="text-sm text-blue-600 font-semibold mb-1">Total Enrolled</p>
+            <p className="text-2xl font-bold text-blue-900">{filteredStudentsCount}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              {selectedProgram ? 'for selected program' : 'across all programs'}
             </p>
           </div>
-          <Button
-            variant="primary"
-            onClick={handleAutoAssign}
-            disabled={students.filter((s) => s.programEnrollments && s.programEnrollments.every((e) => e.status !== 'waitlist')).length === students.length}
-          >
-            Run Auto-Assign
-          </Button>
         </div>
       </Card>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
-          <p className="text-3xl font-bold text-purple-600">
-            {students.filter((s) => !s.programEnrollments || s.programEnrollments.length === 0 || s.programEnrollments.every((e) => e.status === 'waitlist')).length}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            Pending assignment to classes
-          </p>
-        </Card>
+        <button
+          onClick={() => setDetailsModal({ type: 'unassigned', programFilter: '' })}
+          className="text-left hover:shadow-lg transition-shadow"
+        >
+          <Card>
+            <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
+            <p className="text-3xl font-bold text-purple-600">
+              {students.filter((s) =>
+                s.programEnrollments &&
+                s.programEnrollments.length > 0 &&
+                s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId)
+              ).length}
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Enrolled in program, awaiting class assignment
+            </p>
+            <p className="text-xs text-purple-500 mt-3 font-semibold">Click to view details</p>
+          </Card>
+        </button>
 
-        <Card>
-          <h3 className="font-bold text-gray-900 mb-3">Class Availability</h3>
-          <p className="text-3xl font-bold text-green-600">
-            {classes.filter((c) => c.students.length < c.capacity).length}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            Classes with available spots
-          </p>
-        </Card>
+        <button
+          onClick={() => setDetailsModal({ type: 'availability', programFilter: '' })}
+          className="text-left hover:shadow-lg transition-shadow"
+        >
+          <Card>
+            <h3 className="font-bold text-gray-900 mb-3">Class Availability</h3>
+            <p className="text-3xl font-bold text-green-600">
+              {classes.filter((c) => {
+                const enrolledCount = students.filter((s) =>
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+                ).length;
+                return enrolledCount < c.capacity;
+              }).length}
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Classes with available spots
+            </p>
+            <p className="text-xs text-green-500 mt-3 font-semibold">Click to view details</p>
+          </Card>
+        </button>
       </div>
 
-      {/* Assignment Result Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Auto-Assignment Complete">
+      {/* Details Modal - Unassigned Students */}
+      <Modal
+        isOpen={detailsModal.type === 'unassigned'}
+        onClose={() => setDetailsModal({ type: null, programFilter: '' })}
+        title="Unassigned Students"
+      >
         <div className="space-y-4">
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-800">
-              <span className="font-bold">{assignmentResult.assigned}</span> students assigned to classes
-            </p>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Program</label>
+            <select
+              value={detailsModal.programFilter}
+              onChange={(e) => setDetailsModal({ ...detailsModal, programFilter: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">All Programs</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name} - {program.season} {program.year}
+                </option>
+              ))}
+            </select>
           </div>
-          {assignmentResult.waitlisted > 0 && (
-            <div className="p-4 bg-amber-50 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <span className="font-bold">{assignmentResult.waitlisted}</span> students added to waitlist
-              </p>
-            </div>
-          )}
-          <Button
-            variant="primary"
-            onClick={() => setIsModalOpen(false)}
-            className="w-full"
-          >
-            Done
-          </Button>
+
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {students
+              .filter((s) => {
+                const hasUnassigned = s.programEnrollments && s.programEnrollments.length > 0 && s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+                if (!hasUnassigned) return false;
+
+                if (detailsModal.programFilter) {
+                  return s.programEnrollments?.some((e) => e.programId === detailsModal.programFilter);
+                }
+                return true;
+              })
+              .map((student) => (
+                <button
+                  key={student.id}
+                  onClick={() => {
+                    setDetailsModal({ type: null, programFilter: '' });
+                    onSelectStudent?.(student.id);
+                  }}
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-colors cursor-pointer text-left"
+                >
+                  <p className="font-semibold text-gray-900">{student.firstName} {student.lastName}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {student.email && <>{student.email}</>}
+                  </p>
+                  {student.dateOfBirth && (
+                    <p className="text-xs text-gray-500 mt-1">Age: {calculateAge(student.dateOfBirth)}</p>
+                  )}
+                </button>
+              ))}
+            {students.filter((s) => {
+              const hasUnassigned = s.programEnrollments && s.programEnrollments.length > 0 && s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+              if (!hasUnassigned) return false;
+
+              if (detailsModal.programFilter) {
+                return s.programEnrollments?.some((e) => e.programId === detailsModal.programFilter);
+              }
+              return true;
+            }).length === 0 && (
+              <p className="text-center text-gray-500 py-4">No unassigned students</p>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Details Modal - Class Availability */}
+      <Modal
+        isOpen={detailsModal.type === 'availability'}
+        onClose={() => setDetailsModal({ type: null, programFilter: '' })}
+        title="Classes with Available Spots"
+      >
+        <div className="space-y-4">
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Program</label>
+            <select
+              value={detailsModal.programFilter}
+              onChange={(e) => setDetailsModal({ ...detailsModal, programFilter: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">All Programs</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name} - {program.season} {program.year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {classes
+              .filter((c) => {
+                const enrolledCount = students.filter((s) =>
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+                ).length;
+                const hasAvailability = enrolledCount < c.capacity;
+
+                if (!hasAvailability) return false;
+
+                if (detailsModal.programFilter) {
+                  return c.programId === detailsModal.programFilter;
+                }
+                return true;
+              })
+              .map((cls) => {
+                const enrolledCount = students.filter((s) =>
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+                ).length;
+                const availableSlots = cls.capacity - enrolledCount;
+
+                return (
+                  <div key={cls.id} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="font-semibold text-gray-900">{cls.name}</p>
+                    <p className="text-xs text-gray-600 mt-1">Level: {cls.programLevel}</p>
+                    <p className="text-xs text-gray-600">Slot: {cls.slot}</p>
+                    <p className="text-xs text-green-700 font-semibold mt-2">
+                      {availableSlots} spot{availableSlots !== 1 ? 's' : ''} available ({enrolledCount}/{cls.capacity} enrolled)
+                    </p>
+                  </div>
+                );
+              })}
+            {classes.filter((c) => {
+              const enrolledCount = students.filter((s) =>
+                s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+              ).length;
+              const hasAvailability = enrolledCount < c.capacity;
+
+              if (!hasAvailability) return false;
+
+              if (detailsModal.programFilter) {
+                return c.programId === detailsModal.programFilter;
+              }
+              return true;
+            }).length === 0 && (
+              <p className="text-center text-gray-500 py-4">No classes with availability</p>
+            )}
+          </div>
         </div>
       </Modal>
     </div>
