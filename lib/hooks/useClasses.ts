@@ -1,73 +1,77 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR, { SWRConfiguration } from 'swr';
 import { Class } from '@/types';
-import { generateId } from '@/lib/utils';
 
-const STORAGE_KEY = 'academy_classes';
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useClasses() {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { data: classes = [], isLoading, error, mutate } = useSWR<Class[]>(
+    '/api/classes',
+    fetcher,
+    { revalidateOnFocus: false } as SWRConfiguration
+  );
 
-  useEffect(() => {
+  const isLoaded = !isLoading && !error;
+
+  const addClass = async (classData: Omit<Class, 'id' | 'createdAt'>) => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setClasses(JSON.parse(stored));
-      }
+      const res = await fetch('/api/classes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(classData),
+      });
+      const newClass = await res.json();
+      await mutate();
+      return newClass;
     } catch (error) {
-      console.error('Failed to load classes:', error);
+      console.error('Failed to add class:', error);
+      throw error;
     }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
-      } catch (error) {
-        console.error('Failed to save classes:', error);
-      }
-    }
-  }, [classes, isLoaded]);
-
-  const addClass = (classData: Omit<Class, 'id' | 'createdAt'>) => {
-    const newClass: Class = {
-      ...classData,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setClasses((prev) => [...prev, newClass]);
-    return newClass;
   };
 
-  const updateClass = (id: string, updates: Partial<Class>) => {
-    setClasses((prev) =>
-      prev.map((classItem) =>
-        classItem.id === id ? { ...classItem, ...updates } : classItem
-      )
-    );
+  const updateClass = async (id: string, updates: Partial<Class>) => {
+    try {
+      const res = await fetch(`/api/classes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedClass = await res.json();
+      await mutate();
+      return updatedClass;
+    } catch (error) {
+      console.error('Failed to update class:', error);
+      throw error;
+    }
   };
 
-  const deleteClass = (id: string) => {
-    setClasses((prev) => prev.filter((classItem) => classItem.id !== id));
+  const deleteClass = async (id: string) => {
+    try {
+      await fetch(`/api/classes/${id}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to delete class:', error);
+      throw error;
+    }
   };
 
   const getClass = (id: string) => {
     return classes.find((classItem) => classItem.id === id);
   };
 
-  const addStudentToClass = (classId: string, studentId: string) => {
-    updateClass(classId, {
-      students: [...(getClass(classId)?.students || []), studentId],
+  const addStudentToClass = async (classId: string, studentId: string) => {
+    const classItem = getClass(classId);
+    if (!classItem) throw new Error('Class not found');
+    return updateClass(classId, {
+      students: [...(classItem.students || []), studentId],
     });
   };
 
-  const removeStudentFromClass = (classId: string, studentId: string) => {
+  const removeStudentFromClass = async (classId: string, studentId: string) => {
     const classItem = getClass(classId);
     if (classItem) {
-      updateClass(classId, {
+      return updateClass(classId, {
         students: classItem.students.filter((id) => id !== studentId),
       });
     }

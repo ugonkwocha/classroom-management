@@ -1,57 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR, { SWRConfiguration } from 'swr';
 import { Course } from '@/types';
-import { generateId } from '@/lib/utils';
 
-const STORAGE_KEY = 'academy_courses';
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useCourses() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { data: courses = [], isLoading, error, mutate } = useSWR<Course[]>(
+    '/api/courses',
+    fetcher,
+    { revalidateOnFocus: false } as SWRConfiguration
+  );
 
-  useEffect(() => {
+  const isLoaded = !isLoading && !error;
+
+  const addCourse = async (course: Omit<Course, 'id' | 'createdAt'>) => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setCourses(JSON.parse(stored));
-      }
+      const res = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(course),
+      });
+      const newCourse = await res.json();
+      await mutate();
+      return newCourse;
     } catch (error) {
-      console.error('Failed to load courses:', error);
+      console.error('Failed to add course:', error);
+      throw error;
     }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
-      } catch (error) {
-        console.error('Failed to save courses:', error);
-      }
-    }
-  }, [courses, isLoaded]);
-
-  const addCourse = (course: Omit<Course, 'id' | 'createdAt'>) => {
-    const newCourse: Course = {
-      ...course,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setCourses((prev) => [...prev, newCourse]);
-    return newCourse;
   };
 
-  const updateCourse = (id: string, updates: Partial<Course>) => {
-    setCourses((prev) =>
-      prev.map((course) =>
-        course.id === id ? { ...course, ...updates } : course
-      )
-    );
+  const updateCourse = async (id: string, updates: Partial<Course>) => {
+    try {
+      const res = await fetch(`/api/courses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedCourse = await res.json();
+      await mutate();
+      return updatedCourse;
+    } catch (error) {
+      console.error('Failed to update course:', error);
+      throw error;
+    }
   };
 
-  const deleteCourse = (id: string) => {
-    setCourses((prev) => prev.filter((course) => course.id !== id));
+  const deleteCourse = async (id: string) => {
+    try {
+      await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+      throw error;
+    }
   };
 
   const getCourse = (id: string) => {

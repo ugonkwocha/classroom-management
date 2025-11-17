@@ -1,113 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR, { SWRConfiguration } from 'swr';
 import { Program } from '@/types';
-import { generateId } from '@/lib/utils';
 
-const STORAGE_KEY = 'academy_programs';
-
-// Default programs for Transcend AI Academy
-const DEFAULT_PROGRAMS: Omit<Program, 'id'>[] = [
-  {
-    name: 'January Weekend Code Club',
-    type: 'WeekendClub',
-    season: 'January',
-    year: 2025,
-    batches: 1,
-    slots: ['Saturday 10am-12pm'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    name: 'Easter Holiday Code Camp',
-    type: 'HolidayCamp',
-    season: 'Easter',
-    year: 2025,
-    batches: 2,
-    slots: ['Morning 9am-11am', 'Afternoon 1pm-3pm'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    name: 'May Weekend Code Class',
-    type: 'WeekendClub',
-    season: 'May',
-    year: 2025,
-    batches: 1,
-    slots: ['Saturday 10am-12pm'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    name: 'Summer Holiday Code Camp',
-    type: 'HolidayCamp',
-    season: 'Summer',
-    year: 2025,
-    batches: 3,
-    slots: ['Morning 9am-11am', 'Afternoon 1pm-3pm'],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    name: 'October Weekend Code Club',
-    type: 'WeekendClub',
-    season: 'October',
-    year: 2025,
-    batches: 1,
-    slots: ['Saturday 10am-12pm'],
-    createdAt: new Date().toISOString(),
-  },
-];
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function usePrograms() {
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { data: programs = [], isLoading, error, mutate } = useSWR<Program[]>(
+    '/api/programs',
+    fetcher,
+    { revalidateOnFocus: false } as SWRConfiguration
+  );
 
-  useEffect(() => {
+  const isLoaded = !isLoading && !error;
+
+  const addProgram = async (program: Omit<Program, 'id' | 'createdAt'>) => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setPrograms(JSON.parse(stored));
-      } else {
-        // Initialize with default programs
-        const defaultProgramsWithIds = DEFAULT_PROGRAMS.map((prog) => ({
-          ...prog,
-          id: generateId(),
-        }));
-        setPrograms(defaultProgramsWithIds);
-      }
+      const res = await fetch('/api/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(program),
+      });
+      const newProgram = await res.json();
+      await mutate();
+      return newProgram;
     } catch (error) {
-      console.error('Failed to load programs:', error);
+      console.error('Failed to add program:', error);
+      throw error;
     }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded && programs.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(programs));
-      } catch (error) {
-        console.error('Failed to save programs:', error);
-      }
-    }
-  }, [programs, isLoaded]);
-
-  const addProgram = (program: Omit<Program, 'id' | 'createdAt'>) => {
-    const newProgram: Program = {
-      ...program,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setPrograms((prev) => [...prev, newProgram]);
-    return newProgram;
   };
 
-  const updateProgram = (id: string, updates: Partial<Program>) => {
-    setPrograms((prev) =>
-      prev.map((program) =>
-        program.id === id ? { ...program, ...updates } : program
-      )
-    );
+  const updateProgram = async (id: string, updates: Partial<Program>) => {
+    try {
+      const res = await fetch(`/api/programs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedProgram = await res.json();
+      await mutate();
+      return updatedProgram;
+    } catch (error) {
+      console.error('Failed to update program:', error);
+      throw error;
+    }
   };
 
-  const deleteProgram = (id: string) => {
-    setPrograms((prev) => prev.filter((program) => program.id !== id));
+  const deleteProgram = async (id: string) => {
+    try {
+      await fetch(`/api/programs/${id}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to delete program:', error);
+      throw error;
+    }
   };
 
   const getProgram = (id: string) => {

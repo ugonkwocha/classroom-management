@@ -1,59 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR, { SWRConfiguration } from 'swr';
 import { Student, CourseHistory, ProgramEnrollment } from '@/types';
-import { generateId } from '@/lib/utils';
 
-const STORAGE_KEY = 'academy_students';
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useStudents() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { data: students = [], isLoading, error, mutate } = useSWR<Student[]>(
+    '/api/students',
+    fetcher,
+    { revalidateOnFocus: false } as SWRConfiguration
+  );
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  const isLoaded = !isLoading && !error;
+
+  const addStudent = async (student: Omit<Student, 'id' | 'createdAt'>) => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setStudents(JSON.parse(stored));
-      }
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(student),
+      });
+      const newStudent = await res.json();
+      await mutate();
+      return newStudent;
     } catch (error) {
-      console.error('Failed to load students:', error);
+      console.error('Failed to add student:', error);
+      throw error;
     }
-    setIsLoaded(true);
-  }, []);
-
-  // Save to localStorage whenever students change
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
-      } catch (error) {
-        console.error('Failed to save students:', error);
-      }
-    }
-  }, [students, isLoaded]);
-
-  const addStudent = (student: Omit<Student, 'id' | 'createdAt'>) => {
-    const newStudent: Student = {
-      ...student,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setStudents((prev) => [...prev, newStudent]);
-    return newStudent;
   };
 
-  const updateStudent = (id: string, updates: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === id ? { ...student, ...updates } : student
-      )
-    );
+  const updateStudent = async (id: string, updates: Partial<Student>) => {
+    try {
+      const res = await fetch(`/api/students/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedStudent = await res.json();
+      await mutate();
+      return updatedStudent;
+    } catch (error) {
+      console.error('Failed to update student:', error);
+      throw error;
+    }
   };
 
-  const deleteStudent = (id: string) => {
-    setStudents((prev) => prev.filter((student) => student.id !== id));
+  const deleteStudent = async (id: string) => {
+    try {
+      await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to delete student:', error);
+      throw error;
+    }
   };
 
   const getStudent = (id: string) => {
@@ -61,104 +61,103 @@ export function useStudents() {
   };
 
   // Course History Management
-  const addCourseHistory = (studentId: string, courseHistory: Omit<CourseHistory, 'id'>) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              courseHistory: [
-                ...student.courseHistory,
-                { ...courseHistory, id: generateId() },
-              ],
-            }
-          : student
-      )
-    );
+  const addCourseHistory = async (studentId: string, courseHistory: Omit<CourseHistory, 'id'>) => {
+    try {
+      const student = getStudent(studentId);
+      if (!student) throw new Error('Student not found');
+
+      const res = await fetch('/api/course-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courseHistory),
+      });
+      const newHistory = await res.json();
+      await mutate();
+      return newHistory;
+    } catch (error) {
+      console.error('Failed to add course history:', error);
+      throw error;
+    }
   };
 
-  const removeCourseHistory = (studentId: string, historyId: string) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              courseHistory: student.courseHistory.filter((h) => h.id !== historyId),
-            }
-          : student
-      )
-    );
+  const removeCourseHistory = async (studentId: string, historyId: string) => {
+    try {
+      await fetch(`/api/course-history/${historyId}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to remove course history:', error);
+      throw error;
+    }
   };
 
-  const updateCourseHistory = (
+  const updateCourseHistory = async (
     studentId: string,
     historyId: string,
     updates: Partial<CourseHistory>
   ) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              courseHistory: student.courseHistory.map((h) =>
-                h.id === historyId ? { ...h, ...updates } : h
-              ),
-            }
-          : student
-      )
-    );
+    try {
+      const res = await fetch(`/api/course-history/${historyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedHistory = await res.json();
+      await mutate();
+      return updatedHistory;
+    } catch (error) {
+      console.error('Failed to update course history:', error);
+      throw error;
+    }
   };
 
   // Program Enrollment Management
-  const addProgramEnrollment = (
+  const addProgramEnrollment = async (
     studentId: string,
     enrollment: Omit<ProgramEnrollment, 'id'>
   ) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              programEnrollments: [
-                ...(student.programEnrollments || []),
-                { ...enrollment, id: generateId() },
-              ],
-            }
-          : student
-      )
-    );
+    try {
+      const res = await fetch('/api/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...enrollment, studentId }),
+      });
+      const newEnrollment = await res.json();
+      await mutate();
+      return newEnrollment;
+    } catch (error) {
+      console.error('Failed to add program enrollment:', error);
+      throw error;
+    }
   };
 
-  const removeProgramEnrollment = (studentId: string, enrollmentId: string) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              programEnrollments: (student.programEnrollments || []).filter((e) => e.id !== enrollmentId),
-            }
-          : student
-      )
-    );
+  const removeProgramEnrollment = async (studentId: string, enrollmentId: string) => {
+    try {
+      await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' });
+      await mutate();
+    } catch (error) {
+      console.error('Failed to remove program enrollment:', error);
+      throw error;
+    }
   };
 
-  const updateProgramEnrollment = (
+  const updateProgramEnrollment = async (
     studentId: string,
     enrollmentId: string,
     updates: Partial<ProgramEnrollment>
   ) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              programEnrollments: (student.programEnrollments || []).map((e) =>
-                e.id === enrollmentId ? { ...e, ...updates } : e
-              ),
-            }
-          : student
-      )
-    );
+    try {
+      const res = await fetch(`/api/enrollments/${enrollmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const updatedEnrollment = await res.json();
+      await mutate();
+      return updatedEnrollment;
+    } catch (error) {
+      console.error('Failed to update program enrollment:', error);
+      throw error;
+    }
   };
 
   // Get student's enrollments for a specific program
