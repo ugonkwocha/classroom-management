@@ -8,11 +8,12 @@ interface ClassCardProps {
   classData: Class;
   onEdit: (classData: Class) => void;
   onDelete: (id: string) => void;
+  onViewStudents: (classData: Class) => void;
   studentCount: number;
   teacher?: Teacher;
 }
 
-export function ClassCard({ classData, onEdit, onDelete, studentCount, teacher }: ClassCardProps) {
+export function ClassCard({ classData, onEdit, onDelete, onViewStudents, studentCount, teacher }: ClassCardProps) {
   const capacity = classData.capacity;
   const percentage = Math.round((studentCount / capacity) * 100);
   const isFull = studentCount >= capacity;
@@ -26,8 +27,8 @@ export function ClassCard({ classData, onEdit, onDelete, studentCount, teacher }
       className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="font-semibold text-gray-900">{classData.name}</h3>
+        <div className="cursor-pointer flex-1" onClick={() => onViewStudents(classData)}>
+          <h3 className="font-semibold text-gray-900 hover:text-purple-600 transition-colors">{classData.name}</h3>
           <p className="text-sm text-gray-500 mt-1">
             Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
           </p>
@@ -60,6 +61,14 @@ export function ClassCard({ classData, onEdit, onDelete, studentCount, teacher }
         </div>
 
         <div className="flex gap-2 pt-3 border-t border-gray-200">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onViewStudents(classData)}
+            className="flex-1"
+          >
+            View Students
+          </Button>
           <Button
             variant="outline"
             size="sm"

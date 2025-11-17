@@ -1,19 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useClasses, useStudents, useTeachers } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers, usePrograms } from '@/lib/hooks';
 import { Class } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
 import { ClassForm } from './ClassForm';
 import { ClassCard } from './ClassCard';
 import { ClassNameMigration } from './ClassNameMigration';
+import { ClassStudentsModal } from './ClassStudentsModal';
 import { canAssignStudentToClass } from '@/lib/assignment';
 
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
   const { students, updateStudent } = useStudents();
   const { teachers } = useTeachers();
+  const { programs } = usePrograms();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [selectedClassForStudents, setSelectedClassForStudents] = useState<Class | undefined>();
   const [editingClass, setEditingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
 
@@ -36,6 +40,16 @@ export function ClassManagement() {
   const handleEdit = (classData: Class) => {
     setEditingClass(classData);
     setIsModalOpen(true);
+  };
+
+  const handleViewStudents = (classData: Class) => {
+    setSelectedClassForStudents(classData);
+    setIsStudentsModalOpen(true);
+  };
+
+  const handleCloseStudentsModal = () => {
+    setIsStudentsModalOpen(false);
+    setSelectedClassForStudents(undefined);
   };
 
   const handleDelete = (id: string) => {
@@ -129,6 +143,7 @@ export function ClassManagement() {
                 classData={classData}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onViewStudents={handleViewStudents}
                 studentCount={Math.min(studentCount, classData.capacity)}
                 teacher={teacher}
               />
@@ -139,6 +154,21 @@ export function ClassManagement() {
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingClass ? 'Edit Class' : 'Create New Class'}>
         <ClassForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingClass} />
+      </Modal>
+
+      <Modal
+        isOpen={isStudentsModalOpen}
+        onClose={handleCloseStudentsModal}
+        title={selectedClassForStudents ? `Students in ${selectedClassForStudents.name}` : 'Class Students'}
+        size="lg"
+      >
+        {selectedClassForStudents && (
+          <ClassStudentsModal
+            classData={selectedClassForStudents}
+            students={students}
+            programs={programs}
+          />
+        )}
       </Modal>
     </div>
   );
