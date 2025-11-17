@@ -110,22 +110,18 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
 
     if (!classData || !enrollment || !program) return;
 
-    // Create course history entry
-    const newCourseHistory = {
-      id: generateId(),
-      courseId: classData.courseId,
-      courseName: classData.name,
-      programId: program.id,
-      programName: program.name,
-      batch: enrollment.batchNumber,
-      year: program.year,
-      completionStatus: 'completed' as const,
-      startDate: enrollment.enrollmentDate,
-      endDate: new Date().toISOString(),
-    };
-
-    // Add to student's course history
-    const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
+    // Update existing course history entry from "in-progress" to "completed"
+    const updatedCourseHistory = (student.courseHistory || []).map((history) => {
+      // Find the matching course history entry by matching course name and program ID
+      if (history.courseName === classData.name && history.programId === program.id) {
+        return {
+          ...history,
+          completionStatus: 'completed' as const,
+          endDate: new Date().toISOString(),
+        };
+      }
+      return history;
+    });
 
     // Remove the enrollment from programEnrollments
     const updatedEnrollments = (student.programEnrollments || []).filter((e) => e.id !== enrollmentId);
@@ -142,7 +138,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     });
 
     // Show success message
-    setSuccessMessage(`✓ Marked ${classData.name} as completed and added to course history`);
+    setSuccessMessage(`✓ Marked ${classData.name} as completed`);
     setShowSuccessMessage(true);
     setTimeout(() => {
       setShowSuccessMessage(false);
@@ -188,10 +184,32 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       updatedEnrollments.push(newEnrollment);
     }
 
-    updateStudent(studentId, { programEnrollments: updatedEnrollments });
+    // Get class and program data for course history
+    const classData = classes.find((c) => c.id === classId);
+    const program = programs.find((p) => p.id === programId);
+
+    // Create course history entry with "in-progress" status
+    const newCourseHistory = {
+      id: generateId(),
+      courseId: classData?.courseId || '',
+      courseName: classData?.name || 'Unknown Course',
+      programId: program?.id || '',
+      programName: program?.name || 'Unknown Program',
+      batch: programEnrollment?.batchNumber || 1,
+      year: program?.year,
+      completionStatus: 'in-progress' as const,
+      startDate: new Date().toISOString(),
+      dateAdded: new Date().toISOString(),
+    };
+
+    const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
+
+    updateStudent(studentId, {
+      programEnrollments: updatedEnrollments,
+      courseHistory: updatedCourseHistory,
+    });
 
     // Add student to class
-    const classData = classes.find((c) => c.id === classId);
     if (classData) {
       updateClass(classId, {
         students: [...classData.students, studentId],
