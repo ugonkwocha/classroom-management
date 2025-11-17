@@ -9,7 +9,8 @@ async function main() {
   console.log('Creating teachers...');
   const teacher1 = await prisma.teacher.create({
     data: {
-      name: 'Alice Johnson',
+      firstName: 'Alice',
+      lastName: 'Johnson',
       email: 'alice@transcendai.com',
       phone: '+1-234-567-8900',
       status: 'ACTIVE',
@@ -19,7 +20,8 @@ async function main() {
 
   const teacher2 = await prisma.teacher.create({
     data: {
-      name: 'Bob Smith',
+      firstName: 'Bob',
+      lastName: 'Smith',
       email: 'bob@transcendai.com',
       phone: '+1-234-567-8901',
       status: 'ACTIVE',
@@ -61,6 +63,8 @@ async function main() {
       season: 'JANUARY',
       year: 2025,
       type: 'WEEKEND_CLUB',
+      batches: 1,
+      slots: ['Saturday 10am-12pm'],
     },
   });
 
@@ -70,6 +74,8 @@ async function main() {
       season: 'SUMMER',
       year: 2025,
       type: 'HOLIDAY_CAMP',
+      batches: 2,
+      slots: ['Morning 9am-11am', 'Afternoon 1pm-3pm'],
     },
   });
 
@@ -82,9 +88,10 @@ async function main() {
       batch: 1,
       slot: 'Saturday 10am-12pm',
       schedule: '{"days":["Saturday"],"time":"10:00-12:00"}',
-      teacherId: teacher1.id,
+      programLevel: 'CREATORS',
       courseId: course1.id,
       programId: program1.id,
+      teacherId: teacher1.id,
       isArchived: false,
     },
   });
@@ -96,9 +103,10 @@ async function main() {
       batch: 1,
       slot: 'Morning 9am-11am',
       schedule: '{"days":["Monday","Tuesday","Wednesday","Thursday","Friday"],"time":"09:00-11:00"}',
-      teacherId: teacher2.id,
+      programLevel: 'CREATORS',
       courseId: course3.id,
       programId: program2.id,
+      teacherId: teacher2.id,
       isArchived: false,
     },
   });
@@ -110,9 +118,10 @@ async function main() {
       batch: 2,
       slot: 'Afternoon 1pm-3pm',
       schedule: '{"days":["Monday","Tuesday","Wednesday","Thursday","Friday"],"time":"13:00-15:00"}',
-      teacherId: teacher1.id,
+      programLevel: 'INNOVATORS',
       courseId: course2.id,
       programId: program2.id,
+      teacherId: teacher1.id,
       isArchived: false,
     },
   });
@@ -124,6 +133,7 @@ async function main() {
       firstName: 'Emma',
       lastName: 'Wilson',
       email: 'emma.wilson@email.com',
+      phone: '+1-234-567-0001',
       dateOfBirth: new Date('2010-05-15'),
       isReturningStudent: false,
     },
@@ -134,6 +144,7 @@ async function main() {
       firstName: 'Liam',
       lastName: 'Anderson',
       email: 'liam.anderson@email.com',
+      phone: '+1-234-567-0002',
       dateOfBirth: new Date('2009-08-22'),
       isReturningStudent: true,
     },
@@ -144,6 +155,7 @@ async function main() {
       firstName: 'Sophia',
       lastName: 'Taylor',
       email: 'sophia.taylor@email.com',
+      phone: '+1-234-567-0003',
       dateOfBirth: new Date('2010-02-10'),
       isReturningStudent: false,
     },
@@ -154,6 +166,7 @@ async function main() {
       firstName: 'Noah',
       lastName: 'Brown',
       email: 'noah.brown@email.com',
+      phone: '+1-234-567-0004',
       dateOfBirth: new Date('2011-03-18'),
       isReturningStudent: false,
     },
@@ -164,6 +177,7 @@ async function main() {
       firstName: 'Olivia',
       lastName: 'Davis',
       email: 'olivia.davis@email.com',
+      phone: '+1-234-567-0005',
       dateOfBirth: new Date('2010-11-05'),
       isReturningStudent: false,
     },
@@ -240,7 +254,12 @@ async function main() {
   await prisma.courseHistory.create({
     data: {
       studentId: student1.id,
+      courseId: course1.id,
       courseName: 'Python Basics',
+      programId: program1.id,
+      programName: 'January Weekend Code Club 2025',
+      batch: 1,
+      year: 2025,
       completionStatus: 'COMPLETED',
       startDate: new Date('2024-01-08'),
       endDate: new Date('2024-01-29'),
@@ -251,7 +270,12 @@ async function main() {
   await prisma.courseHistory.create({
     data: {
       studentId: student2.id,
+      courseId: course1.id,
       courseName: 'Python Basics',
+      programId: program1.id,
+      programName: 'January Weekend Code Club 2025',
+      batch: 1,
+      year: 2025,
       completionStatus: 'IN_PROGRESS',
       startDate: new Date('2024-01-08'),
       endDate: null,
@@ -262,7 +286,12 @@ async function main() {
   await prisma.courseHistory.create({
     data: {
       studentId: student1.id,
+      courseId: course3.id,
       courseName: 'Game Design',
+      programId: program2.id,
+      programName: 'Summer Holiday Code Camp 2025',
+      batch: 1,
+      year: 2025,
       completionStatus: 'COMPLETED',
       startDate: new Date('2024-06-03'),
       endDate: new Date('2024-08-16'),

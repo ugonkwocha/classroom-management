@@ -20,7 +20,11 @@
       "Bash(set -a)",
       "Bash(source .env)",
       "Bash(set +a)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(npm install:*)",
+      "Bash(lsof:*)",
+      "Bash(psql:*)",
+      "Bash(npx prisma:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,8 +2,7 @@
 // Optimized for PostgreSQL with indexing for 1000s of students
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
