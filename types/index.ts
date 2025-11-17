@@ -1,7 +1,7 @@
-export type ProgramLevel = 'Creators' | 'Innovators' | 'Inventors';
-export type ProgramType = 'WeekendClub' | 'HolidayCamp';
-export type Season = 'January' | 'Easter' | 'May' | 'Summer' | 'October';
-export type TeacherStatus = 'Active' | 'Inactive' | 'On Leave';
+export type ProgramLevel = 'CREATORS' | 'INNOVATORS' | 'INVENTORS';
+export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
+export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
+export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 
 export interface Course {
   id: string;
