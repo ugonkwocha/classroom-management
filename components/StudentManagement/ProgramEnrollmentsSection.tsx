@@ -11,6 +11,7 @@ interface ProgramEnrollmentsSectionProps {
   getCourseName: (courseId: string) => string;
   onUnassignFromClass?: (enrollmentId: string, classId: string, studentId: string) => void;
   onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
+  onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
   studentId?: string;
 }
 
@@ -22,6 +23,7 @@ export function ProgramEnrollmentsSection({
   getCourseName,
   onUnassignFromClass,
   onUnassignFromProgram,
+  onMarkAsCompleted,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
   // Only show enrollments that have a class assignment (classId present)
@@ -169,36 +171,52 @@ export function ProgramEnrollmentsSection({
                 </p>
               </div>
 
-              {/* Unassign Actions */}
-              <div className="mt-4 pt-4 border-t border-current border-opacity-20 flex gap-2">
-                {classData && onUnassignFromClass && (
+              {/* Actions */}
+              <div className="mt-4 pt-4 border-t border-current border-opacity-20 space-y-2">
+                {onMarkAsCompleted && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (window.confirm(`Remove ${classData.name} assignment? The student will remain enrolled in the program.`)) {
-                        onUnassignFromClass(enrollment.id, classData.id, studentId || '');
+                      if (window.confirm(`Mark ${classData?.name || 'this course'} as completed? This will add it to the student's course history.`)) {
+                        onMarkAsCompleted(enrollment.id, classData?.id || '', studentId || '');
                       }
                     }}
-                    className="flex-1"
+                    className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
                   >
-                    Unassign from Class
+                    ✓ Mark as Completed
                   </Button>
                 )}
-                {onUnassignFromProgram && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
-                        onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
-                      }
-                    }}
-                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Unassign from Program
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {classData && onUnassignFromClass && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm(`Remove ${classData.name} assignment? The student will remain enrolled in the program.`)) {
+                          onUnassignFromClass(enrollment.id, classData.id, studentId || '');
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      Unassign from Class
+                    </Button>
+                  )}
+                  {onUnassignFromProgram && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                          onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                        }
+                      }}
+                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Unassign from Program
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           );

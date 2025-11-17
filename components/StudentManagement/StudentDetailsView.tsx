@@ -102,6 +102,53 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     }, 3000);
   };
 
+  // Mark a class as completed and add to course history
+  const handleMarkAsCompleted = (enrollmentId: string, classId: string, studentId: string) => {
+    const classData = classes.find((c) => c.id === classId);
+    const enrollment = student.programEnrollments?.find((e) => e.id === enrollmentId);
+    const program = programs.find((p) => p.id === enrollment?.programId);
+
+    if (!classData || !enrollment || !program) return;
+
+    // Create course history entry
+    const newCourseHistory = {
+      id: generateId(),
+      courseId: classData.courseId,
+      courseName: classData.name,
+      programId: program.id,
+      programName: program.name,
+      batch: enrollment.batchNumber,
+      year: program.year,
+      completionStatus: 'completed' as const,
+      startDate: enrollment.enrollmentDate,
+      endDate: new Date().toISOString(),
+    };
+
+    // Add to student's course history
+    const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
+
+    // Remove the enrollment from programEnrollments
+    const updatedEnrollments = (student.programEnrollments || []).filter((e) => e.id !== enrollmentId);
+
+    // Update student with both changes
+    updateStudent(studentId, {
+      courseHistory: updatedCourseHistory,
+      programEnrollments: updatedEnrollments,
+    });
+
+    // Remove student from the class
+    updateClass(classId, {
+      students: classData.students.filter((id) => id !== studentId),
+    });
+
+    // Show success message
+    setSuccessMessage(`✓ Marked ${classData.name} as completed and added to course history`);
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+  };
+
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
     // Check if student is already assigned to this class
     const assignedClasses = getAssignedClassIds();
@@ -278,6 +325,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         getCourseName={getCourseName}
         onUnassignFromClass={handleUnassignFromClass}
         onUnassignFromProgram={handleUnassignFromProgram}
+        onMarkAsCompleted={handleMarkAsCompleted}
         studentId={student.id}
       />
 
