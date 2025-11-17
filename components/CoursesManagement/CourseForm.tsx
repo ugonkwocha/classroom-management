@@ -11,12 +11,12 @@ interface CourseFormProps {
   isLoading?: boolean;
 }
 
-const allProgramLevels: ProgramLevel[] = ['AI Explorers', 'AI Creators', 'AI Innovators'];
+const allProgramLevels: ProgramLevel[] = ['Creators', 'Innovators', 'Inventors'];
 
 const programLevelInfo = {
-  'AI Explorers': 'Ages 6-8',
-  'AI Creators': 'Ages 9-12',
-  'AI Innovators': 'Ages 13-16',
+  'Creators': 'Ages 6-8',
+  'Innovators': 'Ages 9-11',
+  'Inventors': 'Ages 12-16',
 };
 
 export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false }: CourseFormProps) {

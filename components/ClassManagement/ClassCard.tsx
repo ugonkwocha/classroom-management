@@ -8,12 +8,14 @@ interface ClassCardProps {
   classData: Class;
   onEdit: (classData: Class) => void;
   onDelete: (id: string) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
   onViewStudents: (classData: Class) => void;
   studentCount: number;
   teacher?: Teacher;
 }
 
-export function ClassCard({ classData, onEdit, onDelete, onViewStudents, studentCount, teacher }: ClassCardProps) {
+export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive, onViewStudents, studentCount, teacher }: ClassCardProps) {
   const capacity = classData.capacity;
   const percentage = Math.round((studentCount / capacity) * 100);
   const isFull = studentCount >= capacity;
@@ -33,9 +35,14 @@ export function ClassCard({ classData, onEdit, onDelete, onViewStudents, student
             Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
           </p>
         </div>
-        <Badge variant={isFull ? 'warning' : 'success'}>
-          {isFull ? 'FULL' : 'AVAILABLE'}
-        </Badge>
+        <div className="flex gap-2 items-start">
+          {classData.isArchived && (
+            <Badge variant="info">ARCHIVED</Badge>
+          )}
+          <Badge variant={isFull ? 'warning' : 'success'}>
+            {isFull ? 'FULL' : 'AVAILABLE'}
+          </Badge>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -74,9 +81,30 @@ export function ClassCard({ classData, onEdit, onDelete, onViewStudents, student
             size="sm"
             onClick={() => onEdit(classData)}
             className="flex-1"
+            disabled={classData.isArchived}
+            title={classData.isArchived ? 'Cannot edit archived class' : ''}
           >
             Edit
           </Button>
+          {classData.isArchived ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUnarchive(classData.id)}
+              className="flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            >
+              Unarchive
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onArchive(classData.id)}
+              className="flex-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+            >
+              Archive
+            </Button>
+          )}
           <Button
             variant="danger"
             size="sm"

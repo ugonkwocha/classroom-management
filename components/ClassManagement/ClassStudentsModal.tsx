@@ -37,8 +37,13 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
 
   return (
     <div className="space-y-4">
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
-        <h3 className="font-bold text-gray-900 mb-2">{classData.name}</h3>
+      <div className={`p-4 rounded-lg border ${classData.isArchived ? 'bg-gray-50 border-gray-200' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-bold text-gray-900">{classData.name}</h3>
+          {classData.isArchived && (
+            <span className="text-xs font-semibold px-2 py-1 bg-gray-200 text-gray-800 rounded">ARCHIVED</span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-xs text-gray-600 font-semibold">Capacity</p>

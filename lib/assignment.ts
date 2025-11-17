@@ -51,7 +51,7 @@ export function assignStudentsToClasses(
         const existingWaitlistEntry = existingWaitlist.find((w) => w.studentId === student.id);
         if (!existingWaitlistEntry) {
           // Use the first class's program level as a generic placeholder
-          const programLevel = classes.length > 0 ? classes[0].programLevel : 'AI Explorers';
+          const programLevel = classes.length > 0 ? classes[0].programLevel : 'Creators';
           waitlisted.push({
             studentId: student.id,
             programLevel,

@@ -21,7 +21,7 @@ export function WaitlistCard({ entry, student, onRemove, index }: WaitlistCardPr
       className="flex items-center justify-between p-4 bg-white border border-amber-200 rounded-lg hover:shadow-md transition-shadow"
     >
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-900">{student?.name || 'Unknown'}</h3>
+        <h3 className="font-semibold text-gray-900">{student ? `${student.firstName} ${student.lastName}` : 'Unknown'}</h3>
         <p className="text-sm text-gray-600 mt-1">Position: #{index + 1}</p>
         <div className="flex gap-2 mt-2">
           <Badge variant="warning">{entry.programLevel}</Badge>

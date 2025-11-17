@@ -24,7 +24,8 @@ export function StudentList({ students, onView, onEdit, onDelete }: StudentListP
     <div className="space-y-3">
       {students.map((student) => {
         const age = student.dateOfBirth ? calculateAge(student.dateOfBirth) : null;
-        const enrollmentCount = student.programEnrollments?.length || 0;
+        // Only count class assignments (enrollments with classId)
+        const classAssignmentCount = (student.programEnrollments || []).filter((e) => e.classId).length;
         const historyCount = student.courseHistory?.length || 0;
 
         return (
@@ -50,24 +51,15 @@ export function StudentList({ students, onView, onEdit, onDelete }: StudentListP
               </div>
               <div className="flex gap-2 mt-3 flex-wrap">
                 {student.isReturningStudent && <Badge variant="success">🔄 Returning</Badge>}
-                {enrollmentCount > 0 && (
+                {classAssignmentCount > 0 && (
                   <Badge variant="primary">
-                    {enrollmentCount} enrollment{enrollmentCount !== 1 ? 's' : ''}
+                    {classAssignmentCount} assignment{classAssignmentCount !== 1 ? 's' : ''}
                   </Badge>
                 )}
                 {historyCount > 0 && (
                   <Badge variant="info">
                     {historyCount} course{historyCount !== 1 ? 's' : ''} history
                   </Badge>
-                )}
-                {student.paymentStatus === 'completed' && (
-                  <Badge variant="success">✓ Paid</Badge>
-                )}
-                {student.paymentStatus === 'confirmed' && (
-                  <Badge variant="primary">Payment Verified</Badge>
-                )}
-                {student.paymentStatus === 'pending' && (
-                  <Badge variant="warning">Pending Payment</Badge>
                 )}
               </div>
             </div>

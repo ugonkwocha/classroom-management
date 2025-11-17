@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Student, CourseHistory } from '@/types';
+import { Student, CourseHistory, ProgramEnrollment } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
-import { useCourses } from '@/lib/hooks';
-import { calculateAge } from '@/lib/utils';
+import { useCourses, usePrograms } from '@/lib/hooks';
+import { calculateAge, generateId } from '@/lib/utils';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => void;
@@ -15,6 +15,7 @@ interface StudentFormProps {
 
 export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false }: StudentFormProps) {
   const { courses } = useCourses();
+  const { programs } = usePrograms();
 
   const [formData, setFormData] = useState({
     firstName: initialData?.firstName || '',
@@ -25,13 +26,15 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     parentPhone: initialData?.parentPhone || '',
     dateOfBirth: initialData?.dateOfBirth || '',
     isReturningStudent: initialData?.isReturningStudent || false,
-    paymentStatus: initialData?.paymentStatus || 'pending',
   });
 
   const [selectedPastCourses, setSelectedPastCourses] = useState<string[]>(
     initialData?.courseHistory.map((h) => h.courseId) || []
   );
 
+  const [enrollInProgram, setEnrollInProgram] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -40,14 +43,29 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
 
+    // Student email is now optional
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email.trim() && !emailRegex.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
 
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    // Student phone is now optional
+
+    // Parent contact is now required
+    if (!formData.parentEmail.trim()) newErrors.parentEmail = 'Parent email is required';
+    if (formData.parentEmail.trim() && !emailRegex.test(formData.parentEmail)) {
+      newErrors.parentEmail = 'Invalid parent email format';
+    }
+    if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
+
+    // Check enrollment and payment if enrolled in program
+    if (enrollInProgram && !selectedProgram) {
+      newErrors.selectedProgram = 'Please select a program';
+    }
+    if (enrollInProgram && selectedProgram && !paymentConfirmed) {
+      newErrors.paymentConfirmed = 'Please confirm payment for the program';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -66,18 +84,33 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       };
     });
 
+    // Build program enrollments if student is enrolling in a program
+    let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
+    if (enrollInProgram && selectedProgram && paymentConfirmed) {
+      const newEnrollment: ProgramEnrollment = {
+        id: generateId(),
+        programId: selectedProgram,
+        batchNumber: 1,
+        enrollmentDate: new Date().toISOString(),
+        status: 'assigned',
+        paymentStatus: 'confirmed',
+      };
+      programEnrollments = [...programEnrollments, newEnrollment];
+    }
+
     onSubmit({
       firstName: formData.firstName,
       lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
       parentEmail: formData.parentEmail || undefined,
       parentPhone: formData.parentPhone || undefined,
       dateOfBirth: formData.dateOfBirth || undefined,
       isReturningStudent: formData.isReturningStudent,
       courseHistory: initialData?.courseHistory || courseHistory,
-      programEnrollments: initialData?.programEnrollments || [],
-      paymentStatus: formData.paymentStatus as 'pending' | 'confirmed' | 'completed',
+      programEnrollments,
+      // Only set paymentStatus if student has program enrollments, otherwise leave as pending (not displayed)
+      paymentStatus: programEnrollments.length > 0 ? 'confirmed' : 'pending',
     });
 
     setErrors({});
@@ -141,7 +174,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         <h3 className="font-semibold text-gray-900 mb-3">Contact Information</h3>
 
         <Input
-          label="Student Email"
+          label="Student Email (Optional)"
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -150,45 +183,98 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         />
 
         <Input
-          label="Student Phone"
+          label="Student Phone (Optional)"
           type="tel"
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          error={errors.phone}
           placeholder="+1 (555) 123-4567"
           className="mt-3"
         />
 
         <Input
-          label="Parent Email (Optional)"
+          label="Parent Email"
           type="email"
           value={formData.parentEmail}
           onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+          error={errors.parentEmail}
           placeholder="parent@example.com"
           className="mt-3"
         />
 
         <Input
-          label="Parent Phone (Optional)"
+          label="Parent Phone"
           type="tel"
           value={formData.parentPhone}
           onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+          error={errors.parentPhone}
           placeholder="+1 (555) 987-6543"
           className="mt-3"
         />
       </div>
 
-      {/* Payment Status */}
-      <Select
-        label="Payment Status"
-        value={formData.paymentStatus}
-        onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
-        options={[
-          { value: 'pending', label: 'Pending - Awaiting Payment' },
-          { value: 'confirmed', label: 'Confirmed - Payment Verified' },
-          { value: 'completed', label: 'Completed' },
-        ]}
-      />
+      {/* Program Enrollment Section */}
+      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enrollInProgram}
+            onChange={(e) => {
+              setEnrollInProgram(e.target.checked);
+              if (!e.target.checked) {
+                setSelectedProgram('');
+                setPaymentConfirmed(false);
+              }
+            }}
+            className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+          />
+          <span className="font-semibold text-gray-900">Enroll in an upcoming program?</span>
+        </label>
+
+        {enrollInProgram && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Program</label>
+              {programs.length === 0 ? (
+                <p className="text-gray-500 text-sm">No programs available</p>
+              ) : (
+                <select
+                  value={selectedProgram}
+                  onChange={(e) => {
+                    setSelectedProgram(e.target.value);
+                    setPaymentConfirmed(false); // Reset payment when program changes
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">-- Select a program --</option>
+                  {programs.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.name} - {program.season} {program.year}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {errors.selectedProgram && <p className="text-red-600 text-xs mt-1">{errors.selectedProgram}</p>}
+            </div>
+
+            {selectedProgram && (
+              <div className="bg-white p-3 rounded-lg border border-purple-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentConfirmed}
+                    onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                    className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-900">
+                    <span className="font-semibold">Confirm:</span> Payment has been made for this program
+                  </span>
+                </label>
+                {errors.paymentConfirmed && <p className="text-red-600 text-xs mt-2">{errors.paymentConfirmed}</p>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Returning Student Section */}
       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">

@@ -38,8 +38,15 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
               transition={{ duration: 0.3 }}
             >
               {title && (
-                <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
+                <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+                  <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-600 text-2xl font-light leading-none"
+                    aria-label="Close modal"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
               <div className="p-6 overflow-y-auto flex-1">{children}</div>

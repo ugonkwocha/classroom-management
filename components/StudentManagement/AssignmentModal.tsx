@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Program, Class, CourseHistory } from '@/types';
+import { Program, Class, CourseHistory, ProgramEnrollment } from '@/types';
 import { Button } from '@/components/ui';
 
 interface AssignmentModalProps {
@@ -9,8 +9,10 @@ interface AssignmentModalProps {
   studentName: string;
   programs: Program[];
   classes: Class[];
+  students: any[]; // List of all students to calculate class enrollment accurately
   assignedClassIds: string[]; // Track which classes student is already in
   courseHistory: CourseHistory[];
+  studentProgramEnrollments: ProgramEnrollment[]; // Program enrollments to check payment status
   onAssign: (studentId: string, programId: string, classId: string) => void;
   onCancel: () => void;
 }
@@ -20,12 +22,14 @@ export function AssignmentModal({
   studentName,
   programs,
   classes,
+  students,
   assignedClassIds,
   courseHistory,
+  studentProgramEnrollments,
   onAssign,
   onCancel,
 }: AssignmentModalProps) {
-  const [step, setStep] = useState<'program' | 'class'>('program');
+  const [step, setStep] = useState<'program' | 'payment' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [showCourseWarning, setShowCourseWarning] = useState(false);
@@ -36,14 +40,29 @@ export function AssignmentModal({
     ? classes.filter((cls) => cls.programId === selectedProgram)
     : [];
 
+  // Check if selected program has confirmed payment
+  const selectedProgramEnrollment = studentProgramEnrollments.find(
+    (e) => e.programId === selectedProgram
+  );
+  const isPaymentConfirmed = selectedProgramEnrollment?.paymentStatus === 'confirmed';
+
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(programId);
-    setStep('class');
+    setStep('payment'); // Move to payment confirmation step instead of directly to class selection
     setSelectedClass(''); // Reset class selection when program changes
+  };
+
+  const handlePaymentConfirmed = () => {
+    // Proceed to class selection after confirming payment
+    setStep('class');
   };
 
   const handleAssign = () => {
     if (selectedProgram && selectedClass) {
+      // Check if payment is confirmed for this program
+      // Note: This assumes programEnrollments are passed via props or accessed from student data
+      // The actual payment check will be done at the StudentDetailsView level
+
       // Check if student has taken the course in this class before
       const selectedClassData = classes.find((c) => c.id === selectedClass);
       if (selectedClassData) {
@@ -73,8 +92,14 @@ export function AssignmentModal({
   };
 
   const handleBack = () => {
-    setStep('program');
-    setSelectedClass('');
+    if (step === 'payment') {
+      setStep('program');
+      setSelectedProgram('');
+      setSelectedClass('');
+    } else if (step === 'class') {
+      setStep('payment');
+      setSelectedClass('');
+    }
   };
 
   if (showCourseWarning) {
@@ -151,6 +176,52 @@ export function AssignmentModal({
             </div>
           )}
         </div>
+      ) : step === 'payment' ? (
+        <div className="space-y-4">
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">Selected Program:</span>{' '}
+              {programs.find((p) => p.id === selectedProgram)?.name}
+            </p>
+          </div>
+
+          <h4 className="font-semibold text-gray-900">Step 2: Confirm Payment Status</h4>
+          <div className={`p-4 rounded-lg border-2 ${
+            isPaymentConfirmed
+              ? 'border-green-300 bg-green-50'
+              : 'border-amber-300 bg-amber-50'
+          }`}>
+            <p className="text-sm font-semibold mb-3">
+              Payment Status for {programs.find((p) => p.id === selectedProgram)?.name}
+            </p>
+            <p className={`text-sm font-semibold ${
+              isPaymentConfirmed
+                ? 'text-green-700'
+                : 'text-amber-700'
+            }`}>
+              {isPaymentConfirmed
+                ? '✓ Payment Confirmed'
+                : '⚠ Payment Not Confirmed'}
+            </p>
+            {!isPaymentConfirmed && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-amber-700">
+                  Payment status for this program has not been confirmed. Please update the payment status before proceeding.
+                </p>
+                <p className="text-xs text-amber-700 font-semibold">
+                  To confirm payment:
+                </p>
+                <ol className="text-xs text-amber-700 list-decimal list-inside space-y-1">
+                  <li>Close this modal by clicking "Cancel"</li>
+                  <li>Go to the "Program Payment Status" section below</li>
+                  <li>Click "Edit" next to the program</li>
+                  <li>Change the status to "Confirmed - Payment Verified"</li>
+                  <li>Click "Save" and try assigning again</li>
+                </ol>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="bg-purple-50 p-4 rounded-lg">
@@ -160,13 +231,16 @@ export function AssignmentModal({
             </p>
           </div>
 
-          <h4 className="font-semibold text-gray-900">Step 2: Select a Class</h4>
+          <h4 className="font-semibold text-gray-900">Step 3: Select a Class</h4>
           {programClasses.length === 0 ? (
             <p className="text-gray-500 text-sm">No classes available for this program.</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {programClasses.map((cls) => {
-                const enrolledCount = cls.students.length;
+                // Calculate enrollment based on students with actual class assignments
+                const enrolledCount = students.filter(
+                  (s) => s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id)
+                ).length;
                 const availableSpots = cls.capacity - enrolledCount;
                 const isFull = availableSpots <= 0;
                 const isAlreadyAssigned = assignedClassIds.includes(cls.id);
@@ -220,7 +294,7 @@ export function AssignmentModal({
       )}
 
       <div className="flex gap-3 pt-4 border-t border-gray-200">
-        {step === 'class' && (
+        {(step === 'class' || step === 'payment') && (
           <Button variant="outline" onClick={handleBack} className="flex-1">
             Back
           </Button>
@@ -228,6 +302,16 @@ export function AssignmentModal({
         <Button variant="outline" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
+        {step === 'payment' && (
+          <Button
+            variant="primary"
+            onClick={handlePaymentConfirmed}
+            disabled={!isPaymentConfirmed}
+            className="flex-1"
+          >
+            Continue to Class Selection
+          </Button>
+        )}
         {step === 'class' && (
           <Button
             variant="primary"

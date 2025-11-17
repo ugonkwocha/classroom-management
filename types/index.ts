@@ -1,4 +1,4 @@
-export type ProgramLevel = 'AI Explorers' | 'AI Creators' | 'AI Innovators';
+export type ProgramLevel = 'Creators' | 'Innovators' | 'Inventors';
 export type ProgramType = 'WeekendClub' | 'HolidayCamp';
 export type Season = 'January' | 'Easter' | 'May' | 'Summer' | 'October';
 export type TeacherStatus = 'Active' | 'Inactive' | 'On Leave';
@@ -90,6 +90,7 @@ export interface Class {
   students: string[];
   capacity: number;
   teacherId?: string; // Optional: teachers can be assigned later
+  isArchived?: boolean; // Archive instead of delete
   createdAt: string;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStudents } from '@/lib/hooks';
 import { Student } from '@/types';
 import { Card, Modal } from '@/components/ui';
@@ -8,13 +8,28 @@ import { StudentForm } from './StudentForm';
 import { StudentList } from './StudentList';
 import { StudentDetailsView } from './StudentDetailsView';
 
-export function StudentManagement() {
+interface StudentManagementProps {
+  selectedStudentId?: string;
+}
+
+export function StudentManagement({ selectedStudentId }: StudentManagementProps) {
   const { students, isLoaded, addStudent, updateStudent, deleteStudent } = useStudents();
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>();
   const [viewingStudent, setViewingStudent] = useState<Student | undefined>();
   const [filter, setFilter] = useState<string>('');
+
+  // Handle student ID from parent component (e.g., from dashboard modal)
+  useEffect(() => {
+    if (selectedStudentId && isLoaded && students.length > 0) {
+      const student = students.find((s) => s.id === selectedStudentId);
+      if (student) {
+        setViewingStudent(student);
+        setIsDetailsModalOpen(true);
+      }
+    }
+  }, [selectedStudentId, isLoaded, students]);
 
   const filteredStudents = students.filter((student) =>
     `${student.firstName} ${student.lastName}`.toLowerCase().includes(filter.toLowerCase()) ||

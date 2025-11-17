@@ -183,7 +183,7 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
                           key={student.id}
                           className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded"
                         >
-                          {student.name}
+                          {student.firstName} {student.lastName}
                         </span>
                       ))}
                     </div>

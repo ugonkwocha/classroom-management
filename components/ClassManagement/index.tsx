@@ -20,12 +20,15 @@ export function ClassManagement() {
   const [selectedClassForStudents, setSelectedClassForStudents] = useState<Class | undefined>();
   const [editingClass, setEditingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
+  const [showArchived, setShowArchived] = useState(false);
 
-  const filteredClasses = classes.filter(
-    (cls) =>
+  const filteredClasses = classes.filter((cls) => {
+    const matchesFilter =
       cls.name.toLowerCase().includes(filter.toLowerCase()) ||
-      cls.programLevel.toLowerCase().includes(filter.toLowerCase())
-  );
+      cls.programLevel.toLowerCase().includes(filter.toLowerCase());
+    const matchesArchiveStatus = showArchived ? cls.isArchived : !cls.isArchived;
+    return matchesFilter && matchesArchiveStatus;
+  });
 
   const handleSubmit = (classData: Omit<Class, 'id' | 'createdAt'>) => {
     if (editingClass) {
@@ -50,6 +53,20 @@ export function ClassManagement() {
   const handleCloseStudentsModal = () => {
     setIsStudentsModalOpen(false);
     setSelectedClassForStudents(undefined);
+  };
+
+  const handleArchiveClass = (id: string) => {
+    const classToArchive = classes.find((c) => c.id === id);
+    if (classToArchive) {
+      updateClass(id, { isArchived: true });
+    }
+  };
+
+  const handleUnarchiveClass = (id: string) => {
+    const classToUnarchive = classes.find((c) => c.id === id);
+    if (classToUnarchive) {
+      updateClass(id, { isArchived: false });
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -92,20 +109,34 @@ export function ClassManagement() {
     <div className="space-y-4">
       <ClassNameMigration />
 
-      <div className="flex gap-3">
-        <input
-          type="text"
-          placeholder="Search classes..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-        >
-          + Create Class
-        </button>
+      <div className="space-y-3">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Search classes..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+          >
+            + Create Class
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Show Archived Classes</span>
+          </label>
+        </div>
       </div>
 
       {filteredClasses.length === 0 ? (
@@ -143,6 +174,8 @@ export function ClassManagement() {
                 classData={classData}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onArchive={handleArchiveClass}
+                onUnarchive={handleUnarchiveClass}
                 onViewStudents={handleViewStudents}
                 studentCount={Math.min(studentCount, classData.capacity)}
                 teacher={teacher}
