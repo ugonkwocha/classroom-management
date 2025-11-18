@@ -88,7 +88,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
     if (enrollInProgram && selectedProgram && paymentConfirmed) {
       const newEnrollment: ProgramEnrollment = {
-        id: generateId(),
+        id: '',
         programId: selectedProgram,
         batchNumber: 1,
         enrollmentDate: new Date().toISOString(),
