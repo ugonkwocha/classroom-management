@@ -40,7 +40,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
   // Get list of class IDs the student is already assigned to
   const getAssignedClassIds = (): string[] => {
     return (student.programEnrollments || [])
-      .filter((e) => e.status === 'assigned' && e.classId)
+      .filter((e) => e.status === 'ASSIGNED' && e.classId)
       .map((e) => e.classId as string);
   };
 
@@ -153,9 +153,9 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
 
     if (!classData || !enrollment || !program) return;
 
-    // Update enrollment: change status from 'waitlist' to 'assigned' and add classId
+    // Update enrollment: change status from 'waitlist' to 'ASSIGNED' and add classId
     const updatedEnrollments = (student.programEnrollments || []).map((e) =>
-      e.id === enrollmentId ? { ...e, status: 'assigned' as const, classId } : e
+      e.id === enrollmentId ? { ...e, status: 'ASSIGNED' as const, classId } : e
     );
 
     // Create course history entry with "in-progress" status
@@ -205,7 +205,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       programId,
       batchNumber: 1,
       enrollmentDate: new Date().toISOString(),
-      status: 'waitlist',
+      status: 'WAITLIST',
       paymentStatus: 'PENDING',
     };
 
@@ -243,7 +243,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
     const updatedEnrollments = (student.programEnrollments || []).map((e) => {
       if (e.programId === programId && !e.classId) {
         foundExistingEnrollment = true;
-        return { ...e, classId, status: 'assigned' as const };
+        return { ...e, classId, status: 'ASSIGNED' as const };
       }
       return e;
     });
@@ -256,7 +256,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         batchNumber: 1,
         classId,
         enrollmentDate: new Date().toISOString(),
-        status: 'assigned',
+        status: 'ASSIGNED',
         paymentStatus: 'CONFIRMED',
       };
       updatedEnrollments.push(newEnrollment);

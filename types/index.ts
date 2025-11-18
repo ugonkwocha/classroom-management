@@ -45,7 +45,7 @@ export interface ProgramEnrollment {
   batchNumber: number;
   classId?: string; // May not be assigned immediately (waitlist)
   enrollmentDate: string;
-  status: 'waitlist' | 'assigned' | 'completed' | 'dropped';
+  status: 'WAITLIST' | 'ASSIGNED' | 'COMPLETED' | 'DROPPED';
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'COMPLETED'; // Program-specific payment status
 }
 

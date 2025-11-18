@@ -92,7 +92,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         programId: selectedProgram,
         batchNumber: 1,
         enrollmentDate: new Date().toISOString(),
-        status: 'assigned',
+        status: 'ASSIGNED',
         paymentStatus: 'CONFIRMED',
       };
       programEnrollments = [...programEnrollments, newEnrollment];

@@ -29,7 +29,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   let totalEnrolled = 0;
   classes.forEach((cls) => {
     const enrolledInClass = students.filter((s) =>
-      s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+      s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'ASSIGNED')
     ).length;
     totalEnrolled += Math.min(enrolledInClass, cls.capacity);
   });
@@ -162,7 +162,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
               {students.filter((s) => {
                 if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
                 // Student is unassigned if they have at least one enrollment without a classId
-                return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+                return s.programEnrollments.some((e) => e.status === 'ASSIGNED' && !e.classId);
               }).length}
             </p>
             <p className="text-sm text-gray-600 mt-2">
@@ -181,7 +181,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <p className="text-3xl font-bold text-green-600">
               {classes.filter((c) => {
                 const enrolledCount = students.filter((s) =>
-                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'ASSIGNED')
                 ).length;
                 return enrolledCount < c.capacity;
               }).length}
@@ -225,12 +225,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
                 if (detailsModal.programFilter) {
                   // Show student only if this specific program enrollment is unassigned
                   return s.programEnrollments.some((e) =>
-                    e.programId === detailsModal.programFilter && e.status === 'assigned' && !e.classId
+                    e.programId === detailsModal.programFilter && e.status === 'ASSIGNED' && !e.classId
                   );
                 }
 
                 // Show student if they have any unassigned enrollment
-                return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+                return s.programEnrollments.some((e) => e.status === 'ASSIGNED' && !e.classId);
               })
               .map((student) => (
                 <button
@@ -255,11 +255,11 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
               if (detailsModal.programFilter) {
                 return s.programEnrollments.some((e) =>
-                  e.programId === detailsModal.programFilter && e.status === 'assigned' && !e.classId
+                  e.programId === detailsModal.programFilter && e.status === 'ASSIGNED' && !e.classId
                 );
               }
 
-              return s.programEnrollments.some((e) => e.status === 'assigned' && !e.classId);
+              return s.programEnrollments.some((e) => e.status === 'ASSIGNED' && !e.classId);
             }).length === 0 && (
               <p className="text-center text-gray-500 py-4">No unassigned students</p>
             )}
@@ -294,7 +294,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             {classes
               .filter((c) => {
                 const enrolledCount = students.filter((s) =>
-                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'ASSIGNED')
                 ).length;
                 const hasAvailability = enrolledCount < c.capacity;
 
@@ -307,7 +307,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
               })
               .map((cls) => {
                 const enrolledCount = students.filter((s) =>
-                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'assigned')
+                  s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'ASSIGNED')
                 ).length;
                 const availableSlots = cls.capacity - enrolledCount;
 
@@ -324,7 +324,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
               })}
             {classes.filter((c) => {
               const enrolledCount = students.filter((s) =>
-                s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'assigned')
+                s.programEnrollments && s.programEnrollments.some((e) => e.classId === c.id && e.status === 'ASSIGNED')
               ).length;
               const hasAvailability = enrolledCount < c.capacity;
 

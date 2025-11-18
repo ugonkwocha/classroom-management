@@ -16,7 +16,7 @@ export function assignStudentsToClasses(
   // Get unassigned students (those with no assigned enrollments)
   const unassignedStudents = students.filter(
     (s) => !s.programEnrollments || s.programEnrollments.length === 0 ||
-           s.programEnrollments.every((e) => e.status === 'waitlist')
+           s.programEnrollments.every((e) => e.status === 'WAITLIST')
   );
 
   // Sort students by priority (returning students first)
@@ -129,7 +129,7 @@ export function canAssignStudentToClass(
   }
 
   // Check if student is already in this class
-  if (student.programEnrollments && student.programEnrollments.some((e) => e.classId === classData.id && e.status === 'assigned')) {
+  if (student.programEnrollments && student.programEnrollments.some((e) => e.classId === classData.id && e.status === 'ASSIGNED')) {
     return false;
   }
 

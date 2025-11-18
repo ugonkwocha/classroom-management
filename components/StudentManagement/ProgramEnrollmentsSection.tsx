@@ -30,7 +30,7 @@ export function ProgramEnrollmentsSection({
 }: ProgramEnrollmentsSectionProps) {
   // Separate enrollments: those with class assignment and those on waitlist
   const classEnrollments = enrollments.filter((e) => e.classId);
-  const waitlistEnrollments = enrollments.filter((e) => e.status === 'waitlist' && !e.classId);
+  const waitlistEnrollments = enrollments.filter((e) => e.status === 'WAITLIST' && !e.classId);
 
   if (classEnrollments.length === 0 && waitlistEnrollments.length === 0) {
     return (
@@ -43,10 +43,10 @@ export function ProgramEnrollmentsSection({
     );
   }
 
-  const assignedCount = classEnrollments.filter((e) => e.status === 'assigned').length;
-  const waitlistCount = enrollments.filter((e) => e.status === 'waitlist').length;
-  const completedCount = classEnrollments.filter((e) => e.status === 'completed').length;
-  const droppedCount = classEnrollments.filter((e) => e.status === 'dropped').length;
+  const assignedCount = classEnrollments.filter((e) => e.status === 'ASSIGNED').length;
+  const waitlistCount = enrollments.filter((e) => e.status === 'WAITLIST').length;
+  const completedCount = classEnrollments.filter((e) => e.status === 'COMPLETED').length;
+  const droppedCount = classEnrollments.filter((e) => e.status === 'DROPPED').length;
 
   return (
     <Card>
@@ -85,29 +85,29 @@ export function ProgramEnrollmentsSection({
             : null;
 
           const statusColor =
-            enrollment.status === 'assigned'
+            enrollment.status === 'ASSIGNED'
               ? 'bg-green-50 border-green-200'
-              : enrollment.status === 'waitlist'
+              : enrollment.status === 'WAITLIST'
               ? 'bg-amber-50 border-amber-200'
-              : enrollment.status === 'completed'
+              : enrollment.status === 'COMPLETED'
               ? 'bg-blue-50 border-blue-200'
               : 'bg-red-50 border-red-200';
 
           const statusBadgeColor =
-            enrollment.status === 'assigned'
+            enrollment.status === 'ASSIGNED'
               ? 'bg-green-200 text-green-800'
-              : enrollment.status === 'waitlist'
+              : enrollment.status === 'WAITLIST'
               ? 'bg-amber-200 text-amber-800'
-              : enrollment.status === 'completed'
+              : enrollment.status === 'COMPLETED'
               ? 'bg-blue-200 text-blue-800'
               : 'bg-red-200 text-red-800';
 
           const statusLabel =
-            enrollment.status === 'assigned'
+            enrollment.status === 'ASSIGNED'
               ? 'Assigned'
-              : enrollment.status === 'waitlist'
+              : enrollment.status === 'WAITLIST'
               ? 'On Waitlist'
-              : enrollment.status === 'completed'
+              : enrollment.status === 'COMPLETED'
               ? 'Completed'
               : 'Dropped';
 

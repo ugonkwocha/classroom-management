@@ -322,7 +322,7 @@ export function useStudents() {
   const getWaitlistedStudents = (programId: string, batchNumber: number) => {
     return students.filter((student) =>
       student.programEnrollments && student.programEnrollments.some(
-        (e) => e.programId === programId && e.batchNumber === batchNumber && e.status === 'waitlist'
+        (e) => e.programId === programId && e.batchNumber === batchNumber && e.status === 'WAITLIST'
       )
     );
   };
