@@ -38,7 +38,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log('Creating enrollment with data:', data);
+    console.log('[API] Creating enrollment with data:', data);
+    console.log('[API] Stack trace:', new Error().stack);
 
     const enrollment = await prisma.programEnrollment.create({
       data: {

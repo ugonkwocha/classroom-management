@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('[API] POST /api/students received data keys:', Object.keys(data));
+    console.log('[API] programEnrollments in request:', data.programEnrollments ? 'YES' : 'NO');
 
     const student = await prisma.student.create({
       data: {

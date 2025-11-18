@@ -28,7 +28,9 @@
       "Bash(sleep 2 curl -X POST http://localhost:3000/api/programs -H \"Content-Type: application/json\" -d '{\"\"\"\"name\"\"\"\":\"\"\"\"Fall Workshop\"\"\"\",\"\"\"\"type\"\"\"\":\"\"\"\"WEEKEND_CLUB\"\"\"\",\"\"\"\"season\"\"\"\":\"\"\"\"OCTOBER\"\"\"\",\"\"\"\"year\"\"\"\":2025,\"\"\"\"batches\"\"\"\":2,\"\"\"\"slots\"\"\"\":[\"\"\"\"Morning\"\"\"\"]}')",
       "Bash(python3:*)",
       "Bash(cat:*)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(bash:*)",
+      "Bash(pgrep:*)"
     ],
     "deny": [],
     "ask": []

@@ -15,11 +15,12 @@ export function useStudents() {
   const isLoaded = !isLoading && !error;
 
   const addStudent = async (student: Omit<Student, 'id' | 'createdAt'>) => {
+    console.log('[useStudents.addStudent] ENTRY: Called with student:', student);
     try {
       // Separate programEnrollments and courseHistory from student data
       const { programEnrollments, courseHistory, ...studentData } = student;
-      console.log('addStudent called with courseHistory:', courseHistory);
-      console.log('addStudent called with programEnrollments:', programEnrollments);
+      console.log('[useStudents.addStudent] Extracted programEnrollments:', programEnrollments);
+      console.log('[useStudents.addStudent] Extracted courseHistory:', courseHistory);
 
       const res = await fetch('/api/students', {
         method: 'POST',
@@ -63,8 +64,9 @@ export function useStudents() {
 
       // Create program enrollments separately if provided
       if (programEnrollments && programEnrollments.length > 0) {
-        console.log('Creating enrollments, count:', programEnrollments.length);
-        for (const enrollment of programEnrollments) {
+        console.log('[addStudent] Creating enrollments, count:', programEnrollments.length);
+        for (let i = 0; i < programEnrollments.length; i++) {
+          const enrollment = programEnrollments[i];
           try {
             const enrollmentPayload = {
               studentId: newStudent.id,
@@ -74,26 +76,31 @@ export function useStudents() {
               status: enrollment.status,
               paymentStatus: enrollment.paymentStatus,
             };
-            console.log('Sending enrollment payload:', enrollmentPayload);
+            console.log(`[addStudent] Enrollment ${i + 1}/${programEnrollments.length} - Sending payload:`, enrollmentPayload);
             const enrollRes = await fetch('/api/enrollments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(enrollmentPayload),
             });
 
+            console.log(`[addStudent] Enrollment ${i + 1} - Response status:`, enrollRes.status);
+
             if (!enrollRes.ok) {
               const enrollError = await enrollRes.json();
-              console.error('Failed to create enrollment - HTTP', enrollRes.status, enrollError);
+              console.error(`[addStudent] Enrollment ${i + 1} - Failed to create enrollment - HTTP ${enrollRes.status}:`, enrollError);
               throw new Error(`Enrollment API returned ${enrollRes.status}: ${enrollError.error}`);
             } else {
               const successEnroll = await enrollRes.json();
-              console.log('Successfully created enrollment:', successEnroll);
+              console.log(`[addStudent] Enrollment ${i + 1} - Successfully created enrollment:`, successEnroll.id);
             }
           } catch (enrollmentError) {
-            console.error('Failed to create enrollment:', enrollmentError);
+            console.error(`[addStudent] Enrollment ${i + 1} - Exception:`, enrollmentError);
             // Continue with other enrollments even if one fails
           }
         }
+        console.log('[addStudent] All enrollments processed');
+      } else {
+        console.log('[addStudent] No enrollments to create (programEnrollments is empty or undefined)');
       }
 
       // Add a small delay to ensure database writes are committed before revalidating cache
