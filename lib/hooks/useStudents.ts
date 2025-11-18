@@ -96,6 +96,9 @@ export function useStudents() {
         }
       }
 
+      // Add a small delay to ensure database writes are committed before revalidating cache
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('Revalidating SWR cache...');
       await mutate();
       return newStudent;
     } catch (error) {

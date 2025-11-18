@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('Creating enrollment with data:', data);
 
     const enrollment = await prisma.programEnrollment.create({
       data: {
@@ -55,11 +56,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('Successfully created enrollment:', enrollment);
     return NextResponse.json(enrollment, { status: 201 });
   } catch (error) {
     console.error('Error creating enrollment:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to create enrollment' },
+      { error: 'Failed to create enrollment', details: errorMessage },
       { status: 500 }
     );
   }
