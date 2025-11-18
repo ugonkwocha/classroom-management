@@ -5,11 +5,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const programId = searchParams.get('programId');
-    const archived = searchParams.get('archived') === 'true';
+    const archivedParam = searchParams.get('archived');
 
     const where: any = {};
     if (programId) where.programId = programId;
-    if (archived !== undefined) where.isArchived = archived;
+    if (archivedParam !== null) where.isArchived = archivedParam === 'true';
 
     const classes = await prisma.class.findMany({
       where,

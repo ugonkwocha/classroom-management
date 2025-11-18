@@ -90,7 +90,7 @@ export interface Class {
   students: string[];
   capacity: number;
   teacherId?: string; // Optional: teachers can be assigned later
-  isArchived?: boolean; // Archive instead of delete
+  isArchived: boolean; // Archive instead of delete (default: false)
   createdAt: string;
 }
 
