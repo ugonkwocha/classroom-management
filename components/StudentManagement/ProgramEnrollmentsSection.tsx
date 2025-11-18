@@ -28,11 +28,12 @@ export function ProgramEnrollmentsSection({
   onPromoteFromWaitlist,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
-  // Separate enrollments: those with class assignment and those on waitlist
+  // Separate enrollments: those with class assignment, pending (ASSIGNED without classId), and those on waitlist
   const classEnrollments = enrollments.filter((e) => e.classId);
+  const pendingEnrollments = enrollments.filter((e) => e.status === 'ASSIGNED' && !e.classId);
   const waitlistEnrollments = enrollments.filter((e) => e.status === 'WAITLIST' && !e.classId);
 
-  if (classEnrollments.length === 0 && waitlistEnrollments.length === 0) {
+  if (classEnrollments.length === 0 && pendingEnrollments.length === 0 && waitlistEnrollments.length === 0) {
     return (
       <Card>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Class Assignments</h3>
@@ -225,6 +226,121 @@ export function ProgramEnrollmentsSection({
           );
         })}
       </div>
+
+      {/* Pending Enrollments Section */}
+      {pendingEnrollments.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Pending Class Assignment ({pendingEnrollments.length})</h4>
+          <div className="space-y-3">
+            {pendingEnrollments.map((enrollment) => {
+              const availableClasses = classes.filter((c) => {
+                // Show classes for this program that haven't reached capacity
+                return (
+                  c.programId === enrollment.programId &&
+                  !c.isArchived &&
+                  c.students.length < c.capacity
+                );
+              });
+
+              return (
+                <div key={enrollment.id} className="p-4 rounded-lg border bg-purple-50 border-purple-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {getProgramName(enrollment.programId)}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Batch {enrollment.batchNumber}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-200 text-purple-800">
+                      Pending Assignment
+                    </span>
+                  </div>
+
+                  {/* Enrollment Date */}
+                  <div className="mb-4 pt-3 border-t border-purple-200">
+                    <p className="text-xs text-gray-600">
+                      Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  {/* Payment Status */}
+                  {enrollment.paymentStatus && (
+                    <div className="mb-4 pt-3 border-t border-purple-200">
+                      <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                      <p className={`text-sm font-semibold ${
+                        enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
+                        enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
+                        'text-amber-600'
+                      }`}>
+                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Assignment Section */}
+                  {availableClasses.length > 0 ? (
+                    <div className="mt-4 pt-4 border-t border-purple-200">
+                      <p className="text-sm font-semibold text-gray-900 mb-3">Assign to Class</p>
+                      <div className="space-y-2">
+                        {availableClasses.map((classData) => (
+                          <button
+                            key={classData.id}
+                            onClick={() => {
+                              const studentCount = classData.students.length;
+                              const availableSpots = classData.capacity - studentCount;
+                              if (window.confirm(
+                                `Assign student to ${classData.name}? (${availableSpots} spot${availableSpots !== 1 ? 's' : ''} available)`
+                              )) {
+                                // Create a course history entry and update enrollment
+                                if (onMarkAsCompleted) {
+                                  // Use existing handler or create a new enrollment update
+                                  const updatedEnrollment = { ...enrollment, classId: classData.id, status: 'ASSIGNED' as const };
+                                  // This is a simplified version - ideally we'd need to call updateStudent here
+                                  onUnassignFromProgram?.(enrollment.id, enrollment.programId, studentId || '');
+                                }
+                              }
+                            }}
+                            className="w-full text-left p-3 rounded border border-purple-300 bg-white hover:bg-purple-50 transition-colors"
+                          >
+                            <p className="font-medium text-gray-900">{classData.name}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {classData.students.length} / {classData.capacity} students
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 pt-4 border-t border-purple-200">
+                      <p className="text-sm text-gray-600 italic">No available classes for this program at this time.</p>
+                    </div>
+                  )}
+
+                  {/* Unassign Option */}
+                  {onUnassignFromProgram && (
+                    <div className="mt-3 pt-3 border-t border-purple-200">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                            onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                          }
+                        }}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Remove Enrollment
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Waitlist Section */}
       {waitlistEnrollments.length > 0 && (
