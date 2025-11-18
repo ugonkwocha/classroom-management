@@ -13,9 +13,9 @@ interface TeacherFormProps {
 }
 
 const statusOptions = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Inactive', label: 'Inactive' },
-  { value: 'On Leave', label: 'On Leave' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'ON_LEAVE', label: 'On Leave' },
 ];
 
 export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false }: TeacherFormProps) {
@@ -27,7 +27,7 @@ export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     bio: initialData?.bio || '',
-    status: (initialData?.status || 'Active') as TeacherStatus,
+    status: (initialData?.status || 'ACTIVE') as TeacherStatus,
     qualifiedCourses: initialData?.qualifiedCourses || [],
   });
 
@@ -70,7 +70,7 @@ export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false
       email: '',
       phone: '',
       bio: '',
-      status: 'Active',
+      status: 'ACTIVE',
       qualifiedCourses: [],
     });
     setErrors({});

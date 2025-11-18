@@ -283,7 +283,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
           options={[
             { value: '', label: 'Unassigned - Assign later' },
             ...teachers
-              .filter((t) => t.status === 'Active' && t.qualifiedCourses.includes(formData.courseId))
+              .filter((t) => t.status === 'ACTIVE' && t.qualifiedCourses.includes(formData.courseId))
               .map((t) => ({
                 value: t.id,
                 label: `${t.firstName} ${t.lastName}`,

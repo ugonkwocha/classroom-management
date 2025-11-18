@@ -49,11 +49,11 @@ export function TeachersManagement() {
 
     switch (activeTab) {
       case 'active':
-        return result.filter((t) => t.status === 'Active');
+        return result.filter((t) => t.status === 'ACTIVE');
       case 'inactive':
-        return result.filter((t) => t.status === 'Inactive');
+        return result.filter((t) => t.status === 'INACTIVE');
       case 'on-leave':
-        return result.filter((t) => t.status === 'On Leave');
+        return result.filter((t) => t.status === 'ON_LEAVE');
       case 'unassigned':
         return result.filter((t) => unassignedTeacherIds.includes(t.id));
       default:
@@ -128,9 +128,9 @@ export function TeachersManagement() {
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         {[
           { key: 'all' as TabType, label: 'All Teachers', count: teachers.length },
-          { key: 'active' as TabType, label: 'Active', count: teachers.filter((t) => t.status === 'Active').length },
-          { key: 'inactive' as TabType, label: 'Inactive', count: teachers.filter((t) => t.status === 'Inactive').length },
-          { key: 'on-leave' as TabType, label: 'On Leave', count: teachers.filter((t) => t.status === 'On Leave').length },
+          { key: 'active' as TabType, label: 'Active', count: teachers.filter((t) => t.status === 'ACTIVE').length },
+          { key: 'inactive' as TabType, label: 'Inactive', count: teachers.filter((t) => t.status === 'INACTIVE').length },
+          { key: 'on-leave' as TabType, label: 'On Leave', count: teachers.filter((t) => t.status === 'ON_LEAVE').length },
           { key: 'unassigned' as TabType, label: 'Unassigned', count: unassignedTeacherIds.length },
         ].map((tab) => (
           <button

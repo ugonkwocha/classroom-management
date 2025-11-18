@@ -63,9 +63,9 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   };
 
   const programDistribution = {
-    'Creators': getFilteredStudents('Creators'),
-    'Innovators': getFilteredStudents('Innovators'),
-    'Inventors': getFilteredStudents('Inventors'),
+    'CREATORS': getFilteredStudents('CREATORS'),
+    'INNOVATORS': getFilteredStudents('INNOVATORS'),
+    'INVENTORS': getFilteredStudents('INVENTORS'),
   };
 
   // Get total students in the filtered view

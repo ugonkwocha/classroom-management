@@ -63,7 +63,7 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
           <h2 className="text-2xl font-bold text-gray-900">{program.name} - {program.year}</h2>
           <div className="flex gap-2 mt-2">
             <Badge variant="primary">{program.season}</Badge>
-            <Badge variant="info">{program.type === 'WeekendClub' ? 'Weekend Club' : 'Holiday Camp'}</Badge>
+            <Badge variant="info">{program.type === 'WEEKEND_CLUB' ? 'Weekend Club' : 'Holiday Camp'}</Badge>
             <Badge variant="success">{program.batches} Batch{program.batches > 1 ? 'es' : ''}</Badge>
           </div>
         </div>

@@ -12,16 +12,16 @@ interface ProgramFormProps {
 }
 
 const programTypeOptions = [
-  { value: 'WeekendClub', label: 'Weekend Club' },
-  { value: 'HolidayCamp', label: 'Holiday Camp' },
+  { value: 'WEEKEND_CLUB', label: 'Weekend Club' },
+  { value: 'HOLIDAY_CAMP', label: 'Holiday Camp' },
 ];
 
 const seasonOptions = [
-  { value: 'January', label: 'January (2nd Term)' },
-  { value: 'Easter', label: 'Easter Holiday' },
-  { value: 'May', label: 'May (3rd Term)' },
-  { value: 'Summer', label: 'Summer Holiday' },
-  { value: 'October', label: 'October (1st Term)' },
+  { value: 'JANUARY', label: 'January (2nd Term)' },
+  { value: 'EASTER', label: 'Easter Holiday' },
+  { value: 'MAY', label: 'May (3rd Term)' },
+  { value: 'SUMMER', label: 'Summer Holiday' },
+  { value: 'OCTOBER', label: 'October (1st Term)' },
 ];
 
 export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false }: ProgramFormProps) {
