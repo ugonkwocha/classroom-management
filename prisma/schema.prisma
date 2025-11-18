@@ -164,7 +164,8 @@ model ProgramEnrollment {
   program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
   class             Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
 
-  @@unique([studentId, classId])
+  // Indexes - No unique constraint on (studentId, classId) since we allow multiple NULL classIds
+  // A student can have multiple ASSIGNED or WAITLIST enrollments (waiting for class assignment)
   @@index([studentId])
   @@index([programId])
   @@index([classId])
