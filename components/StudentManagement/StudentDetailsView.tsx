@@ -16,14 +16,17 @@ interface StudentDetailsViewProps {
   onEdit: () => void;
 }
 
-export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsViewProps) {
+export function StudentDetailsView({ student: initialStudent, onClose, onEdit }: StudentDetailsViewProps) {
   const { classes, updateClass } = useClasses();
   const { programs } = usePrograms();
   const { courses } = useCourses();
-  const { updateStudent, students } = useStudents();
+  const { updateStudent, students, getStudent } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Get the latest student data from SWR cache instead of using stale prop
+  const student = getStudent(initialStudent.id) || initialStudent;
 
   // Get full names of courses from IDs
   const getCourseName = (courseId: string): string => {
