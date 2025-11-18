@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Student, CourseHistory, ProgramEnrollment } from '@/types';
 import { useClasses, usePrograms, useCourses, useStudents } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
@@ -24,9 +24,20 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
 
-  // Get the latest student data from SWR cache instead of using stale prop
-  const student = getStudent(initialStudent.id) || initialStudent;
+  // Get the latest student data from SWR cache and update whenever it changes
+  const cachedStudent = getStudent(initialStudent.id);
+
+  useEffect(() => {
+    console.log('[StudentDetailsView] cachedStudent changed:', cachedStudent);
+    if (cachedStudent) {
+      console.log('[StudentDetailsView] Updating displayStudent with cached data. Enrollments:', cachedStudent.programEnrollments?.length || 0);
+      setDisplayStudent(cachedStudent);
+    }
+  }, [cachedStudent]);
+
+  const student = displayStudent;
 
   // Get full names of courses from IDs
   const getCourseName = (courseId: string): string => {

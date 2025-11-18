@@ -106,7 +106,18 @@ export function useStudents() {
       // Add a small delay to ensure database writes are committed before revalidating cache
       await new Promise(resolve => setTimeout(resolve, 100));
       console.log('Revalidating SWR cache...');
-      await mutate();
+      const revalidatedData = await mutate();
+      console.log('[addStudent] Mutate returned:', revalidatedData);
+
+      // Fetch fresh data directly to verify enrollments exist
+      const freshRes = await fetch(`/api/students/${newStudent.id}`);
+      const freshData = await freshRes.json();
+      console.log('[addStudent] Fresh student data after enrollment creation:', {
+        id: freshData.id,
+        enrollmentCount: freshData.enrollments?.length || 0,
+        enrollments: freshData.enrollments
+      });
+
       return newStudent;
     } catch (error) {
       console.error('Failed to add student:', error);
