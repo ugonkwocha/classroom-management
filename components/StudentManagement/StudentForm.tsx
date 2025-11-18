@@ -93,7 +93,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         batchNumber: 1,
         enrollmentDate: new Date().toISOString(),
         status: 'assigned',
-        paymentStatus: 'confirmed',
+        paymentStatus: 'CONFIRMED',
       };
       programEnrollments = [...programEnrollments, newEnrollment];
     }
@@ -109,8 +109,8 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       isReturningStudent: formData.isReturningStudent,
       courseHistory: initialData?.courseHistory || courseHistory,
       programEnrollments,
-      // Only set paymentStatus if student has program enrollments, otherwise leave as pending (not displayed)
-      paymentStatus: programEnrollments.length > 0 ? 'confirmed' : 'pending',
+      // Only set paymentStatus if student has program enrollments, otherwise leave as PENDING (not displayed)
+      paymentStatus: programEnrollments.length > 0 ? 'CONFIRMED' : 'PENDING',
     });
 
     setErrors({});

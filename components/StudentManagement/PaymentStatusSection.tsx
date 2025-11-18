@@ -7,7 +7,7 @@ import { useState } from 'react';
 interface PaymentStatusSectionProps {
   enrollments: ProgramEnrollment[];
   programs: Program[];
-  onUpdatePaymentStatus: (enrollmentId: string, paymentStatus: 'pending' | 'confirmed' | 'completed') => void;
+  onUpdatePaymentStatus: (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED') => void;
 }
 
 export function PaymentStatusSection({
@@ -16,11 +16,11 @@ export function PaymentStatusSection({
   onUpdatePaymentStatus,
 }: PaymentStatusSectionProps) {
   const [editingEnrollmentId, setEditingEnrollmentId] = useState<string | null>(null);
-  const [editingPaymentStatus, setEditingPaymentStatus] = useState<'pending' | 'confirmed' | 'completed'>('pending');
+  const [editingPaymentStatus, setEditingPaymentStatus] = useState<'PENDING' | 'CONFIRMED' | 'COMPLETED'>('PENDING');
 
-  const startEdit = (enrollmentId: string, currentStatus: 'pending' | 'confirmed' | 'completed' | undefined) => {
+  const startEdit = (enrollmentId: string, currentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | undefined) => {
     setEditingEnrollmentId(enrollmentId);
-    setEditingPaymentStatus(currentStatus || 'pending');
+    setEditingPaymentStatus(currentStatus || 'PENDING');
   };
 
   const saveEdit = () => {
@@ -33,11 +33,11 @@ export function PaymentStatusSection({
   const getStatusColor = (status: string | undefined) => {
     if (!status) return 'text-gray-600';
     switch (status) {
-      case 'completed':
+      case 'COMPLETED':
         return 'text-green-600';
-      case 'confirmed':
+      case 'CONFIRMED':
         return 'text-blue-600';
-      case 'pending':
+      case 'PENDING':
       default:
         return 'text-amber-600';
     }
@@ -46,11 +46,11 @@ export function PaymentStatusSection({
   const getStatusBg = (status: string | undefined) => {
     if (!status) return 'bg-gray-50';
     switch (status) {
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-green-50';
-      case 'confirmed':
+      case 'CONFIRMED':
         return 'bg-blue-50';
-      case 'pending':
+      case 'PENDING':
       default:
         return 'bg-amber-50';
     }

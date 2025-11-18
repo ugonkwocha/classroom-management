@@ -24,7 +24,8 @@
       "Bash(npm install:*)",
       "Bash(lsof:*)",
       "Bash(psql:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(sleep 2 curl -X POST http://localhost:3000/api/programs -H \"Content-Type: application/json\" -d '{\"\"\"\"name\"\"\"\":\"\"\"\"Fall Workshop\"\"\"\",\"\"\"\"type\"\"\"\":\"\"\"\"WEEKEND_CLUB\"\"\"\",\"\"\"\"season\"\"\"\":\"\"\"\"OCTOBER\"\"\"\",\"\"\"\"year\"\"\"\":2025,\"\"\"\"batches\"\"\"\":2,\"\"\"\"slots\"\"\"\":[\"\"\"\"Morning\"\"\"\"]}')"
     ],
     "deny": [],
     "ask": []

@@ -60,16 +60,16 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
         {enrolledStudents.map((student) => {
           const enrollment = getEnrollmentInfo(student);
           const paymentStatusColor =
-            enrollment?.paymentStatus === 'completed'
+            enrollment?.paymentStatus === 'COMPLETED'
               ? 'text-green-600'
-              : enrollment?.paymentStatus === 'confirmed'
+              : enrollment?.paymentStatus === 'CONFIRMED'
               ? 'text-blue-600'
               : 'text-amber-600';
 
           const statusLabel =
-            enrollment?.paymentStatus === 'completed'
+            enrollment?.paymentStatus === 'COMPLETED'
               ? 'Completed'
-              : enrollment?.paymentStatus === 'confirmed'
+              : enrollment?.paymentStatus === 'CONFIRMED'
               ? 'Confirmed'
               : 'Pending';
 

@@ -158,11 +158,11 @@ export function ProgramEnrollmentsSection({
                 <div className="mt-3 pt-3 border-t border-current border-opacity-20">
                   <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
                   <p className={`text-sm font-semibold ${
-                    enrollment.paymentStatus === 'completed' ? 'text-green-600' :
-                    enrollment.paymentStatus === 'confirmed' ? 'text-blue-600' :
+                    enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
+                    enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
                     'text-amber-600'
                   }`}>
-                    {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1)}
+                    {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
                   </p>
                 </div>
               )}
@@ -270,11 +270,11 @@ export function ProgramEnrollmentsSection({
                     <div className="mb-4 pt-3 border-t border-amber-200">
                       <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
                       <p className={`text-sm font-semibold ${
-                        enrollment.paymentStatus === 'completed' ? 'text-green-600' :
-                        enrollment.paymentStatus === 'confirmed' ? 'text-blue-600' :
+                        enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
+                        enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
                         'text-amber-600'
                       }`}>
-                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1)}
+                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
                       </p>
                     </div>
                   )}

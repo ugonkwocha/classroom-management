@@ -45,7 +45,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
   };
 
   // Update payment status for a specific program enrollment
-  const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'pending' | 'confirmed' | 'completed') => {
+  const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED') => {
     const updatedEnrollments = (student.programEnrollments || []).map((e) =>
       e.id === enrollmentId ? { ...e, paymentStatus } : e
     );
@@ -206,7 +206,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       batchNumber: 1,
       enrollmentDate: new Date().toISOString(),
       status: 'waitlist',
-      paymentStatus: 'pending',
+      paymentStatus: 'PENDING',
     };
 
     const updatedEnrollments = [...(student.programEnrollments || []), newEnrollment];
@@ -233,7 +233,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
 
     // Check if payment is confirmed for this program
     const programEnrollment = (student.programEnrollments || []).find((e) => e.programId === programId);
-    if (!programEnrollment || programEnrollment.paymentStatus !== 'confirmed') {
+    if (!programEnrollment || programEnrollment.paymentStatus !== 'CONFIRMED') {
       alert('Cannot assign student to this program. Payment must be confirmed first. Please update the payment status in the Payment Status section.');
       return;
     }
@@ -257,7 +257,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         classId,
         enrollmentDate: new Date().toISOString(),
         status: 'assigned',
-        paymentStatus: 'confirmed',
+        paymentStatus: 'CONFIRMED',
       };
       updatedEnrollments.push(newEnrollment);
     }

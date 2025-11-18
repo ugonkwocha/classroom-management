@@ -46,7 +46,7 @@ export interface ProgramEnrollment {
   classId?: string; // May not be assigned immediately (waitlist)
   enrollmentDate: string;
   status: 'waitlist' | 'assigned' | 'completed' | 'dropped';
-  paymentStatus?: 'pending' | 'confirmed' | 'completed'; // Program-specific payment status
+  paymentStatus?: 'PENDING' | 'CONFIRMED' | 'COMPLETED'; // Program-specific payment status
 }
 
 export interface Student {
@@ -61,7 +61,7 @@ export interface Student {
   isReturningStudent: boolean;
   courseHistory: CourseHistory[]; // Past courses taken
   programEnrollments: ProgramEnrollment[]; // Current & past program enrollments
-  paymentStatus: 'pending' | 'confirmed' | 'completed';
+  paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED';
   createdAt: string;
 }
 

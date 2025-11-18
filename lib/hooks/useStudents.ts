@@ -16,12 +16,39 @@ export function useStudents() {
 
   const addStudent = async (student: Omit<Student, 'id' | 'createdAt'>) => {
     try {
+      // Separate programEnrollments from student data
+      const { programEnrollments, ...studentData } = student;
+
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(student),
+        body: JSON.stringify(studentData),
       });
       const newStudent = await res.json();
+
+      // Create program enrollments separately if provided
+      if (programEnrollments && programEnrollments.length > 0) {
+        for (const enrollment of programEnrollments) {
+          try {
+            await fetch('/api/enrollments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                studentId: newStudent.id,
+                programId: enrollment.programId,
+                classId: enrollment.classId,
+                batchNumber: enrollment.batchNumber,
+                status: enrollment.status,
+                paymentStatus: enrollment.paymentStatus,
+              }),
+            });
+          } catch (enrollmentError) {
+            console.error('Failed to create enrollment:', enrollmentError);
+            // Continue with other enrollments even if one fails
+          }
+        }
+      }
+
       await mutate();
       return newStudent;
     } catch (error) {
@@ -32,12 +59,42 @@ export function useStudents() {
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
+      // Separate programEnrollments from student data
+      const { programEnrollments, ...studentData } = updates;
+
       const res = await fetch(`/api/students/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(studentData),
       });
       const updatedStudent = await res.json();
+
+      // Handle program enrollments if they're being updated
+      if (programEnrollments) {
+        const existingEnrollments = students.find((s) => s.id === id)?.programEnrollments || [];
+
+        // Add new enrollments that don't have IDs
+        const newEnrollments = programEnrollments.filter((e) => !e.id || e.id.length === 0);
+        for (const enrollment of newEnrollments) {
+          try {
+            await fetch('/api/enrollments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                studentId: id,
+                programId: enrollment.programId,
+                classId: enrollment.classId,
+                batchNumber: enrollment.batchNumber,
+                status: enrollment.status,
+                paymentStatus: enrollment.paymentStatus,
+              }),
+            });
+          } catch (enrollmentError) {
+            console.error('Failed to create enrollment:', enrollmentError);
+          }
+        }
+      }
+
       await mutate();
       return updatedStudent;
     } catch (error) {

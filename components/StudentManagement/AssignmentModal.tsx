@@ -47,7 +47,7 @@ export function AssignmentModal({
   const selectedProgramEnrollment = studentProgramEnrollments.find(
     (e) => e.programId === selectedProgram
   );
-  const isPaymentConfirmed = selectedProgramEnrollment?.paymentStatus === 'confirmed';
+  const isPaymentConfirmed = selectedProgramEnrollment?.paymentStatus === 'CONFIRMED';
 
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(programId);
