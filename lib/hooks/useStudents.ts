@@ -16,8 +16,8 @@ export function useStudents() {
 
   const addStudent = async (student: Omit<Student, 'id' | 'createdAt'>) => {
     try {
-      // Separate programEnrollments from student data
-      const { programEnrollments, ...studentData } = student;
+      // Separate programEnrollments and courseHistory from student data
+      const { programEnrollments, courseHistory, ...studentData } = student;
 
       const res = await fetch('/api/students', {
         method: 'POST',
@@ -59,8 +59,8 @@ export function useStudents() {
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
-      // Separate programEnrollments from student data
-      const { programEnrollments, ...studentData } = updates;
+      // Separate programEnrollments and courseHistory from student data
+      const { programEnrollments, courseHistory, ...studentData } = updates;
 
       const res = await fetch(`/api/students/${id}`, {
         method: 'PUT',
