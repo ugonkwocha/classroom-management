@@ -27,8 +27,8 @@ export interface CourseHistory {
   id: string;
   courseId: string;
   courseName: string; // for quick reference
-  programId?: string;
-  programName?: string;
+  programId?: string | null;
+  programName?: string | null;
   batch?: number;
   year?: number;
   completionStatus: 'completed' | 'in-progress' | 'dropped';

@@ -190,8 +190,8 @@ model CourseHistory {
   studentId         String
   courseId          String
   courseName        String
-  programId         String
-  programName       String
+  programId         String?
+  programName       String?
   batch             Int      @default(1)
   year              Int?
   completionStatus  CompletionStatus
