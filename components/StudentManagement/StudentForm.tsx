@@ -107,7 +107,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       parentPhone: formData.parentPhone || undefined,
       dateOfBirth: formData.dateOfBirth || undefined,
       isReturningStudent: formData.isReturningStudent,
-      courseHistory: initialData?.courseHistory || courseHistory,
+      courseHistory,
       programEnrollments,
       // Only set paymentStatus if student has program enrollments, otherwise leave as PENDING (not displayed)
       paymentStatus: programEnrollments.length > 0 ? 'CONFIRMED' : 'PENDING',

@@ -33,6 +33,32 @@ export function useStudents() {
 
       const newStudent = await res.json();
 
+      // Create course history separately if provided
+      if (courseHistory && courseHistory.length > 0) {
+        for (const history of courseHistory) {
+          try {
+            const courseRes = await fetch('/api/course-history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                studentId: newStudent.id,
+                courseId: history.courseId,
+                courseName: history.courseName,
+                completionStatus: history.completionStatus,
+              }),
+            });
+
+            if (!courseRes.ok) {
+              const courseError = await courseRes.json();
+              console.error('Failed to create course history:', courseError);
+            }
+          } catch (courseError) {
+            console.error('Failed to create course history:', courseError);
+            // Continue with other courses even if one fails
+          }
+        }
+      }
+
       // Create program enrollments separately if provided
       if (programEnrollments && programEnrollments.length > 0) {
         for (const enrollment of programEnrollments) {
@@ -87,6 +113,49 @@ export function useStudents() {
       }
 
       const updatedStudent = await res.json();
+
+      // Handle course history if it's being updated
+      if (courseHistory) {
+        const existingCourseHistory = students.find((s) => s.id === id)?.courseHistory || [];
+        const existingCourseIds = new Set(existingCourseHistory.map((h) => h.courseId));
+        const newCourseIds = new Set(courseHistory.map((h) => h.courseId));
+
+        // Delete courses that were removed
+        for (const history of existingCourseHistory) {
+          if (!newCourseIds.has(history.courseId)) {
+            try {
+              await fetch(`/api/course-history/${history.id}`, { method: 'DELETE' });
+            } catch (error) {
+              console.error('Failed to delete course history:', error);
+            }
+          }
+        }
+
+        // Add new courses that don't exist in history
+        for (const history of courseHistory) {
+          if (!existingCourseIds.has(history.courseId)) {
+            try {
+              const courseRes = await fetch('/api/course-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  studentId: id,
+                  courseId: history.courseId,
+                  courseName: history.courseName,
+                  completionStatus: history.completionStatus,
+                }),
+              });
+
+              if (!courseRes.ok) {
+                const courseError = await courseRes.json();
+                console.error('Failed to create course history:', courseError);
+              }
+            } catch (error) {
+              console.error('Failed to create course history:', error);
+            }
+          }
+        }
+      }
 
       // Handle program enrollments if they're being updated
       if (programEnrollments) {
