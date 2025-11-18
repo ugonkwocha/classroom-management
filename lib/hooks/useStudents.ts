@@ -19,6 +19,7 @@ export function useStudents() {
       // Separate programEnrollments and courseHistory from student data
       const { programEnrollments, courseHistory, ...studentData } = student;
       console.log('addStudent called with courseHistory:', courseHistory);
+      console.log('addStudent called with programEnrollments:', programEnrollments);
 
       const res = await fetch('/api/students', {
         method: 'POST',
@@ -62,24 +63,30 @@ export function useStudents() {
 
       // Create program enrollments separately if provided
       if (programEnrollments && programEnrollments.length > 0) {
+        console.log('Creating enrollments, count:', programEnrollments.length);
         for (const enrollment of programEnrollments) {
           try {
+            const enrollmentPayload = {
+              studentId: newStudent.id,
+              programId: enrollment.programId,
+              classId: enrollment.classId,
+              batchNumber: enrollment.batchNumber,
+              status: enrollment.status,
+              paymentStatus: enrollment.paymentStatus,
+            };
+            console.log('Sending enrollment payload:', enrollmentPayload);
             const enrollRes = await fetch('/api/enrollments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                studentId: newStudent.id,
-                programId: enrollment.programId,
-                classId: enrollment.classId,
-                batchNumber: enrollment.batchNumber,
-                status: enrollment.status,
-                paymentStatus: enrollment.paymentStatus,
-              }),
+              body: JSON.stringify(enrollmentPayload),
             });
 
             if (!enrollRes.ok) {
               const enrollError = await enrollRes.json();
               console.error('Failed to create enrollment:', enrollError);
+            } else {
+              const successEnroll = await enrollRes.json();
+              console.log('Successfully created enrollment:', successEnroll);
             }
           } catch (enrollmentError) {
             console.error('Failed to create enrollment:', enrollmentError);

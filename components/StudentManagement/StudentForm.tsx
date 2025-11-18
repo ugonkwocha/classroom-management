@@ -86,6 +86,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
     // Build program enrollments if student is enrolling in a program
     let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
+    console.log('enrollInProgram:', enrollInProgram, 'selectedProgram:', selectedProgram, 'paymentConfirmed:', paymentConfirmed);
     if (enrollInProgram && selectedProgram && paymentConfirmed) {
       const newEnrollment: ProgramEnrollment = {
         id: '',
@@ -96,7 +97,10 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         paymentStatus: 'CONFIRMED',
       };
       programEnrollments = [...programEnrollments, newEnrollment];
+      console.log('Added new enrollment, array now:', programEnrollments);
     }
+
+    console.log('StudentForm submitting with programEnrollments:', programEnrollments);
 
     await onSubmit({
       firstName: formData.firstName,
