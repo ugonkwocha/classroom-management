@@ -47,7 +47,7 @@ export function StudentList({ students, onView, onEdit, onDelete }: StudentListP
                     <span>•</span>
                   </>
                 )}
-                <span>{student.email}</span>
+                <span>{student.email || 'No email'}</span>
               </div>
               <div className="flex gap-2 mt-3 flex-wrap">
                 {student.isReturningStudent && <Badge variant="success">🔄 Returning</Badge>}

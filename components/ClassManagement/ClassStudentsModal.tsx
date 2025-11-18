@@ -80,8 +80,8 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
                   <p className="font-semibold text-gray-900">
                     {student.firstName} {student.lastName}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">{student.email}</p>
-                  <p className="text-sm text-gray-600">{student.phone}</p>
+                  <p className="text-sm text-gray-600 mt-1">{student.email || 'No email'}</p>
+                  <p className="text-sm text-gray-600">{student.phone || 'No phone'}</p>
                 </div>
                 <div className="text-right">
                   <p className={`text-xs font-semibold ${paymentStatusColor}`}>{statusLabel}</p>

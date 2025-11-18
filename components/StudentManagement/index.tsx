@@ -33,7 +33,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
 
   const filteredStudents = students.filter((student) =>
     `${student.firstName} ${student.lastName}`.toLowerCase().includes(filter.toLowerCase()) ||
-    student.email.toLowerCase().includes(filter.toLowerCase())
+    (student.email?.toLowerCase() || '').includes(filter.toLowerCase())
   );
 
   const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {

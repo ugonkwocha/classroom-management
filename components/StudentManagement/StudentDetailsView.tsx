@@ -358,11 +358,11 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Email</p>
-            <p className="text-sm text-gray-900 break-words">{student.email}</p>
+            <p className="text-sm text-gray-900 break-words">{student.email || 'No email'}</p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Phone</p>
-            <p className="text-sm text-gray-900 break-words">{student.phone}</p>
+            <p className="text-sm text-gray-900 break-words">{student.phone || 'No phone'}</p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Student Type</p>
