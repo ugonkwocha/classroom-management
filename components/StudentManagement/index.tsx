@@ -38,10 +38,12 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
 
   const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
     try {
+      console.log('StudentManagement handleSubmit received studentData:', studentData);
       if (editingStudent) {
         await updateStudent(editingStudent.id, studentData);
         setEditingStudent(undefined);
       } else {
+        console.log('Calling addStudent with programEnrollments:', studentData.programEnrollments);
         await addStudent(studentData);
       }
       setIsFormModalOpen(false);
