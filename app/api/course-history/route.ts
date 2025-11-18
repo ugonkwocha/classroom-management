@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('Creating course history with data:', data);
 
     const history = await prisma.courseHistory.create({
       data: {
@@ -52,11 +53,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('Successfully created course history:', history);
     return NextResponse.json(history, { status: 201 });
   } catch (error) {
     console.error('Error creating course history:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to create course history' },
+      { error: 'Failed to create course history', details: errorMessage },
       { status: 500 }
     );
   }

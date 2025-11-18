@@ -18,6 +18,7 @@ export function useStudents() {
     try {
       // Separate programEnrollments and courseHistory from student data
       const { programEnrollments, courseHistory, ...studentData } = student;
+      console.log('addStudent called with courseHistory:', courseHistory);
 
       const res = await fetch('/api/students', {
         method: 'POST',
