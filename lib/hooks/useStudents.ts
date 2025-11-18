@@ -24,13 +24,20 @@ export function useStudents() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentData),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('API error:', errorData);
+        throw new Error(errorData.error || `Failed to create student: ${res.status}`);
+      }
+
       const newStudent = await res.json();
 
       // Create program enrollments separately if provided
       if (programEnrollments && programEnrollments.length > 0) {
         for (const enrollment of programEnrollments) {
           try {
-            await fetch('/api/enrollments', {
+            const enrollRes = await fetch('/api/enrollments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -42,6 +49,11 @@ export function useStudents() {
                 paymentStatus: enrollment.paymentStatus,
               }),
             });
+
+            if (!enrollRes.ok) {
+              const enrollError = await enrollRes.json();
+              console.error('Failed to create enrollment:', enrollError);
+            }
           } catch (enrollmentError) {
             console.error('Failed to create enrollment:', enrollmentError);
             // Continue with other enrollments even if one fails
@@ -67,6 +79,13 @@ export function useStudents() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentData),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('API error:', errorData);
+        throw new Error(errorData.error || `Failed to update student: ${res.status}`);
+      }
+
       const updatedStudent = await res.json();
 
       // Handle program enrollments if they're being updated
@@ -77,7 +96,7 @@ export function useStudents() {
         const newEnrollments = programEnrollments.filter((e) => !e.id || e.id.length === 0);
         for (const enrollment of newEnrollments) {
           try {
-            await fetch('/api/enrollments', {
+            const enrollRes = await fetch('/api/enrollments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -89,6 +108,11 @@ export function useStudents() {
                 paymentStatus: enrollment.paymentStatus,
               }),
             });
+
+            if (!enrollRes.ok) {
+              const enrollError = await enrollRes.json();
+              console.error('Failed to create enrollment:', enrollError);
+            }
           } catch (enrollmentError) {
             console.error('Failed to create enrollment:', enrollmentError);
           }

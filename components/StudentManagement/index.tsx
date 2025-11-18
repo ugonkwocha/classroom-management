@@ -36,14 +36,20 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
     student.email.toLowerCase().includes(filter.toLowerCase())
   );
 
-  const handleSubmit = (studentData: Omit<Student, 'id' | 'createdAt'>) => {
-    if (editingStudent) {
-      updateStudent(editingStudent.id, studentData);
-      setEditingStudent(undefined);
-    } else {
-      addStudent(studentData);
+  const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
+    try {
+      if (editingStudent) {
+        await updateStudent(editingStudent.id, studentData);
+        setEditingStudent(undefined);
+      } else {
+        await addStudent(studentData);
+      }
+      setIsFormModalOpen(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save student';
+      console.error('Error saving student:', error);
+      alert(errorMessage);
     }
-    setIsFormModalOpen(false);
   };
 
   const handleView = (student: Student) => {

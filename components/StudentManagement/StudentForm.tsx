@@ -7,7 +7,7 @@ import { useCourses, usePrograms } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
 
 interface StudentFormProps {
-  onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => void;
+  onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
   onCancel?: () => void;
   initialData?: Student;
   isLoading?: boolean;
@@ -37,7 +37,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -98,7 +98,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       programEnrollments = [...programEnrollments, newEnrollment];
     }
 
-    onSubmit({
+    await onSubmit({
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email || undefined,
