@@ -103,9 +103,10 @@ export function useStudents() {
         console.log('[addStudent] No enrollments to create (programEnrollments is empty or undefined)');
       }
 
-      // Add a small delay to ensure database writes are committed before revalidating cache
-      await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('Revalidating SWR cache...');
+      // Add delay to ensure database writes are committed before revalidating cache
+      // Increased to 500ms to account for database transaction completion
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[addStudent] Revalidating SWR cache after 500ms delay...');
       const revalidatedData = await mutate();
       console.log('[addStudent] Mutate returned:', revalidatedData);
 

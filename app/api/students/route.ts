@@ -5,13 +5,23 @@ export async function GET(request: NextRequest) {
   try {
     const students = await prisma.student.findMany({
       include: {
-        enrollments: true,
+        enrollments: {
+          include: {
+            class: true,
+            program: true,
+          },
+        },
         courseHistory: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    console.log('[API GET /api/students] Returning', students.length, 'students');
+    if (students.length > 0) {
+      console.log('[API GET /api/students] First student enrollments:', students[0].enrollments?.length || 0);
+    }
 
     return NextResponse.json(students);
   } catch (error) {
