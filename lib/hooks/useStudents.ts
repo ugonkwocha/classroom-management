@@ -83,7 +83,8 @@ export function useStudents() {
 
             if (!enrollRes.ok) {
               const enrollError = await enrollRes.json();
-              console.error('Failed to create enrollment:', enrollError);
+              console.error('Failed to create enrollment - HTTP', enrollRes.status, enrollError);
+              throw new Error(`Enrollment API returned ${enrollRes.status}: ${enrollError.error}`);
             } else {
               const successEnroll = await enrollRes.json();
               console.log('Successfully created enrollment:', successEnroll);
