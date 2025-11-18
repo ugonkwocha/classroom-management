@@ -174,6 +174,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       teacherId: formData.teacherId || undefined,
       students: initialData?.students || [],
       capacity: Math.floor(formData.capacity),
+      isArchived: initialData?.isArchived ?? false,
     });
 
     setFormData({

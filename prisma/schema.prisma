@@ -127,8 +127,8 @@ model Student {
   id                String   @id @default(cuid())
   firstName         String
   lastName          String
-  email             String   @unique
-  phone             String
+  email             String?   @unique
+  phone             String?
   dateOfBirth       DateTime?
   isReturningStudent Boolean  @default(false)
   paymentStatus     PaymentStatus @default(PENDING)

@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
     console.error('Error creating student:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to create student' },
+      { error: 'Failed to create student', details: errorMessage },
       { status: 500 }
     );
   }
