@@ -31,7 +31,7 @@ export interface CourseHistory {
   programName?: string | null;
   batch?: number;
   year?: number;
-  completionStatus: 'completed' | 'in-progress' | 'dropped';
+  completionStatus: 'COMPLETED' | 'IN_PROGRESS' | 'DROPPED';
   startDate?: string;
   endDate?: string;
   performanceNotes?: string;

@@ -116,7 +116,7 @@ export function StudentDetailsView({ student, onClose, onEdit }: StudentDetailsV
       if (history.courseName === classData.name && history.programId === program.id) {
         return {
           ...history,
-          completionStatus: 'completed' as const,
+          completionStatus: 'COMPLETED' as const,
           endDate: new Date().toISOString(),
         };
       }

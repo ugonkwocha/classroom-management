@@ -20,9 +20,9 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
     );
   }
 
-  const completedCount = courseHistory.filter((c) => c.completionStatus === 'completed').length;
-  const inProgressCount = courseHistory.filter((c) => c.completionStatus === 'in-progress').length;
-  const droppedCount = courseHistory.filter((c) => c.completionStatus === 'dropped').length;
+  const completedCount = courseHistory.filter((c) => c.completionStatus === 'COMPLETED').length;
+  const inProgressCount = courseHistory.filter((c) => c.completionStatus === 'IN_PROGRESS').length;
+  const droppedCount = courseHistory.filter((c) => c.completionStatus === 'DROPPED').length;
 
   return (
     <Card>
@@ -52,23 +52,23 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
       <div className="space-y-3">
         {courseHistory.map((history) => {
           const statusColor =
-            history.completionStatus === 'completed'
+            history.completionStatus === 'COMPLETED'
               ? 'bg-green-50 border-green-200'
-              : history.completionStatus === 'in-progress'
+              : history.completionStatus === 'IN_PROGRESS'
               ? 'bg-blue-50 border-blue-200'
               : 'bg-red-50 border-red-200';
 
           const statusBadgeColor =
-            history.completionStatus === 'completed'
+            history.completionStatus === 'COMPLETED'
               ? 'bg-green-200 text-green-800'
-              : history.completionStatus === 'in-progress'
+              : history.completionStatus === 'IN_PROGRESS'
               ? 'bg-blue-200 text-blue-800'
               : 'bg-red-200 text-red-800';
 
           const statusLabel =
-            history.completionStatus === 'completed'
+            history.completionStatus === 'COMPLETED'
               ? 'Completed'
-              : history.completionStatus === 'in-progress'
+              : history.completionStatus === 'IN_PROGRESS'
               ? 'In Progress'
               : 'Dropped';
 
