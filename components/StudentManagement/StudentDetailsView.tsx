@@ -246,16 +246,16 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
     console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, classId });
 
-    // Check if student is already assigned to this class
-    const assignedClasses = getAssignedClassIds();
-    if (assignedClasses.includes(classId)) {
-      alert('This student is already assigned to this class.');
-      return;
-    }
-
     // Get current enrollments (handle both field names)
     const currentEnrollments = student.enrollments || student.programEnrollments || [];
     console.log('[handleAssignStudent] Current enrollments:', currentEnrollments.length);
+
+    // Check if student is already assigned to this class via any enrollment
+    const alreadyAssignedToClass = currentEnrollments.some((e) => e.classId === classId && e.status === 'ASSIGNED');
+    if (alreadyAssignedToClass) {
+      alert('This student is already assigned to this class.');
+      return;
+    }
 
     // Check if payment is confirmed for this program
     const programEnrollment = currentEnrollments.find((e) => e.programId === programId);
@@ -263,6 +263,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
     if (!programEnrollment || programEnrollment.paymentStatus !== 'CONFIRMED') {
       alert('Cannot assign student to this program. Payment must be confirmed first. Please update the payment status in the Payment Status section.');
+      return;
+    }
+
+    // Check if student already has a different class assignment for this program
+    const existingClassAssignmentForProgram = currentEnrollments.find(
+      (e) => e.programId === programId && e.classId && e.status === 'ASSIGNED'
+    );
+    if (existingClassAssignmentForProgram) {
+      alert('This student is already assigned to a class in this program. Remove the existing assignment first.');
       return;
     }
 
@@ -318,8 +327,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       courseHistory: updatedCourseHistory,
     });
 
-    // Add student to class
-    if (classData) {
+    // Add student to class (only if not already added)
+    if (classData && !classData.students.includes(studentId)) {
       updateClass(classId, {
         students: [...classData.students, studentId],
       });
