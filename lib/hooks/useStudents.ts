@@ -208,15 +208,48 @@ export function useStudents() {
       if (enrollmentsToProcess) {
         // Get current student from cache to find existing enrollments
         const currentStudent = students.find((s) => s.id === id);
-        const existingEnrollmentIds = new Set(currentStudent?.enrollments?.map((e) => e.id) || []);
+        // Handle both 'enrollments' and 'programEnrollments' field names
+        const currentEnrollments = currentStudent?.enrollments || currentStudent?.programEnrollments || [];
+        const existingEnrollmentIds = new Set(currentEnrollments.map((e) => e.id) || []);
 
         console.log('[updateStudent] Handling enrollments. Current enrollments:', existingEnrollmentIds.size, 'New enrollments count:', enrollmentsToProcess.length);
 
-        // Identify new enrollments (those not already in database)
+        // Separate new enrollments from existing ones that may have been modified
         const newEnrollments = enrollmentsToProcess.filter((e) => !existingEnrollmentIds.has(e.id));
+        const modifiedEnrollments = enrollmentsToProcess.filter((e) => existingEnrollmentIds.has(e.id));
 
-        console.log('[updateStudent] New enrollments to create:', newEnrollments.length);
+        console.log('[updateStudent] New enrollments to create:', newEnrollments.length, 'Modified enrollments:', modifiedEnrollments.length);
 
+        // Update existing enrollments that have been modified (e.g., classId added)
+        for (const enrollment of modifiedEnrollments) {
+          try {
+            console.log('[updateStudent] Updating enrollment:', enrollment.id, 'with classId:', enrollment.classId, 'status:', enrollment.status);
+            const enrollRes = await fetch(`/api/enrollments/${enrollment.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                classId: enrollment.classId,
+                batchNumber: enrollment.batchNumber,
+                status: enrollment.status,
+                paymentStatus: enrollment.paymentStatus,
+              }),
+            });
+
+            if (!enrollRes.ok) {
+              const enrollError = await enrollRes.json();
+              console.error('[updateStudent] Failed to update enrollment:', enrollError);
+              throw new Error(enrollError.error || 'Failed to update enrollment');
+            } else {
+              const updatedEnroll = await enrollRes.json();
+              console.log('[updateStudent] Successfully updated enrollment:', updatedEnroll.id);
+            }
+          } catch (enrollmentError) {
+            console.error('[updateStudent] Enrollment update error:', enrollmentError);
+            throw enrollmentError;
+          }
+        }
+
+        // Create new enrollments
         for (const enrollment of newEnrollments) {
           try {
             console.log('[updateStudent] Creating enrollment for program:', enrollment.programId);
