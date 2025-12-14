@@ -178,7 +178,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       e.id === enrollmentId ? { ...e, status: 'ASSIGNED' as const, classId } : e
     );
 
-    // Create course history entry with "in-progress" status
+    // Create course history entry with "IN_PROGRESS" status
     const newCourseHistory = {
       id: generateId(),
       courseId: classData.courseId || '',
@@ -187,7 +187,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       programName: program.name || 'Unknown Program',
       batch: enrollment.batchNumber || 1,
       year: program.year,
-      completionStatus: 'in-progress' as const,
+      completionStatus: 'IN_PROGRESS' as const,
       startDate: new Date().toISOString(),
       dateAdded: new Date().toISOString(),
     };
@@ -305,7 +305,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     const classData = classes.find((c) => c.id === classId);
     const program = programs.find((p) => p.id === programId);
 
-    // Create course history entry with "in-progress" status
+    // Create course history entry with "IN_PROGRESS" status
     const newCourseHistory = {
       id: generateId(),
       courseId: classData?.courseId || '',
@@ -314,7 +314,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       programName: program?.name || 'Unknown Program',
       batch: programEnrollment?.batchNumber || 1,
       year: program?.year,
-      completionStatus: 'in-progress' as const,
+      completionStatus: 'IN_PROGRESS' as const,
       startDate: new Date().toISOString(),
       dateAdded: new Date().toISOString(),
     };
