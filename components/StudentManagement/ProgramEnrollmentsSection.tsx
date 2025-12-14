@@ -227,21 +227,12 @@ export function ProgramEnrollmentsSection({
         })}
       </div>
 
-      {/* Pending Enrollments Section */}
+      {/* Pending Enrollments Section - Students with pending assignments should use the "Assign to Class" button above */}
       {pendingEnrollments.length > 0 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h4 className="text-lg font-bold text-gray-900 mb-4">Pending Class Assignment ({pendingEnrollments.length})</h4>
           <div className="space-y-3">
             {pendingEnrollments.map((enrollment) => {
-              const availableClasses = classes.filter((c) => {
-                // Show classes for this program that haven't reached capacity
-                return (
-                  c.programId === enrollment.programId &&
-                  !c.isArchived &&
-                  c.students.length < c.capacity
-                );
-              });
-
               return (
                 <div key={enrollment.id} className="p-4 rounded-lg border bg-purple-50 border-purple-200">
                   <div className="flex justify-between items-start mb-3">
@@ -279,44 +270,12 @@ export function ProgramEnrollmentsSection({
                     </div>
                   )}
 
-                  {/* Assignment Section */}
-                  {availableClasses.length > 0 ? (
-                    <div className="mt-4 pt-4 border-t border-purple-200">
-                      <p className="text-sm font-semibold text-gray-900 mb-3">Assign to Class</p>
-                      <div className="space-y-2">
-                        {availableClasses.map((classData) => (
-                          <button
-                            key={classData.id}
-                            onClick={() => {
-                              const studentCount = classData.students.length;
-                              const availableSpots = classData.capacity - studentCount;
-                              if (window.confirm(
-                                `Assign student to ${classData.name}? (${availableSpots} spot${availableSpots !== 1 ? 's' : ''} available)`
-                              )) {
-                                // Create a course history entry and update enrollment
-                                if (onMarkAsCompleted) {
-                                  // Use existing handler or create a new enrollment update
-                                  const updatedEnrollment = { ...enrollment, classId: classData.id, status: 'ASSIGNED' as const };
-                                  // This is a simplified version - ideally we'd need to call updateStudent here
-                                  onUnassignFromProgram?.(enrollment.id, enrollment.programId, studentId || '');
-                                }
-                              }
-                            }}
-                            className="w-full text-left p-3 rounded border border-purple-300 bg-white hover:bg-purple-50 transition-colors"
-                          >
-                            <p className="font-medium text-gray-900">{classData.name}</p>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {classData.students.length} / {classData.capacity} students
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-4 pt-4 border-t border-purple-200">
-                      <p className="text-sm text-gray-600 italic">No available classes for this program at this time.</p>
-                    </div>
-                  )}
+                  {/* Info Message */}
+                  <div className="mt-4 pt-4 border-t border-purple-200">
+                    <p className="text-sm text-gray-600">
+                      Use the <span className="font-semibold">"Assign to Class"</span> button above to assign this student to an available class.
+                    </p>
+                  </div>
 
                   {/* Unassign Option */}
                   {onUnassignFromProgram && (
