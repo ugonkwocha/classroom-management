@@ -3,7 +3,20 @@
 import useSWR, { SWRConfiguration } from 'swr';
 import { Student, CourseHistory, ProgramEnrollment } from '@/types';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((res) => res.json())
+    .then((data) => {
+      // Transform API response to match TypeScript types
+      // API returns 'enrollments', but our type expects 'programEnrollments'
+      if (Array.isArray(data)) {
+        return data.map((student: any) => ({
+          ...student,
+          programEnrollments: student.enrollments || [],
+        }));
+      }
+      return data;
+    });
 
 export function useStudents() {
   const { data: students = [], isLoading, error, mutate } = useSWR<Student[]>(
@@ -128,8 +141,11 @@ export function useStudents() {
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
+      console.log('[updateStudent] ENTRY: Called with updates:', Object.keys(updates));
       // Separate programEnrollments and courseHistory from student data
-      const { programEnrollments, courseHistory, ...studentData } = updates;
+      // Handle both 'programEnrollments' (from form) and 'enrollments' (from API)
+      const { programEnrollments, enrollments, courseHistory, ...studentData } = updates;
+      const enrollmentsToProcess = programEnrollments || enrollments;
 
       const res = await fetch(`/api/students/${id}`, {
         method: 'PUT',
@@ -189,13 +205,21 @@ export function useStudents() {
       }
 
       // Handle program enrollments if they're being updated
-      if (programEnrollments) {
-        const existingEnrollments = students.find((s) => s.id === id)?.programEnrollments || [];
+      if (enrollmentsToProcess) {
+        // Get current student from cache to find existing enrollments
+        const currentStudent = students.find((s) => s.id === id);
+        const existingEnrollmentIds = new Set(currentStudent?.enrollments?.map((e) => e.id) || []);
 
-        // Add new enrollments that don't have IDs
-        const newEnrollments = programEnrollments.filter((e) => !e.id || e.id.length === 0);
+        console.log('[updateStudent] Handling enrollments. Current enrollments:', existingEnrollmentIds.size, 'New enrollments count:', enrollmentsToProcess.length);
+
+        // Identify new enrollments (those not already in database)
+        const newEnrollments = enrollmentsToProcess.filter((e) => !existingEnrollmentIds.has(e.id));
+
+        console.log('[updateStudent] New enrollments to create:', newEnrollments.length);
+
         for (const enrollment of newEnrollments) {
           try {
+            console.log('[updateStudent] Creating enrollment for program:', enrollment.programId);
             const enrollRes = await fetch('/api/enrollments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -211,10 +235,15 @@ export function useStudents() {
 
             if (!enrollRes.ok) {
               const enrollError = await enrollRes.json();
-              console.error('Failed to create enrollment:', enrollError);
+              console.error('[updateStudent] Failed to create enrollment:', enrollError);
+              throw new Error(enrollError.error || 'Failed to create enrollment');
+            } else {
+              const createdEnroll = await enrollRes.json();
+              console.log('[updateStudent] Successfully created enrollment:', createdEnroll.id);
             }
           } catch (enrollmentError) {
-            console.error('Failed to create enrollment:', enrollmentError);
+            console.error('[updateStudent] Enrollment creation error:', enrollmentError);
+            throw enrollmentError;
           }
         }
       }

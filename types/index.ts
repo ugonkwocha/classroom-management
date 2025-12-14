@@ -60,7 +60,8 @@ export interface Student {
   dateOfBirth?: string;
   isReturningStudent: boolean;
   courseHistory: CourseHistory[]; // Past courses taken
-  programEnrollments: ProgramEnrollment[]; // Current & past program enrollments
+  enrollments: ProgramEnrollment[]; // Current & past program enrollments
+  programEnrollments?: ProgramEnrollment[]; // Alias for backwards compatibility in forms
   paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED';
   createdAt: string;
 }

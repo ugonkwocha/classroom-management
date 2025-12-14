@@ -40,9 +40,12 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
     try {
       console.log('StudentManagement handleSubmit received studentData:', studentData);
       if (editingStudent) {
+        console.log('[StudentManagement] EDITING student:', editingStudent.id);
+        console.log('[StudentManagement] Sending programEnrollments:', studentData.programEnrollments?.length || 0);
         await updateStudent(editingStudent.id, studentData);
         setEditingStudent(undefined);
       } else {
+        console.log('[StudentManagement] CREATING new student');
         console.log('Calling addStudent with programEnrollments:', studentData.programEnrollments);
         await addStudent(studentData);
       }

@@ -32,12 +32,18 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   useEffect(() => {
     console.log('[StudentDetailsView] cachedStudent changed:', cachedStudent);
     if (cachedStudent) {
-      console.log('[StudentDetailsView] Updating displayStudent with cached data. Enrollments:', cachedStudent.programEnrollments?.length || 0);
+      const enrollments = cachedStudent.enrollments || cachedStudent.programEnrollments || [];
+      console.log('[StudentDetailsView] Updating displayStudent with cached data. Enrollments:', enrollments.length);
       setDisplayStudent(cachedStudent);
     }
   }, [cachedStudent]);
 
   const student = displayStudent;
+
+  // Helper to get enrollments (handles both 'enrollments' and 'programEnrollments' fields)
+  const getEnrollments = (s: Student = student): ProgramEnrollment[] => {
+    return s.enrollments || s.programEnrollments || [];
+  };
 
   // Get full names of courses from IDs
   const getCourseName = (courseId: string): string => {
@@ -53,14 +59,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
   // Get list of class IDs the student is already assigned to
   const getAssignedClassIds = (): string[] => {
-    return (student.programEnrollments || [])
+    return getEnrollments()
       .filter((e) => e.status === 'ASSIGNED' && e.classId)
       .map((e) => e.classId as string);
   };
 
   // Update payment status for a specific program enrollment
   const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED') => {
-    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+    const updatedEnrollments = getEnrollments().map((e) =>
       e.id === enrollmentId ? { ...e, paymentStatus } : e
     );
     updateStudent(student.id, { programEnrollments: updatedEnrollments });
@@ -69,7 +75,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   // Unassign student from a class (keep program enrollment)
   const handleUnassignFromClass = (enrollmentId: string, classId: string, studentId: string) => {
     // Remove classId from enrollment but keep the program enrollment
-    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+    const updatedEnrollments = getEnrollments().map((e) =>
       e.id === enrollmentId ? { ...e, classId: undefined } : e
     );
     updateStudent(studentId, { programEnrollments: updatedEnrollments });
@@ -93,8 +99,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   // Unassign student from a program entirely (remove program enrollment)
   const handleUnassignFromProgram = (enrollmentId: string, programId: string, studentId: string) => {
     // Remove the entire program enrollment
-    const enrollmentToRemove = student.programEnrollments?.find((e) => e.id === enrollmentId);
-    const updatedEnrollments = (student.programEnrollments || []).filter((e) => e.id !== enrollmentId);
+    const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
+    const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
     updateStudent(studentId, { programEnrollments: updatedEnrollments });
 
     // If the enrollment has a classId, also remove from the class
@@ -119,7 +125,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   // Mark a class as completed and add to course history
   const handleMarkAsCompleted = (enrollmentId: string, classId: string, studentId: string) => {
     const classData = classes.find((c) => c.id === classId);
-    const enrollment = student.programEnrollments?.find((e) => e.id === enrollmentId);
+    const enrollment = getEnrollments().find((e) => e.id === enrollmentId);
     const program = programs.find((p) => p.id === enrollment?.programId);
 
     if (!classData || !enrollment || !program) return;
@@ -138,7 +144,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     });
 
     // Remove the enrollment from programEnrollments
-    const updatedEnrollments = (student.programEnrollments || []).filter((e) => e.id !== enrollmentId);
+    const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
     // Update student with both changes
     updateStudent(studentId, {
@@ -162,13 +168,13 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   // Promote student from waitlist to assigned class
   const handlePromoteFromWaitlist = (enrollmentId: string, classId: string, studentId: string) => {
     const classData = classes.find((c) => c.id === classId);
-    const enrollment = student.programEnrollments?.find((e) => e.id === enrollmentId);
+    const enrollment = getEnrollments().find((e) => e.id === enrollmentId);
     const program = programs.find((p) => p.id === enrollment?.programId);
 
     if (!classData || !enrollment || !program) return;
 
     // Update enrollment: change status from 'waitlist' to 'ASSIGNED' and add classId
-    const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+    const updatedEnrollments = getEnrollments().map((e) =>
       e.id === enrollmentId ? { ...e, status: 'ASSIGNED' as const, classId } : e
     );
 
@@ -223,7 +229,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       paymentStatus: 'PENDING',
     };
 
-    const updatedEnrollments = [...(student.programEnrollments || []), newEnrollment];
+    const updatedEnrollments = [...getEnrollments(), newEnrollment];
 
     updateStudent(studentId, {
       programEnrollments: updatedEnrollments,
@@ -238,6 +244,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   };
 
   const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
+    console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, classId });
+
     // Check if student is already assigned to this class
     const assignedClasses = getAssignedClassIds();
     if (assignedClasses.includes(classId)) {
@@ -245,8 +253,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       return;
     }
 
+    // Get current enrollments (handle both field names)
+    const currentEnrollments = student.enrollments || student.programEnrollments || [];
+    console.log('[handleAssignStudent] Current enrollments:', currentEnrollments.length);
+
     // Check if payment is confirmed for this program
-    const programEnrollment = (student.programEnrollments || []).find((e) => e.programId === programId);
+    const programEnrollment = currentEnrollments.find((e) => e.programId === programId);
+    console.log('[handleAssignStudent] Found program enrollment:', !!programEnrollment, 'Payment status:', programEnrollment?.paymentStatus);
+
     if (!programEnrollment || programEnrollment.paymentStatus !== 'CONFIRMED') {
       alert('Cannot assign student to this program. Payment must be confirmed first. Please update the payment status in the Payment Status section.');
       return;
@@ -254,9 +268,10 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
     // Update existing enrollment or create new one
     let foundExistingEnrollment = false;
-    const updatedEnrollments = (student.programEnrollments || []).map((e) => {
+    const updatedEnrollments = currentEnrollments.map((e) => {
       if (e.programId === programId && !e.classId) {
         foundExistingEnrollment = true;
+        console.log('[handleAssignStudent] Found existing enrollment without classId, updating it');
         return { ...e, classId, status: 'ASSIGNED' as const };
       }
       return e;
@@ -264,6 +279,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
     // If no existing enrollment without classId was found, create a new one
     if (!foundExistingEnrollment) {
+      console.log('[handleAssignStudent] No existing enrollment found, creating new one');
       const newEnrollment: ProgramEnrollment = {
         id: generateId(),
         programId,
@@ -296,6 +312,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
     const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
 
+    console.log('[handleAssignStudent] Calling updateStudent with', updatedEnrollments.length, 'enrollments');
     updateStudent(studentId, {
       programEnrollments: updatedEnrollments,
       courseHistory: updatedCourseHistory,
@@ -418,9 +435,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       />
 
       {/* Payment Status Section */}
-      {(student.programEnrollments || []).length > 0 && (
+      {getEnrollments().length > 0 && (
         <PaymentStatusSection
-          enrollments={student.programEnrollments || []}
+          enrollments={getEnrollments()}
           programs={programs}
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
         />
@@ -428,7 +445,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
       {/* Program Enrollments Section */}
       <ProgramEnrollmentsSection
-        enrollments={student.programEnrollments || []}
+        enrollments={getEnrollments()}
         classes={classes}
         programs={programs}
         getProgramName={getProgramName}
@@ -455,7 +472,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           students={students}
           assignedClassIds={getAssignedClassIds()}
           courseHistory={student.courseHistory || []}
-          studentProgramEnrollments={student.programEnrollments || []}
+          studentProgramEnrollments={getEnrollments()}
           onAssign={handleAssignStudent}
           onAddToWaitlist={handleAddToWaitlist}
           onCancel={() => setIsAssignmentModalOpen(false)}

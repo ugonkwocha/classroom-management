@@ -86,21 +86,18 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
     // Build program enrollments if student is enrolling in a program
     let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
-    console.log('enrollInProgram:', enrollInProgram, 'selectedProgram:', selectedProgram, 'paymentConfirmed:', paymentConfirmed);
     if (enrollInProgram && selectedProgram && paymentConfirmed) {
-      const newEnrollment: ProgramEnrollment = {
-        id: '',
+      // Create enrollment with minimal data - will be created by the hook
+      const newEnrollment = {
+        id: generateId(),  // Generate a temporary ID for the form
         programId: selectedProgram,
         batchNumber: 1,
         enrollmentDate: new Date().toISOString(),
-        status: 'ASSIGNED',
-        paymentStatus: 'CONFIRMED',
+        status: 'ASSIGNED' as const,
+        paymentStatus: 'CONFIRMED' as const,
       };
-      programEnrollments = [...programEnrollments, newEnrollment];
-      console.log('Added new enrollment, array now:', programEnrollments);
+      programEnrollments = [...programEnrollments, newEnrollment as any];
     }
-
-    console.log('StudentForm submitting with programEnrollments:', programEnrollments);
 
     await onSubmit({
       firstName: formData.firstName,
@@ -112,10 +109,10 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       dateOfBirth: formData.dateOfBirth || undefined,
       isReturningStudent: formData.isReturningStudent,
       courseHistory,
-      programEnrollments,
+      enrollments: programEnrollments,
       // Only set paymentStatus if student has program enrollments, otherwise leave as PENDING (not displayed)
       paymentStatus: programEnrollments.length > 0 ? 'CONFIRMED' : 'PENDING',
-    });
+    } as any);
 
     setErrors({});
   };

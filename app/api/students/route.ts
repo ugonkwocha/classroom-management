@@ -51,7 +51,12 @@ export async function POST(request: NextRequest) {
         parentPhone: data.parentPhone,
       },
       include: {
-        enrollments: true,
+        enrollments: {
+          include: {
+            class: true,
+            program: true,
+          },
+        },
         courseHistory: true,
       },
     });
