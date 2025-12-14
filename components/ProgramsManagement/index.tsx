@@ -35,9 +35,15 @@ export function ProgramsManagement() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this program? Classes associated with it will not be deleted.')) {
-      deleteProgram(id);
+      try {
+        await deleteProgram(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete program';
+        console.error('Error deleting program:', error);
+        alert(`Error deleting program: ${errorMessage}`);
+      }
     }
   };
 

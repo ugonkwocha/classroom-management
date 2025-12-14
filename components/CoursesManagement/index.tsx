@@ -34,9 +34,15 @@ export function CoursesManagement() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      deleteCourse(id);
+      try {
+        await deleteCourse(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete course';
+        console.error('Error deleting course:', error);
+        alert(`Error deleting course: ${errorMessage}`);
+      }
     }
   };
 

@@ -76,8 +76,16 @@ export function TeachersManagement() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteTeacher(id);
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this teacher?')) {
+      try {
+        await deleteTeacher(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete teacher';
+        console.error('Error deleting teacher:', error);
+        alert(`Error deleting teacher: ${errorMessage}`);
+      }
+    }
   };
 
   const handleCloseModal = () => {

@@ -75,9 +75,15 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
-      deleteStudent(id);
+      try {
+        await deleteStudent(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete student';
+        console.error('Error deleting student:', error);
+        alert(`Error deleting student: ${errorMessage}`);
+      }
     }
   };
 

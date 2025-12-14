@@ -69,7 +69,7 @@ export function ClassManagement() {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const classToDelete = classes.find((c) => c.id === id);
     if (!classToDelete) return;
 
@@ -80,19 +80,25 @@ export function ClassManagement() {
     }`;
 
     if (window.confirm(confirmMessage)) {
-      // Reassign students from deleted class back to unassigned status
-      classToDelete.students.forEach((studentId) => {
-        const student = students.find((s) => s.id === studentId);
-        if (student && student.programEnrollments) {
-          const updatedEnrollments = student.programEnrollments.map((enrollment) =>
-            enrollment.classId === id ? { ...enrollment, classId: undefined } : enrollment
-          );
-          updateStudent(studentId, { programEnrollments: updatedEnrollments });
+      try {
+        // Reassign students from deleted class back to unassigned status
+        for (const studentId of classToDelete.students) {
+          const student = students.find((s) => s.id === studentId);
+          if (student && student.programEnrollments) {
+            const updatedEnrollments = student.programEnrollments.map((enrollment) =>
+              enrollment.classId === id ? { ...enrollment, classId: undefined } : enrollment
+            );
+            await updateStudent(studentId, { programEnrollments: updatedEnrollments });
+          }
         }
-      });
 
-      // Delete the class
-      deleteClass(id);
+        // Delete the class
+        await deleteClass(id);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete class';
+        console.error('Error deleting class:', error);
+        alert(`Error deleting class: ${errorMessage}`);
+      }
     }
   };
 
