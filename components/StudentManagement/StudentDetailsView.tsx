@@ -143,8 +143,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
       // Update existing course history entry from "in-progress" to "completed"
       const updatedCourseHistory = (student.courseHistory || []).map((history) => {
-        // Find the matching course history entry by matching course name and program ID
-        if (history.courseName === classData.name && history.programId === program.id) {
+        // Find the matching course history entry by matching courseId and programId
+        if (history.courseId === classData.courseId && history.programId === program.id && history.completionStatus === 'IN_PROGRESS') {
+          console.log('[handleMarkAsCompleted] Updating course history entry:', history.id);
           return {
             ...history,
             completionStatus: 'COMPLETED' as const,

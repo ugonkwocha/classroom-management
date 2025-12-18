@@ -164,14 +164,45 @@ export function useStudents() {
       // Handle course history if it's being updated
       if (courseHistory) {
         const existingCourseHistory = students.find((s) => s.id === id)?.courseHistory || [];
-        const existingCourseIds = new Set(existingCourseHistory.map((h) => h.courseId));
-        const newCourseIds = new Set(courseHistory.map((h) => h.courseId));
+        const existingHistoryMap = new Map(existingCourseHistory.map((h) => [h.id, h]));
+        const newHistoryMap = new Map(courseHistory.map((h) => [h.id, h]));
+
+        console.log('[updateStudent] Handling course history. Existing:', existingHistoryMap.size, 'New:', newHistoryMap.size);
+
+        // Update existing course history entries that have been modified
+        for (const [historyId, newHistory] of newHistoryMap) {
+          const oldHistory = existingHistoryMap.get(historyId);
+          if (oldHistory && oldHistory.completionStatus !== newHistory.completionStatus) {
+            console.log('[updateStudent] Updating course history:', historyId, 'from', oldHistory.completionStatus, 'to', newHistory.completionStatus);
+            try {
+              const updateRes = await fetch(`/api/course-history/${historyId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  completionStatus: newHistory.completionStatus,
+                  endDate: newHistory.endDate,
+                  performanceNotes: newHistory.performanceNotes,
+                }),
+              });
+
+              if (!updateRes.ok) {
+                const updateError = await updateRes.json();
+                console.error('[updateStudent] Failed to update course history:', updateError);
+              } else {
+                console.log('[updateStudent] Successfully updated course history:', historyId);
+              }
+            } catch (error) {
+              console.error('[updateStudent] Error updating course history:', error);
+            }
+          }
+        }
 
         // Delete courses that were removed
-        for (const history of existingCourseHistory) {
-          if (!newCourseIds.has(history.courseId)) {
+        for (const [historyId, oldHistory] of existingHistoryMap) {
+          if (!newHistoryMap.has(historyId)) {
+            console.log('[updateStudent] Deleting course history:', historyId);
             try {
-              await fetch(`/api/course-history/${history.id}`, { method: 'DELETE' });
+              await fetch(`/api/course-history/${historyId}`, { method: 'DELETE' });
             } catch (error) {
               console.error('Failed to delete course history:', error);
             }
@@ -179,8 +210,9 @@ export function useStudents() {
         }
 
         // Add new courses that don't exist in history
-        for (const history of courseHistory) {
-          if (!existingCourseIds.has(history.courseId)) {
+        for (const [historyId, history] of newHistoryMap) {
+          if (!existingHistoryMap.has(historyId)) {
+            console.log('[updateStudent] Creating new course history:', historyId);
             try {
               const courseRes = await fetch('/api/course-history', {
                 method: 'POST',
@@ -190,12 +222,21 @@ export function useStudents() {
                   courseId: history.courseId,
                   courseName: history.courseName,
                   completionStatus: history.completionStatus,
+                  programId: history.programId,
+                  programName: history.programName,
+                  batch: history.batch,
+                  year: history.year,
+                  startDate: history.startDate,
+                  endDate: history.endDate,
+                  performanceNotes: history.performanceNotes,
                 }),
               });
 
               if (!courseRes.ok) {
                 const courseError = await courseRes.json();
                 console.error('Failed to create course history:', courseError);
+              } else {
+                console.log('[updateStudent] Successfully created course history');
               }
             } catch (error) {
               console.error('Failed to create course history:', error);
