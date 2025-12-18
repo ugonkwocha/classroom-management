@@ -211,8 +211,34 @@ export function useStudents() {
         // Handle both 'enrollments' and 'programEnrollments' field names
         const currentEnrollments = currentStudent?.enrollments || currentStudent?.programEnrollments || [];
         const existingEnrollmentIds = new Set(currentEnrollments.map((e) => e.id) || []);
+        const newEnrollmentIds = new Set(enrollmentsToProcess.map((e) => e.id) || []);
 
         console.log('[updateStudent] Handling enrollments. Current enrollments:', existingEnrollmentIds.size, 'New enrollments count:', enrollmentsToProcess.length);
+
+        // Find enrollments that were deleted
+        const deletedEnrollments = currentEnrollments.filter((e) => !newEnrollmentIds.has(e.id));
+        console.log('[updateStudent] Deleted enrollments:', deletedEnrollments.length);
+
+        // Delete removed enrollments
+        for (const enrollment of deletedEnrollments) {
+          try {
+            console.log('[updateStudent] Deleting enrollment:', enrollment.id);
+            const deleteRes = await fetch(`/api/enrollments/${enrollment.id}`, {
+              method: 'DELETE',
+            });
+
+            if (!deleteRes.ok) {
+              const deleteError = await deleteRes.json();
+              console.error('[updateStudent] Failed to delete enrollment:', deleteError);
+              // Don't throw - continue with other operations
+            } else {
+              console.log('[updateStudent] Successfully deleted enrollment:', enrollment.id);
+            }
+          } catch (error) {
+            console.error('[updateStudent] Error deleting enrollment:', error);
+            // Don't throw - continue with other operations
+          }
+        }
 
         // Separate new enrollments from existing ones that may have been modified
         const newEnrollments = enrollmentsToProcess.filter((e) => !existingEnrollmentIds.has(e.id));
