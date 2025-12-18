@@ -181,9 +181,9 @@ export function ProgramEnrollmentsSection({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       if (window.confirm(`Mark ${classData?.name || 'this course'} as completed? This will add it to the student's course history.`)) {
-                        onMarkAsCompleted(enrollment.id, classData?.id || '', studentId || '');
+                        await onMarkAsCompleted(enrollment.id, classData?.id || '', studentId || '');
                       }
                     }}
                     className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
@@ -196,9 +196,9 @@ export function ProgramEnrollmentsSection({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm(`Remove ${classData.name} assignment? The student will remain enrolled in the program.`)) {
-                          onUnassignFromClass(enrollment.id, classData.id, studentId || '');
+                          await onUnassignFromClass(enrollment.id, classData.id, studentId || '');
                         }
                       }}
                       className="flex-1"
@@ -210,9 +210,9 @@ export function ProgramEnrollmentsSection({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
-                          onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                          await onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
                         }
                       }}
                       className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -362,13 +362,13 @@ export function ProgramEnrollmentsSection({
                         {availableClasses.map((classData) => (
                           <button
                             key={classData.id}
-                            onClick={() => {
+                            onClick={async () => {
                               const studentCount = classData.students.length;
                               const availableSpots = classData.capacity - studentCount;
                               if (window.confirm(
                                 `Promote student to ${classData.name}? (${availableSpots} spot${availableSpots !== 1 ? 's' : ''} available)`
                               )) {
-                                onPromoteFromWaitlist?.(enrollment.id, classData.id, studentId || '');
+                                await onPromoteFromWaitlist?.(enrollment.id, classData.id, studentId || '');
                               }
                             }}
                             className="w-full text-left p-3 rounded border border-amber-300 bg-white hover:bg-amber-50 transition-colors"
@@ -393,9 +393,9 @@ export function ProgramEnrollmentsSection({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
-                            onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
+                            await onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
                           }
                         }}
                         className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"

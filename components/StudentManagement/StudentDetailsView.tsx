@@ -73,96 +73,111 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   };
 
   // Unassign student from a class (keep program enrollment)
-  const handleUnassignFromClass = (enrollmentId: string, classId: string, studentId: string) => {
-    // Remove classId from enrollment but keep the program enrollment
-    const updatedEnrollments = getEnrollments().map((e) =>
-      e.id === enrollmentId ? { ...e, classId: undefined } : e
-    );
-    updateStudent(studentId, { programEnrollments: updatedEnrollments });
+  const handleUnassignFromClass = async (enrollmentId: string, classId: string, studentId: string) => {
+    try {
+      // Remove classId from enrollment but keep the program enrollment
+      const updatedEnrollments = getEnrollments().map((e) =>
+        e.id === enrollmentId ? { ...e, classId: undefined } : e
+      );
+      await updateStudent(studentId, { programEnrollments: updatedEnrollments });
 
-    // Remove student from the class
-    const classData = classes.find((c) => c.id === classId);
-    if (classData) {
-      updateClass(classId, {
-        students: classData.students.filter((id) => id !== studentId),
-      });
-    }
-
-    // Show success message
-    setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${classData?.name || 'the class'}`);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
-  };
-
-  // Unassign student from a program entirely (remove program enrollment)
-  const handleUnassignFromProgram = (enrollmentId: string, programId: string, studentId: string) => {
-    // Remove the entire program enrollment
-    const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
-    const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
-    updateStudent(studentId, { programEnrollments: updatedEnrollments });
-
-    // If the enrollment has a classId, also remove from the class
-    if (enrollmentToRemove?.classId) {
-      const classData = classes.find((c) => c.id === enrollmentToRemove.classId);
+      // Remove student from the class
+      const classData = classes.find((c) => c.id === classId);
       if (classData) {
-        updateClass(enrollmentToRemove.classId, {
+        await updateClass(classId, {
           students: classData.students.filter((id) => id !== studentId),
         });
       }
-    }
 
-    // Show success message
-    const programName = programs.find((p) => p.id === programId)?.name || 'Program';
-    setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${programName} (refund/unable to attend)`);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
+      // Show success message
+      setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${classData?.name || 'the class'}`);
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error unassigning from class:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to unassign from class'}`);
+    }
+  };
+
+  // Unassign student from a program entirely (remove program enrollment)
+  const handleUnassignFromProgram = async (enrollmentId: string, programId: string, studentId: string) => {
+    try {
+      // Remove the entire program enrollment
+      const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
+      const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
+      await updateStudent(studentId, { programEnrollments: updatedEnrollments });
+
+      // If the enrollment has a classId, also remove from the class
+      if (enrollmentToRemove?.classId) {
+        const classData = classes.find((c) => c.id === enrollmentToRemove.classId);
+        if (classData) {
+          await updateClass(enrollmentToRemove.classId, {
+            students: classData.students.filter((id) => id !== studentId),
+          });
+        }
+      }
+
+      // Show success message
+      const programName = programs.find((p) => p.id === programId)?.name || 'Program';
+      setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${programName} (refund/unable to attend)`);
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error unassigning from program:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to unassign from program'}`);
+    }
   };
 
   // Mark a class as completed and add to course history
-  const handleMarkAsCompleted = (enrollmentId: string, classId: string, studentId: string) => {
-    const classData = classes.find((c) => c.id === classId);
-    const enrollment = getEnrollments().find((e) => e.id === enrollmentId);
-    const program = programs.find((p) => p.id === enrollment?.programId);
+  const handleMarkAsCompleted = async (enrollmentId: string, classId: string, studentId: string) => {
+    try {
+      const classData = classes.find((c) => c.id === classId);
+      const enrollment = getEnrollments().find((e) => e.id === enrollmentId);
+      const program = programs.find((p) => p.id === enrollment?.programId);
 
-    if (!classData || !enrollment || !program) return;
+      if (!classData || !enrollment || !program) return;
 
-    // Update existing course history entry from "in-progress" to "completed"
-    const updatedCourseHistory = (student.courseHistory || []).map((history) => {
-      // Find the matching course history entry by matching course name and program ID
-      if (history.courseName === classData.name && history.programId === program.id) {
-        return {
-          ...history,
-          completionStatus: 'COMPLETED' as const,
-          endDate: new Date().toISOString(),
-        };
-      }
-      return history;
-    });
+      // Update existing course history entry from "in-progress" to "completed"
+      const updatedCourseHistory = (student.courseHistory || []).map((history) => {
+        // Find the matching course history entry by matching course name and program ID
+        if (history.courseName === classData.name && history.programId === program.id) {
+          return {
+            ...history,
+            completionStatus: 'COMPLETED' as const,
+            endDate: new Date().toISOString(),
+          };
+        }
+        return history;
+      });
 
-    // Remove the enrollment from programEnrollments
-    const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
+      // Remove the enrollment from programEnrollments
+      const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-    // Update student with both changes
-    updateStudent(studentId, {
-      courseHistory: updatedCourseHistory,
-      programEnrollments: updatedEnrollments,
-    });
+      // Update student with both changes
+      await updateStudent(studentId, {
+        courseHistory: updatedCourseHistory,
+        programEnrollments: updatedEnrollments,
+      });
 
-    // Remove student from the class
-    updateClass(classId, {
-      students: classData.students.filter((id) => id !== studentId),
-    });
+      // Remove student from the class
+      await updateClass(classId, {
+        students: classData.students.filter((id) => id !== studentId),
+      });
 
-    // Show success message
-    setSuccessMessage(`✓ Marked ${classData.name} as completed`);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
+      // Show success message
+      setSuccessMessage(`✓ Marked ${classData.name} as completed`);
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error marking class as completed:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to mark class as completed'}`);
+    }
   };
 
   // Promote student from waitlist to assigned class
