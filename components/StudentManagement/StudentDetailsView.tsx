@@ -107,7 +107,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       // Remove the entire program enrollment
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
-      await updateStudent(studentId, { programEnrollments: updatedEnrollments });
+
+      // Also remove related course history entries for this program
+      const updatedCourseHistory = (student.courseHistory || []).filter((h) => h.programId !== programId);
+
+      await updateStudent(studentId, {
+        programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
+      });
 
       // If the enrollment has a classId, also remove from the class
       if (enrollmentToRemove?.classId) {
@@ -235,6 +242,13 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     const program = programs.find((p) => p.id === programId);
     if (!program) return;
 
+    // Check if student is already enrolled in this program
+    const existingEnrollment = getEnrollments().find((e) => e.programId === programId);
+    if (existingEnrollment) {
+      alert(`Student is already enrolled in ${program.name}`);
+      return;
+    }
+
     // Create new waitlist enrollment
     const newEnrollment: ProgramEnrollment = {
       id: generateId(),
@@ -291,30 +305,23 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       return;
     }
 
-    // Update existing enrollment or create new one
+    // Update existing enrollment by adding classId - there should always be an enrollment here
+    // since we already validated that programEnrollment exists above (line 277)
     let foundExistingEnrollment = false;
     const updatedEnrollments = currentEnrollments.map((e) => {
-      if (e.programId === programId && !e.classId) {
+      if (e.programId === programId) {
         foundExistingEnrollment = true;
-        console.log('[handleAssignStudent] Found existing enrollment without classId, updating it');
+        console.log('[handleAssignStudent] Found existing enrollment for program, updating with classId and status ASSIGNED');
         return { ...e, classId, status: 'ASSIGNED' as const };
       }
       return e;
     });
 
-    // If no existing enrollment without classId was found, create a new one
+    // This should never happen because we already found programEnrollment above
     if (!foundExistingEnrollment) {
-      console.log('[handleAssignStudent] No existing enrollment found, creating new one');
-      const newEnrollment: ProgramEnrollment = {
-        id: generateId(),
-        programId,
-        batchNumber: 1,
-        classId,
-        enrollmentDate: new Date().toISOString(),
-        status: 'ASSIGNED',
-        paymentStatus: 'CONFIRMED',
-      };
-      updatedEnrollments.push(newEnrollment);
+      console.error('[handleAssignStudent] ERROR: No existing enrollment found even though programEnrollment was found. This should not happen!');
+      alert('An unexpected error occurred. Please refresh and try again.');
+      return;
     }
 
     // Get class and program data for course history

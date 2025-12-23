@@ -141,11 +141,12 @@ export function useStudents() {
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
-      console.log('[updateStudent] ENTRY: Called with updates:', Object.keys(updates));
+      console.log('[updateStudent] ENTRY: Called with updates:', Object.keys(updates), 'hasOwnProperty courseHistory:', updates.hasOwnProperty('courseHistory'));
       // Separate programEnrollments and courseHistory from student data
       // Handle both 'programEnrollments' (from form) and 'enrollments' (from API)
       const { programEnrollments, enrollments, courseHistory, ...studentData } = updates;
       const enrollmentsToProcess = programEnrollments || enrollments;
+      const hasCourseHistoryUpdate = Object.prototype.hasOwnProperty.call(updates, 'courseHistory');
 
       const res = await fetch(`/api/students/${id}`, {
         method: 'PUT',
@@ -161,8 +162,10 @@ export function useStudents() {
 
       const updatedStudent = await res.json();
 
-      // Handle course history if it's being updated
-      if (courseHistory) {
+      // Handle course history only if it's explicitly being updated
+      // Only process course history deletions if courseHistory was explicitly passed
+      if (hasCourseHistoryUpdate) {
+        console.log('[updateStudent] courseHistory was explicitly passed, processing it');
         const existingCourseHistory = students.find((s) => s.id === id)?.courseHistory || [];
         const existingHistoryMap = new Map(existingCourseHistory.map((h) => [h.id, h]));
         const newHistoryMap = new Map(courseHistory.map((h) => [h.id, h]));
@@ -197,7 +200,7 @@ export function useStudents() {
           }
         }
 
-        // Delete courses that were removed
+        // Delete courses that were removed (only delete if courseHistory was explicitly passed with fewer entries)
         for (const [historyId, oldHistory] of existingHistoryMap) {
           if (!newHistoryMap.has(historyId)) {
             console.log('[updateStudent] Deleting course history:', historyId);
