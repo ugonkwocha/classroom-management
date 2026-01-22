@@ -344,7 +344,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
     const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
 
-    console.log('[handleAssignStudent] Calling updateStudent with', updatedEnrollments.length, 'enrollments');
+    console.log('[handleAssignStudent] Calling updateStudent with', updatedEnrollments.length, 'enrollments and', updatedCourseHistory.length, 'course history entries');
+    console.log('[handleAssignStudent] Existing course history:', student.courseHistory);
+    console.log('[handleAssignStudent] New course history:', updatedCourseHistory);
     updateStudent(studentId, {
       programEnrollments: updatedEnrollments,
       courseHistory: updatedCourseHistory,

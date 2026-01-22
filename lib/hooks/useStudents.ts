@@ -163,22 +163,34 @@ export function useStudents() {
       const updatedStudent = await res.json();
 
       // Handle course history only if it's explicitly being updated
-      // Only process course history deletions if courseHistory was explicitly passed
+      // Only process course history modifications if courseHistory was explicitly passed
       if (hasCourseHistoryUpdate) {
         console.log('[updateStudent] courseHistory was explicitly passed, processing it');
         const existingCourseHistory = students.find((s) => s.id === id)?.courseHistory || [];
-        const existingHistoryMap = new Map(existingCourseHistory.map((h) => [h.id, h]));
-        const newHistoryMap = new Map(courseHistory.map((h) => [h.id, h]));
 
-        console.log('[updateStudent] Handling course history. Existing:', existingHistoryMap.size, 'New:', newHistoryMap.size);
+        // Create a map of existing courses by courseId + programId (not by ID, to avoid sync issues)
+        const existingByKey = new Map<string, CourseHistory>();
+        for (const history of existingCourseHistory) {
+          const key = `${history.courseId}|${history.programId}`;
+          existingByKey.set(key, history);
+        }
 
-        // Update existing course history entries that have been modified
-        for (const [historyId, newHistory] of newHistoryMap) {
-          const oldHistory = existingHistoryMap.get(historyId);
-          if (oldHistory && oldHistory.completionStatus !== newHistory.completionStatus) {
-            console.log('[updateStudent] Updating course history:', historyId, 'from', oldHistory.completionStatus, 'to', newHistory.completionStatus);
+        // Create a map of new courses by courseId + programId
+        const newByKey = new Map<string, CourseHistory>();
+        for (const history of courseHistory) {
+          const key = `${history.courseId}|${history.programId}`;
+          newByKey.set(key, history);
+        }
+
+        console.log('[updateStudent] Handling course history. Existing:', existingByKey.size, 'New:', newByKey.size);
+
+        // Update existing course history entries that have been modified (by matching courseId + programId)
+        for (const [key, newHistory] of newByKey) {
+          const oldHistory = existingByKey.get(key);
+          if (oldHistory && oldHistory.id && oldHistory.completionStatus !== newHistory.completionStatus) {
+            console.log('[updateStudent] Updating course history:', oldHistory.id, 'from', oldHistory.completionStatus, 'to', newHistory.completionStatus);
             try {
-              const updateRes = await fetch(`/api/course-history/${historyId}`, {
+              const updateRes = await fetch(`/api/course-history/${oldHistory.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -192,7 +204,7 @@ export function useStudents() {
                 const updateError = await updateRes.json();
                 console.error('[updateStudent] Failed to update course history:', updateError);
               } else {
-                console.log('[updateStudent] Successfully updated course history:', historyId);
+                console.log('[updateStudent] Successfully updated course history:', oldHistory.id);
               }
             } catch (error) {
               console.error('[updateStudent] Error updating course history:', error);
@@ -200,22 +212,22 @@ export function useStudents() {
           }
         }
 
-        // Delete courses that were removed (only delete if courseHistory was explicitly passed with fewer entries)
-        for (const [historyId, oldHistory] of existingHistoryMap) {
-          if (!newHistoryMap.has(historyId)) {
-            console.log('[updateStudent] Deleting course history:', historyId);
+        // Delete courses that were removed (by matching courseId + programId)
+        for (const [key, oldHistory] of existingByKey) {
+          if (!newByKey.has(key) && oldHistory.id) {
+            console.log('[updateStudent] Deleting course history:', oldHistory.id, 'Key:', key);
             try {
-              await fetch(`/api/course-history/${historyId}`, { method: 'DELETE' });
+              await fetch(`/api/course-history/${oldHistory.id}`, { method: 'DELETE' });
             } catch (error) {
               console.error('Failed to delete course history:', error);
             }
           }
         }
 
-        // Add new courses that don't exist in history
-        for (const [historyId, history] of newHistoryMap) {
-          if (!existingHistoryMap.has(historyId)) {
-            console.log('[updateStudent] Creating new course history:', historyId);
+        // Add new courses that don't exist in history (by matching courseId + programId)
+        for (const [key, history] of newByKey) {
+          if (!existingByKey.has(key)) {
+            console.log('[updateStudent] Creating new course history with key:', key);
             try {
               const courseRes = await fetch('/api/course-history', {
                 method: 'POST',
