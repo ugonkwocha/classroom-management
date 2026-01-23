@@ -378,7 +378,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         </div>
 
         {/* Quick Info Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Email</p>
             <p className="text-sm text-gray-900 break-words">{student.email || 'No email'}</p>
@@ -394,33 +394,29 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
             </p>
           </div>
           {student.dateOfBirth && (
-            <div className="min-w-0">
-              <p className="text-xs text-gray-600 font-semibold">Age</p>
-              <p className="text-sm text-gray-900">{calculateAge(student.dateOfBirth)} years old</p>
-            </div>
-          )}
-        </div>
-
-        {/* Date of Birth and Parent Contact Section */}
-        <div className="mt-4 pt-4 border-t border-purple-200 space-y-3">
-          {student.dateOfBirth && (
-            <div>
-              <p className="text-xs font-semibold text-gray-600 mb-1">Date of Birth</p>
-              <p className="text-sm text-gray-900">{new Date(student.dateOfBirth).toLocaleDateString()}</p>
-            </div>
-          )}
-
-          {/* Parent Contact (if available) */}
-          {(student.parentEmail || student.parentPhone) && (
-            <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
-              <div className="space-y-1 text-sm">
-                {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
-                {student.parentPhone && <p className="text-gray-700">Phone: {student.parentPhone}</p>}
+            <>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-600 font-semibold">Date of Birth</p>
+                <p className="text-sm text-gray-900">{new Date(student.dateOfBirth).toLocaleDateString()}</p>
               </div>
-            </div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-600 font-semibold">Age</p>
+                <p className="text-sm text-gray-900">{calculateAge(student.dateOfBirth)} years old</p>
+              </div>
+            </>
           )}
         </div>
+
+        {/* Parent Contact Section */}
+        {(student.parentEmail || student.parentPhone) && (
+          <div className="mt-4 pt-4 border-t border-purple-200">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
+            <div className="space-y-1 text-sm">
+              {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
+              {student.parentPhone && <p className="text-gray-700">Phone: {student.parentPhone}</p>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Course History Section */}
