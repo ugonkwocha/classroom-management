@@ -191,54 +191,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     }
   };
 
-  // Promote student from waitlist to assigned class
-  const handlePromoteFromWaitlist = (enrollmentId: string, classId: string, studentId: string) => {
-    const classData = classes.find((c) => c.id === classId);
-    const enrollment = getEnrollments().find((e) => e.id === enrollmentId);
-    const program = programs.find((p) => p.id === enrollment?.programId);
-
-    if (!classData || !enrollment || !program) return;
-
-    // Update enrollment: change status from 'waitlist' to 'ASSIGNED' and add classId
-    const updatedEnrollments = getEnrollments().map((e) =>
-      e.id === enrollmentId ? { ...e, status: 'ASSIGNED' as const, classId } : e
-    );
-
-    // Create course history entry with "IN_PROGRESS" status
-    const newCourseHistory = {
-      id: generateId(),
-      courseId: classData.courseId || '',
-      courseName: classData.name || 'Unknown Course',
-      programId: program.id || '',
-      programName: program.name || 'Unknown Program',
-      batch: enrollment.batchNumber || 1,
-      year: program.year,
-      completionStatus: 'IN_PROGRESS' as const,
-      startDate: new Date().toISOString(),
-      dateAdded: new Date().toISOString(),
-    };
-
-    const updatedCourseHistory = [...(student.courseHistory || []), newCourseHistory];
-
-    // Update student with new enrollment and course history
-    updateStudent(studentId, {
-      programEnrollments: updatedEnrollments,
-      courseHistory: updatedCourseHistory,
-    });
-
-    // Add student to the class
-    updateClass(classId, {
-      students: [...classData.students, studentId],
-    });
-
-    // Show success message
-    const className = classData.name || 'Unknown Class';
-    setSuccessMessage(`✓ Promoted ${student.firstName} ${student.lastName} to ${className}`);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
-  };
 
   // Add student to waitlist for a program
   const handleAddToWaitlist = (studentId: string, programId: string) => {
@@ -493,7 +445,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         onUnassignFromClass={handleUnassignFromClass}
         onUnassignFromProgram={handleUnassignFromProgram}
         onMarkAsCompleted={handleMarkAsCompleted}
-        onPromoteFromWaitlist={handlePromoteFromWaitlist}
         studentId={student.id}
       />
 
@@ -719,6 +670,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     <Button
                       variant="primary"
                       onClick={() => {
+                        // Create enrollment for the program with CONFIRMED payment
+                        // but with WAITLIST status - will be updated to ASSIGNED when class is selected
                         const newEnrollment: ProgramEnrollment = {
                           id: generateId(),
                           programId: enrollmentFlow.programId,
@@ -737,8 +690,12 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                         setEnrollmentFlow(null);
                         setPaymentConfirmed(false);
 
-                        // Automatically open the assignment modal to assign to a class
-                        setIsAssignmentModalOpen(true);
+                        // Open assignment modal to select a class
+                        // The student now has an enrollment for this program with CONFIRMED payment
+                        // and can be assigned to a class immediately
+                        setTimeout(() => {
+                          setIsAssignmentModalOpen(true);
+                        }, 100);
                       }}
                       className="flex-1"
                     >

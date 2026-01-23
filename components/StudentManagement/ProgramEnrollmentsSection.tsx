@@ -12,7 +12,6 @@ interface ProgramEnrollmentsSectionProps {
   onUnassignFromClass?: (enrollmentId: string, classId: string, studentId: string) => void;
   onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
   onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
-  onPromoteFromWaitlist?: (enrollmentId: string, classId: string, studentId: string) => void;
   studentId?: string;
 }
 
@@ -25,7 +24,6 @@ export function ProgramEnrollmentsSection({
   onUnassignFromClass,
   onUnassignFromProgram,
   onMarkAsCompleted,
-  onPromoteFromWaitlist,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
   // Separate enrollments: those with class assignment, pending (ASSIGNED without classId), and those on waitlist
@@ -354,38 +352,10 @@ export function ProgramEnrollmentsSection({
                     </div>
                   )}
 
-                  {/* Promotion Section */}
-                  {availableClasses.length > 0 ? (
-                    <div className="mt-4 pt-4 border-t border-amber-200">
-                      <p className="text-sm font-semibold text-gray-900 mb-3">Promote to Class</p>
-                      <div className="space-y-2">
-                        {availableClasses.map((classData) => (
-                          <button
-                            key={classData.id}
-                            onClick={async () => {
-                              const studentCount = classData.students.length;
-                              const availableSpots = classData.capacity - studentCount;
-                              if (window.confirm(
-                                `Promote student to ${classData.name}? (${availableSpots} spot${availableSpots !== 1 ? 's' : ''} available)`
-                              )) {
-                                await onPromoteFromWaitlist?.(enrollment.id, classData.id, studentId || '');
-                              }
-                            }}
-                            className="w-full text-left p-3 rounded border border-amber-300 bg-white hover:bg-amber-50 transition-colors"
-                          >
-                            <p className="font-medium text-gray-900">{classData.name}</p>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {classData.students.length} / {classData.capacity} students
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-4 pt-4 border-t border-amber-200">
-                      <p className="text-sm text-gray-600 italic">No available classes for this program at this time.</p>
-                    </div>
-                  )}
+                  {/* Info message directing to Assign to Class button */}
+                  <div className="mt-4 pt-4 border-t border-amber-200">
+                    <p className="text-sm text-gray-600 italic">To assign this student to a class, use the "Assign to Class" button at the top of the modal.</p>
+                  </div>
 
                   {/* Unassign Option */}
                   {onUnassignFromProgram && (
