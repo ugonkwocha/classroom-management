@@ -347,12 +347,12 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
       {/* Student Header */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-200">
-        <div className="flex justify-between items-start mb-4">
-          <div>
+        <div className="flex justify-between items-start gap-4 mb-4">
+          <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold text-gray-900">
               {student.firstName} {student.lastName}
             </h2>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <p className="text-sm text-gray-600">Student ID: {student.id.substring(0, 8)}</p>
               {getAssignedClassIds().length > 0 && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
@@ -361,7 +361,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="primary" onClick={() => setIsEnrollmentModalOpen(true)}>
               Enroll to Program
             </Button>
@@ -401,23 +401,26 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           )}
         </div>
 
-        {/* Parent Contact (if available) */}
-        {(student.parentEmail || student.parentPhone) && (
-          <div className="mt-4 pt-4 border-t border-purple-200">
-            <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
-              {student.parentPhone && <p className="text-gray-700">Phone: {student.parentPhone}</p>}
+        {/* Date of Birth and Parent Contact Section */}
+        <div className="mt-4 pt-4 border-t border-purple-200 space-y-3">
+          {student.dateOfBirth && (
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1">Date of Birth</p>
+              <p className="text-sm text-gray-900">{new Date(student.dateOfBirth).toLocaleDateString()}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Date of Birth (if available) */}
-        {student.dateOfBirth && (
-          <div className="mt-2 text-sm text-gray-600">
-            <p>Date of Birth: {new Date(student.dateOfBirth).toLocaleDateString()}</p>
-          </div>
-        )}
+          {/* Parent Contact (if available) */}
+          {(student.parentEmail || student.parentPhone) && (
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
+              <div className="space-y-1 text-sm">
+                {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
+                {student.parentPhone && <p className="text-gray-700">Phone: {student.parentPhone}</p>}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Course History Section */}
