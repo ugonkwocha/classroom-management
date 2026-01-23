@@ -22,6 +22,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const { courses } = useCourses();
   const { updateStudent, students, getStudent } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
@@ -407,6 +408,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="primary" onClick={() => setIsEnrollmentModalOpen(true)}>
+              Enroll to Program
+            </Button>
             <Button variant="primary" onClick={() => setIsAssignmentModalOpen(true)}>
               {getAssignedClassIds().length > 0 ? 'Assign Another Class' : 'Assign to Class'}
             </Button>
@@ -511,6 +515,74 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           onAddToWaitlist={handleAddToWaitlist}
           onCancel={() => setIsAssignmentModalOpen(false)}
         />
+      </Modal>
+
+      {/* Enrollment Modal */}
+      <Modal
+        isOpen={isEnrollmentModalOpen}
+        onClose={() => setIsEnrollmentModalOpen(false)}
+        title="Enroll Student in Program"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Select a Program</h3>
+            <p className="text-sm text-gray-600">
+              Enroll <span className="font-semibold">{student.firstName} {student.lastName}</span> in an upcoming program.
+            </p>
+          </div>
+
+          {programs.length === 0 ? (
+            <p className="text-gray-500 text-sm">No programs available.</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {programs.map((program) => {
+                const isAlreadyEnrolled = getEnrollments().some((e) => e.programId === program.id);
+                return (
+                  <button
+                    key={program.id}
+                    onClick={() => {
+                      if (!isAlreadyEnrolled) {
+                        handleAddToWaitlist(student.id, program.id);
+                        setIsEnrollmentModalOpen(false);
+                      }
+                    }}
+                    disabled={isAlreadyEnrolled}
+                    className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                      isAlreadyEnrolled
+                        ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
+                        : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {program.name} - {program.season} {program.year}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Type: {program.type} | Batches: {program.batches}
+                        </p>
+                      </div>
+                      {isAlreadyEnrolled && (
+                        <span className="text-xs text-gray-600 font-semibold">Enrolled</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={() => setIsEnrollmentModalOpen(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
