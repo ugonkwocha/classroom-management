@@ -32,6 +32,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
     year: initialData?.year || 2025,
     batches: initialData?.batches || 1,
     slots: initialData?.slots || [],
+    startDate: initialData?.startDate || '',
   });
 
   const [newSlot, setNewSlot] = useState('');
@@ -62,6 +63,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       year: formData.year,
       batches: Math.floor(formData.batches),
       slots: formData.slots,
+      startDate: formData.startDate || undefined,
     });
 
     setFormData({
@@ -71,6 +73,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       year: 2025,
       batches: 1,
       slots: [],
+      startDate: '',
     });
     setNewSlot('');
     setErrors({});
@@ -128,6 +131,13 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
         value={formData.year}
         onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || 2025 })}
         error={errors.year}
+      />
+
+      <Input
+        label="Program Start Date"
+        type="date"
+        value={formData.startDate}
+        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
       />
 
       <Input

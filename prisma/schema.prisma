@@ -67,6 +67,7 @@ model Program {
   year              Int
   batches           Int
   slots             String[] // Time slots for this program
+  startDate         DateTime? // Start date of the program
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
