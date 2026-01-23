@@ -74,8 +74,8 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
 
           return (
             <div key={history.id} className={`p-4 rounded-lg border ${statusColor}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
                   <p className="font-semibold text-gray-900">{getCourseName(history.courseId)}</p>
                   <p className="text-sm text-gray-600 mt-1">
                     {history.programName && `${history.programName}`}
@@ -84,31 +84,36 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
                     {history.year && ` • ${history.year}`}
                   </p>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadgeColor}`}>
+                <span className={`px-3 py-1 rounded text-xs font-semibold whitespace-nowrap ml-2 ${statusBadgeColor}`}>
                   {statusLabel}
                 </span>
               </div>
 
-              {/* Optional dates and notes */}
-              {(history.startDate || history.endDate || history.performanceNotes) && (
-                <div className="mt-3 pt-3 border-t border-current border-opacity-20 space-y-1 text-sm">
-                  {history.startDate && (
-                    <p className="text-gray-600">
-                      <span className="font-semibold">Started:</span>{' '}
-                      {new Date(history.startDate).toLocaleDateString()}
-                    </p>
-                  )}
-                  {history.endDate && (
-                    <p className="text-gray-600">
-                      <span className="font-semibold">Ended:</span>{' '}
-                      {new Date(history.endDate).toLocaleDateString()}
-                    </p>
-                  )}
-                  {history.performanceNotes && (
-                    <p className="text-gray-700">
-                      <span className="font-semibold">Notes:</span> {history.performanceNotes}
-                    </p>
-                  )}
+              {/* Separator line */}
+              <div className="my-3 border-b border-current border-opacity-20" />
+
+              {/* Dates section */}
+              <div className="space-y-1 text-sm text-gray-600">
+                {history.startDate && (
+                  <p>
+                    <span className="font-semibold">Started:</span>{' '}
+                    {new Date(history.startDate).toLocaleDateString()}
+                  </p>
+                )}
+                {history.endDate && (
+                  <p>
+                    <span className="font-semibold">Ended:</span>{' '}
+                    {new Date(history.endDate).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Performance notes if available */}
+              {history.performanceNotes && (
+                <div className="mt-2 pt-2 border-t border-current border-opacity-20 text-sm">
+                  <p className="text-gray-700">
+                    <span className="font-semibold">Notes:</span> {history.performanceNotes}
+                  </p>
                 </div>
               )}
             </div>
