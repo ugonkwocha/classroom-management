@@ -23,6 +23,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const { updateStudent, students, getStudent } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
+  const [enrollmentFlow, setEnrollmentFlow] = useState<{ programId: string; programName: string } | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
@@ -520,68 +522,167 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       {/* Enrollment Modal */}
       <Modal
         isOpen={isEnrollmentModalOpen}
-        onClose={() => setIsEnrollmentModalOpen(false)}
-        title="Enroll Student in Program"
+        onClose={() => {
+          setIsEnrollmentModalOpen(false);
+          setEnrollmentFlow(null);
+          setPaymentConfirmed(false);
+        }}
+        title={enrollmentFlow ? "Confirm Payment Status" : "Enroll Student in Program"}
         size="md"
       >
         <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Select a Program</h3>
-            <p className="text-sm text-gray-600">
-              Enroll <span className="font-semibold">{student.firstName} {student.lastName}</span> in an upcoming program.
-            </p>
-          </div>
+          {!enrollmentFlow ? (
+            <>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Select a Program</h3>
+                <p className="text-sm text-gray-600">
+                  Enroll <span className="font-semibold">{student.firstName} {student.lastName}</span> in an upcoming program.
+                </p>
+              </div>
 
-          {programs.length === 0 ? (
-            <p className="text-gray-500 text-sm">No programs available.</p>
+              {programs.length === 0 ? (
+                <p className="text-gray-500 text-sm">No programs available.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {programs.map((program) => {
+                    const isAlreadyEnrolled = getEnrollments().some((e) => e.programId === program.id);
+                    return (
+                      <button
+                        key={program.id}
+                        onClick={() => {
+                          if (!isAlreadyEnrolled) {
+                            setEnrollmentFlow({ programId: program.id, programName: program.name });
+                          }
+                        }}
+                        disabled={isAlreadyEnrolled}
+                        className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                          isAlreadyEnrolled
+                            ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
+                            : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {program.name} - {program.season} {program.year}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Type: {program.type} | Batches: {program.batches}
+                            </p>
+                          </div>
+                          {isAlreadyEnrolled && (
+                            <span className="text-xs text-gray-600 font-semibold">Enrolled</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEnrollmentModalOpen(false);
+                    setEnrollmentFlow(null);
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
           ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {programs.map((program) => {
-                const isAlreadyEnrolled = getEnrollments().some((e) => e.programId === program.id);
-                return (
-                  <button
-                    key={program.id}
-                    onClick={() => {
-                      if (!isAlreadyEnrolled) {
-                        handleAddToWaitlist(student.id, program.id);
-                        setIsEnrollmentModalOpen(false);
-                      }
-                    }}
-                    disabled={isAlreadyEnrolled}
-                    className={`w-full p-3 text-left border rounded-lg transition-colors ${
-                      isAlreadyEnrolled
-                        ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
-                        : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {program.name} - {program.season} {program.year}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Type: {program.type} | Batches: {program.batches}
-                        </p>
-                      </div>
-                      {isAlreadyEnrolled && (
-                        <span className="text-xs text-gray-600 font-semibold">Enrolled</span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            <>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Selected Program:</span> {enrollmentFlow.programName}
+                </p>
+              </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button
-              variant="outline"
-              onClick={() => setIsEnrollmentModalOpen(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-          </div>
+              <h4 className="font-semibold text-gray-900">Confirm Payment Status</h4>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 font-semibold mb-3">
+                  Has the student made payment for this program?
+                </p>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="confirmed"
+                      checked={paymentConfirmed === true}
+                      onChange={() => setPaymentConfirmed(true)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-yellow-800">
+                      Yes, payment has been confirmed
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="pending"
+                      checked={paymentConfirmed === false}
+                      onChange={() => setPaymentConfirmed(false)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-yellow-800">
+                      No, payment is pending
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEnrollmentFlow(null);
+                    setPaymentConfirmed(false);
+                  }}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const newEnrollment: ProgramEnrollment = {
+                      id: generateId(),
+                      programId: enrollmentFlow.programId,
+                      batchNumber: 1,
+                      enrollmentDate: new Date().toISOString(),
+                      status: 'WAITLIST',
+                      paymentStatus: paymentConfirmed ? 'CONFIRMED' : 'PENDING',
+                    };
+
+                    const updatedEnrollments = [...getEnrollments(), newEnrollment];
+                    updateStudent(student.id, {
+                      programEnrollments: updatedEnrollments,
+                    });
+
+                    setSuccessMessage(
+                      `✓ Enrolled ${student.firstName} ${student.lastName} in ${enrollmentFlow.programName} (Payment: ${paymentConfirmed ? 'Confirmed' : 'Pending'})`
+                    );
+                    setShowSuccessMessage(true);
+                    setTimeout(() => {
+                      setShowSuccessMessage(false);
+                    }, 3000);
+
+                    setIsEnrollmentModalOpen(false);
+                    setEnrollmentFlow(null);
+                    setPaymentConfirmed(false);
+                  }}
+                  className="flex-1"
+                >
+                  Confirm Enrollment
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
