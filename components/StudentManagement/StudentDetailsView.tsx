@@ -168,10 +168,11 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       // Remove the enrollment from programEnrollments
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-      // Update student with both changes
+      // Update student with both changes and mark as returning student since they completed a course
       await updateStudent(studentId, {
         courseHistory: updatedCourseHistory,
         programEnrollments: updatedEnrollments,
+        isReturningStudent: true,
       });
 
       // Remove student from the class
