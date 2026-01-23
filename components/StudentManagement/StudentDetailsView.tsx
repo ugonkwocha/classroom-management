@@ -670,14 +670,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     <Button
                       variant="primary"
                       onClick={() => {
-                        // Create enrollment for the program with CONFIRMED payment
-                        // but with WAITLIST status - will be updated to ASSIGNED when class is selected
+                        // Create enrollment for the program with CONFIRMED payment and ASSIGNED status
+                        // This creates a "Pending Class Assignment" entry, matching student creation process
                         const newEnrollment: ProgramEnrollment = {
                           id: generateId(),
                           programId: enrollmentFlow.programId,
                           batchNumber: 1,
                           enrollmentDate: new Date().toISOString(),
-                          status: 'WAITLIST',
+                          status: 'ASSIGNED',
                           paymentStatus: 'CONFIRMED',
                         };
 
