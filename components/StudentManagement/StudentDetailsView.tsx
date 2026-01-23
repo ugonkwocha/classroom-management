@@ -647,39 +647,105 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                 >
                   Back
                 </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    const newEnrollment: ProgramEnrollment = {
-                      id: generateId(),
-                      programId: enrollmentFlow.programId,
-                      batchNumber: 1,
-                      enrollmentDate: new Date().toISOString(),
-                      status: 'WAITLIST',
-                      paymentStatus: paymentConfirmed ? 'CONFIRMED' : 'PENDING',
-                    };
+                {!paymentConfirmed ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const newEnrollment: ProgramEnrollment = {
+                        id: generateId(),
+                        programId: enrollmentFlow.programId,
+                        batchNumber: 1,
+                        enrollmentDate: new Date().toISOString(),
+                        status: 'WAITLIST',
+                        paymentStatus: 'PENDING',
+                      };
 
-                    const updatedEnrollments = [...getEnrollments(), newEnrollment];
-                    updateStudent(student.id, {
-                      programEnrollments: updatedEnrollments,
-                    });
+                      const updatedEnrollments = [...getEnrollments(), newEnrollment];
+                      updateStudent(student.id, {
+                        programEnrollments: updatedEnrollments,
+                      });
 
-                    setSuccessMessage(
-                      `✓ Enrolled ${student.firstName} ${student.lastName} in ${enrollmentFlow.programName} (Payment: ${paymentConfirmed ? 'Confirmed' : 'Pending'})`
-                    );
-                    setShowSuccessMessage(true);
-                    setTimeout(() => {
-                      setShowSuccessMessage(false);
-                    }, 3000);
+                      setSuccessMessage(
+                        `✓ Added ${student.firstName} ${student.lastName} to ${enrollmentFlow.programName} waitlist (Payment pending)`
+                      );
+                      setShowSuccessMessage(true);
+                      setTimeout(() => {
+                        setShowSuccessMessage(false);
+                      }, 3000);
 
-                    setIsEnrollmentModalOpen(false);
-                    setEnrollmentFlow(null);
-                    setPaymentConfirmed(false);
-                  }}
-                  className="flex-1"
-                >
-                  Confirm Enrollment
-                </Button>
+                      setIsEnrollmentModalOpen(false);
+                      setEnrollmentFlow(null);
+                      setPaymentConfirmed(false);
+                    }}
+                    className="flex-1"
+                  >
+                    Add to Waitlist
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const newEnrollment: ProgramEnrollment = {
+                          id: generateId(),
+                          programId: enrollmentFlow.programId,
+                          batchNumber: 1,
+                          enrollmentDate: new Date().toISOString(),
+                          status: 'WAITLIST',
+                          paymentStatus: 'CONFIRMED',
+                        };
+
+                        const updatedEnrollments = [...getEnrollments(), newEnrollment];
+                        updateStudent(student.id, {
+                          programEnrollments: updatedEnrollments,
+                        });
+
+                        setSuccessMessage(
+                          `✓ Enrolled ${student.firstName} ${student.lastName} in ${enrollmentFlow.programName} (Payment confirmed)`
+                        );
+                        setShowSuccessMessage(true);
+                        setTimeout(() => {
+                          setShowSuccessMessage(false);
+                        }, 3000);
+
+                        setIsEnrollmentModalOpen(false);
+                        setEnrollmentFlow(null);
+                        setPaymentConfirmed(false);
+                      }}
+                      className="flex-1"
+                    >
+                      Add to Waitlist
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        const newEnrollment: ProgramEnrollment = {
+                          id: generateId(),
+                          programId: enrollmentFlow.programId,
+                          batchNumber: 1,
+                          enrollmentDate: new Date().toISOString(),
+                          status: 'WAITLIST',
+                          paymentStatus: 'CONFIRMED',
+                        };
+
+                        const updatedEnrollments = [...getEnrollments(), newEnrollment];
+                        updateStudent(student.id, {
+                          programEnrollments: updatedEnrollments,
+                        });
+
+                        setIsEnrollmentModalOpen(false);
+                        setEnrollmentFlow(null);
+                        setPaymentConfirmed(false);
+
+                        // Automatically open the assignment modal to assign to a class
+                        setIsAssignmentModalOpen(true);
+                      }}
+                      className="flex-1"
+                    >
+                      Assign to Class
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}
