@@ -21,6 +21,8 @@ export function ClassManagement() {
   const [editingClass, setEditingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
+  const [archiveConfirmationClass, setArchiveConfirmationClass] = useState<Class | undefined>();
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
 
   const filteredClasses = classes.filter((cls) => {
     const matchesFilter =
@@ -58,8 +60,104 @@ export function ClassManagement() {
   const handleArchiveClass = (id: string) => {
     const classToArchive = classes.find((c) => c.id === id);
     if (classToArchive) {
-      updateClass(id, { isArchived: true });
+      setArchiveConfirmationClass(classToArchive);
+      setIsArchiveConfirmOpen(true);
     }
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!archiveConfirmationClass) return;
+
+    try {
+      // Get all students enrolled in this class
+      const enrolledStudents = students.filter((student) =>
+        student.programEnrollments && student.programEnrollments.some((enrollment) => enrollment.classId === archiveConfirmationClass.id)
+      );
+
+      console.log(`[handleConfirmArchive] Archiving class ${archiveConfirmationClass.name} with ${enrolledStudents.length} students`);
+
+      // For each student, mark the course as completed in their course history
+      for (const student of enrolledStudents) {
+        if (!student.programEnrollments) continue;
+
+        // Find the enrollment for this class
+        const enrollment = student.programEnrollments.find((e) => e.classId === archiveConfirmationClass.id);
+        if (!enrollment) continue;
+
+        console.log(`[handleConfirmArchive] Processing student ${student.id} with enrollment:`, enrollment);
+
+        // Find program data for this enrollment
+        const program = programs.find((p) => p.id === enrollment.programId);
+
+        // Update course history: mark as COMPLETED if IN_PROGRESS, or create entry if doesn't exist
+        let updatedCourseHistory = (student.courseHistory || []).slice(); // Clone the array
+
+        // Check if this course already exists in history
+        const existingCourseHistoryIndex = updatedCourseHistory.findIndex(
+          (history) => history.courseId === archiveConfirmationClass.courseId
+        );
+
+        if (existingCourseHistoryIndex >= 0) {
+          // Update existing entry only if it's IN_PROGRESS (don't overwrite COMPLETED entries)
+          const existingHistory = updatedCourseHistory[existingCourseHistoryIndex];
+          if (existingHistory.completionStatus === 'IN_PROGRESS') {
+            console.log(`[handleConfirmArchive] Marking existing course history as COMPLETED for student ${student.id}`);
+            updatedCourseHistory[existingCourseHistoryIndex] = {
+              ...existingHistory,
+              completionStatus: 'COMPLETED' as const,
+              endDate: new Date().toISOString(),
+            };
+          } else {
+            console.log(`[handleConfirmArchive] Course history already ${existingHistory.completionStatus}, skipping update`);
+          }
+        } else {
+          // Create new course history entry as COMPLETED
+          console.log(`[handleConfirmArchive] Creating new course history entry as COMPLETED for student ${student.id}`);
+          const newCourseHistory = {
+            id: Math.random().toString(36).substr(2, 9),
+            courseId: archiveConfirmationClass.courseId,
+            courseName: archiveConfirmationClass.name,
+            programId: program?.id || '',
+            programName: program?.name || '',
+            batch: enrollment.batchNumber || 1,
+            year: program?.year,
+            completionStatus: 'COMPLETED' as const,
+            startDate: enrollment.enrollmentDate || new Date().toISOString(),
+            endDate: new Date().toISOString(),
+            dateAdded: new Date().toISOString(),
+          };
+          updatedCourseHistory.push(newCourseHistory);
+        }
+
+        // Remove the enrollment from the class and mark as COMPLETED
+        const updatedEnrollments = student.programEnrollments.map((e) =>
+          e.classId === archiveConfirmationClass.id
+            ? { ...e, classId: undefined, status: 'COMPLETED' as const }
+            : e
+        );
+
+        await updateStudent(student.id, {
+          programEnrollments: updatedEnrollments,
+          courseHistory: updatedCourseHistory,
+        });
+      }
+
+      // Now archive the class
+      updateClass(archiveConfirmationClass.id, { isArchived: true });
+
+      // Close modal
+      setIsArchiveConfirmOpen(false);
+      setArchiveConfirmationClass(undefined);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to archive class';
+      console.error('Error archiving class:', error);
+      alert(`Error archiving class: ${errorMessage}`);
+    }
+  };
+
+  const handleCancelArchive = () => {
+    setIsArchiveConfirmOpen(false);
+    setArchiveConfirmationClass(undefined);
   };
 
   const handleUnarchiveClass = (id: string) => {
@@ -207,6 +305,72 @@ export function ClassManagement() {
             students={students}
             programs={programs}
           />
+        )}
+      </Modal>
+
+      {/* Archive Confirmation Modal */}
+      <Modal
+        isOpen={isArchiveConfirmOpen}
+        onClose={handleCancelArchive}
+        title="Archive Class Confirmation"
+      >
+        {archiveConfirmationClass && (
+          <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div className="flex-1">
+                  <h4 className="font-bold text-amber-900">Archive Class</h4>
+                  <p className="text-sm text-amber-800 mt-1">
+                    You are about to archive <span className="font-semibold">{archiveConfirmationClass.name}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="font-semibold text-blue-900 mb-2">What will happen:</h5>
+              <ul className="space-y-2 text-sm text-blue-800">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">1.</span>
+                  <span>All {students.filter((s) => s.programEnrollments?.some((e) => e.classId === archiveConfirmationClass.id)).length} student(s) currently in this class will be unassigned</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">2.</span>
+                  <span>The course will be marked as <span className="font-semibold">COMPLETED</span> in their course history</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">3.</span>
+                  <span>Their enrollment status will be marked as <span className="font-semibold">COMPLETED</span></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">4.</span>
+                  <span>The class will be hidden from the class assignment menu</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">5.</span>
+                  <span>You can unarchive this class later if needed</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleCancelArchive}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleConfirmArchive}
+                className="flex-1"
+              >
+                Archive Class
+              </Button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
