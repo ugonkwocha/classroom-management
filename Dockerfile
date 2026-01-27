@@ -38,9 +38,8 @@ COPY --from=builder /app/prisma ./prisma
 # Install postgresql client for database operations
 RUN apk add --no-cache postgresql-client
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh ./
-RUN chmod +x ./docker-entrypoint.sh
+# Copy init script
+COPY scripts/init-db.js ./scripts/init-db.js
 
 # Expose port
 EXPOSE 3000
@@ -49,5 +48,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# Use entrypoint for database initialization and startup
-ENTRYPOINT ["./docker-entrypoint.sh"]
+# Start with npm - which will run the init script first
+CMD ["npm", "start"]
