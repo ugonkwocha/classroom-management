@@ -35,8 +35,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/prisma ./prisma
 
-# Install netcat for database readiness checks
-RUN apk add --no-cache netcat-openbsd
+# Install netcat for database readiness checks and postgresql client
+RUN apk add --no-cache netcat-openbsd postgresql-client
 
 # Copy startup script
 COPY scripts/start.sh ./start.sh
