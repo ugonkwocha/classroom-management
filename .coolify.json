@@ -1,0 +1,48 @@
+{
+  "name": "Academy Enrollment System",
+  "description": "Class management and student enrollment system for Transcend AI Academy",
+  "version": "0.1.0",
+  "buildPack": "dockerfile",
+  "ports": [3000],
+  "basePath": "/",
+  "exposePort": 3000,
+  "baseDirectory": "/",
+  "healthCheck": {
+    "enabled": true,
+    "path": "/",
+    "port": 3000,
+    "interval": 30,
+    "timeout": 3,
+    "initialDelay": 5
+  },
+  "environment": {
+    "NODE_ENV": "production"
+  },
+  "databases": [
+    {
+      "type": "postgresql",
+      "name": "academy-enrollment-db",
+      "version": "16"
+    }
+  ],
+  "variables": {
+    "DATABASE_URL": {
+      "description": "PostgreSQL connection string",
+      "required": true,
+      "default": "postgresql://postgres:postgres@academy-enrollment-db:5432/academy_enrollment"
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "required": true,
+      "default": "production"
+    }
+  },
+  "startup": {
+    "preCommand": "npx prisma migrate deploy",
+    "command": "npm start"
+  },
+  "persistence": {
+    "type": "postgresql",
+    "location": "database"
+  }
+}
