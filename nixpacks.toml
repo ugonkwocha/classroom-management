@@ -1,0 +1,51 @@
+# Nixpacks configuration for Academy Enrollment System
+# This file optimizes the build process for Coolify with Nixpacks
+
+[build]
+# Specify the Node.js version
+nixpkgs.version = "24.05"
+
+# Install required system dependencies
+# Alpine/Linux equivalents for build tools
+[build.nixpkgs.pkgs]
+pkg-config = "*"
+openssl = "*"
+
+[[build.phases]]
+# Install dependencies phase
+name = "install"
+commands = [
+  "npm ci --only=production"
+]
+
+[[build.phases]]
+# Build phase
+name = "build"
+cmds = [
+  "npm run build"
+]
+
+# Environment variables for build
+[build.env]
+# Required for Next.js builds
+NEXT_TELEMETRY_DISABLED = "1"
+NODE_ENV = "production"
+
+# Start command
+[start]
+cmd = "npm start"
+
+# Port configuration
+[start.ports]
+3000 = { scheme = "http" }
+
+# Health check endpoint
+[start.healthcheck]
+enabled = true
+path = "/"
+interval = 30
+
+# Static output optimization
+[static]
+enabled = true
+paths = [".next/static", "public"]
