@@ -19,6 +19,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
   const [editingStudent, setEditingStudent] = useState<Student | undefined>();
   const [viewingStudent, setViewingStudent] = useState<Student | undefined>();
   const [filter, setFilter] = useState<string>('');
+  const [formApiErrors, setFormApiErrors] = useState<string[]>([]);
 
   // Handle student ID from parent component (e.g., from dashboard modal)
   useEffect(() => {
@@ -38,6 +39,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
 
   const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
     try {
+      setFormApiErrors([]);
       console.log('StudentManagement handleSubmit received studentData:', studentData);
       if (editingStudent) {
         console.log('[StudentManagement] EDITING student:', editingStudent.id);
@@ -51,8 +53,28 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
       }
       setIsFormModalOpen(false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save student';
       console.error('Error saving student:', error);
+
+      // Check if it's a validation error with details array
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.details && Array.isArray(errorData.details)) {
+            setFormApiErrors(errorData.details);
+            return;
+          }
+        } catch (parseError) {
+          // Not JSON, continue with message
+        }
+
+        const errorMessage = error.message;
+        if (errorMessage.includes('already in use')) {
+          setFormApiErrors([errorMessage]);
+          return;
+        }
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save student';
       alert(errorMessage);
     }
   };
@@ -90,6 +112,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
   const handleCloseFormModal = () => {
     setIsFormModalOpen(false);
     setEditingStudent(undefined);
+    setFormApiErrors([]);
   };
 
   const handleCloseDetailsModal = () => {
@@ -141,6 +164,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           onSubmit={handleSubmit}
           onCancel={handleCloseFormModal}
           initialData={editingStudent}
+          apiErrors={formApiErrors}
         />
       </Modal>
 

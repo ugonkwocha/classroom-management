@@ -22,7 +22,11 @@ export function useStudents() {
   const { data: students = [], isLoading, error, mutate } = useSWR<Student[]>(
     '/api/students',
     fetcher,
-    { revalidateOnFocus: false } as SWRConfiguration
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      focusThrottleInterval: 0
+    } as SWRConfiguration
   );
 
   const isLoaded = !isLoading && !error;
@@ -44,7 +48,12 @@ export function useStudents() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error('API error:', errorData);
-        throw new Error(errorData.error || `Failed to create student: ${res.status}`);
+        // Create error with both error message and details for validation errors
+        const error = new Error(errorData.error || `Failed to create student: ${res.status}`);
+        if (errorData.details) {
+          error.message = JSON.stringify({ error: errorData.error, details: errorData.details });
+        }
+        throw error;
       }
 
       const newStudent = await res.json();
@@ -120,7 +129,7 @@ export function useStudents() {
       // Increased to 500ms to account for database transaction completion
       await new Promise(resolve => setTimeout(resolve, 500));
       console.log('[addStudent] Revalidating SWR cache after 500ms delay...');
-      const revalidatedData = await mutate();
+      const revalidatedData = await mutate(undefined, { revalidate: true });
       console.log('[addStudent] Mutate returned:', revalidatedData);
 
       // Fetch fresh data directly to verify enrollments exist
@@ -157,7 +166,12 @@ export function useStudents() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error('API error:', errorData);
-        throw new Error(errorData.error || `Failed to update student: ${res.status}`);
+        // Create error with both error message and details for validation errors
+        const error = new Error(errorData.error || `Failed to update student: ${res.status}`);
+        if (errorData.details) {
+          error.message = JSON.stringify({ error: errorData.error, details: errorData.details });
+        }
+        throw error;
       }
 
       const updatedStudent = await res.json();
@@ -302,15 +316,15 @@ export function useStudents() {
 
         console.log('[updateStudent] New enrollments to create:', newEnrollments.length, 'Modified enrollments:', modifiedEnrollments.length);
 
-        // Update existing enrollments that have been modified (e.g., classId added)
+        // Update existing enrollments that have been modified (e.g., classId added or removed)
         for (const enrollment of modifiedEnrollments) {
           try {
-            console.log('[updateStudent] Updating enrollment:', enrollment.id, 'with classId:', enrollment.classId, 'status:', enrollment.status);
+            console.log('[updateStudent] Updating enrollment:', enrollment.id, 'with classId:', enrollment.classId, 'classId is undefined:', enrollment.classId === undefined, 'status:', enrollment.status);
             const enrollRes = await fetch(`/api/enrollments/${enrollment.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                classId: enrollment.classId,
+                classId: enrollment.classId || null,
                 batchNumber: enrollment.batchNumber,
                 status: enrollment.status,
                 paymentStatus: enrollment.paymentStatus,
@@ -363,7 +377,14 @@ export function useStudents() {
         }
       }
 
-      await mutate();
+      // Add delay before revalidating cache to ensure database writes are committed
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Revalidate SWR cache and wait for fresh data to ensure UI updates properly
+      console.log('[updateStudent] Revalidating SWR cache after all operations');
+      const revalidatedData = await mutate(undefined, { revalidate: true });
+      console.log('[updateStudent] SWR cache revalidation complete. Revalidated data student count:', revalidatedData?.length || 0);
+
       return updatedStudent;
     } catch (error) {
       console.error('Failed to update student:', error);

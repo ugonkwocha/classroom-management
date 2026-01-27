@@ -308,7 +308,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
 
       <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
         <p>💡 Class name is auto-generated from: Course + Month Year + Batch + Time Slot</p>
-        <p className="mt-1">Example: "Scratch 101 - Jan 2026 - Batch 1 - Sat 10am-12pm-A"</p>
+        <p className="mt-1">Example: &quot;Scratch 101 - Jan 2026 - Batch 1 - Sat 10am-12pm-A&quot;</p>
         <p className="mt-1">Set the maximum capacity (1-50). Default is 6 students per class</p>
       </div>
 

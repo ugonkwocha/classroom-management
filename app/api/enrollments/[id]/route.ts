@@ -38,6 +38,7 @@ export async function PUT(
 ) {
   try {
     const data = await request.json();
+    console.log('[PUT /api/enrollments/:id] Updating enrollment:', params.id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
 
     const enrollment = await prisma.programEnrollment.update({
       where: { id: params.id },
@@ -54,6 +55,7 @@ export async function PUT(
       },
     });
 
+    console.log('[PUT /api/enrollments/:id] Updated enrollment. New classId:', enrollment.classId);
     return NextResponse.json(enrollment);
   } catch (error) {
     console.error('Error updating enrollment:', error);

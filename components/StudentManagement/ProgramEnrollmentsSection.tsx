@@ -36,7 +36,7 @@ export function ProgramEnrollmentsSection({
       <Card>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Class Assignments</h3>
         <p className="text-gray-600 text-center py-6">
-          This student hasn't been assigned to any classes yet.
+          This student hasn&apos;t been assigned to any classes yet.
         </p>
       </Card>
     );
@@ -271,7 +271,7 @@ export function ProgramEnrollmentsSection({
                   {/* Info Message */}
                   <div className="mt-4 pt-4 border-t border-purple-200">
                     <p className="text-sm text-gray-600">
-                      Use the <span className="font-semibold">"Assign to Class"</span> button above to assign this student to an available class.
+                      Use the <span className="font-semibold">&quot;Assign to Class&quot;</span> button above to assign this student to an available class.
                     </p>
                   </div>
 
@@ -354,7 +354,7 @@ export function ProgramEnrollmentsSection({
 
                   {/* Info message directing to Assign to Class button */}
                   <div className="mt-4 pt-4 border-t border-amber-200">
-                    <p className="text-sm text-gray-600 italic">To assign this student to a class, use the "Assign to Class" button at the top of the modal.</p>
+                    <p className="text-sm text-gray-600 italic">To assign this student to a class, use the &quot;Assign to Class&quot; button at the top of the modal.</p>
                   </div>
 
                   {/* Unassign Option */}

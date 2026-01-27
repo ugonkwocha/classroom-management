@@ -13,9 +13,9 @@ interface TeacherListProps {
 }
 
 const statusColors: Record<TeacherStatus, 'primary' | 'warning' | 'danger' | 'success' | 'info'> = {
-  Active: 'success',
-  Inactive: 'danger',
-  'On Leave': 'warning',
+  ACTIVE: 'success',
+  INACTIVE: 'danger',
+  ON_LEAVE: 'warning',
 };
 
 export function TeacherList({

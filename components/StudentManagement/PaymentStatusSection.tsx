@@ -112,11 +112,11 @@ export function PaymentStatusSection({
                 <Select
                   label="Payment Status"
                   value={editingPaymentStatus}
-                  onChange={(e) => setEditingPaymentStatus(e.target.value as 'pending' | 'confirmed' | 'completed')}
+                  onChange={(e) => setEditingPaymentStatus(e.target.value as 'PENDING' | 'CONFIRMED' | 'COMPLETED')}
                   options={[
-                    { value: 'pending', label: 'Pending - Awaiting Payment' },
-                    { value: 'confirmed', label: 'Confirmed - Payment Verified' },
-                    { value: 'completed', label: 'Completed' },
+                    { value: 'PENDING', label: 'Pending - Awaiting Payment' },
+                    { value: 'CONFIRMED', label: 'Confirmed - Payment Verified' },
+                    { value: 'COMPLETED', label: 'Completed' },
                   ]}
                   className="mt-2"
                 />

@@ -14,9 +14,9 @@ export function calculateAge(dateOfBirth: string): number {
 }
 
 export function getProgramLevel(age: number): ProgramLevel {
-  if (age >= 6 && age <= 8) return 'Creators';
-  if (age >= 9 && age <= 11) return 'Innovators';
-  if (age >= 12 && age <= 16) return 'Inventors';
+  if (age >= 6 && age <= 8) return 'CREATORS';
+  if (age >= 9 && age <= 11) return 'INNOVATORS';
+  if (age >= 12 && age <= 16) return 'INVENTORS';
   throw new Error('Student age is outside valid range (6-16)');
 }
 

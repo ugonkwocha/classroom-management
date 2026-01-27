@@ -37,10 +37,11 @@ export function AssignmentModal({
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [showCourseWarning, setShowCourseWarning] = useState(false);
   const [takenCourseNames, setTakenCourseNames] = useState<string[]>([]);
+  const [takenCourseHistory, setTakenCourseHistory] = useState<CourseHistory[]>([]);
 
-  // Filter classes by selected program
+  // Filter classes by selected program (excluding archived classes)
   const programClasses = selectedProgram
-    ? classes.filter((cls) => cls.programId === selectedProgram)
+    ? classes.filter((cls) => cls.programId === selectedProgram && !cls.isArchived)
     : [];
 
   // Check if selected program has confirmed payment
@@ -69,13 +70,19 @@ export function AssignmentModal({
       // Check if student has taken the course in this class before
       const selectedClassData = classes.find((c) => c.id === selectedClass);
       if (selectedClassData) {
-        const previouslyCourses = courseHistory
-          .filter((h) => h.courseId === selectedClassData.courseId)
-          .map((h) => h.courseName);
+        const previousCourseHistory = courseHistory.filter(
+          (h) => h.courseId === selectedClassData.courseId
+        );
 
-        if (previouslyCourses.length > 0) {
-          setTakenCourseNames(previouslyCourses);
+        if (previousCourseHistory.length > 0) {
+          setTakenCourseHistory(previousCourseHistory);
+          setTakenCourseNames(previousCourseHistory.map((h) => h.courseName));
           setShowCourseWarning(true);
+          console.log('[AssignmentModal] Prompting for course repeat confirmation:', {
+            courseName: selectedClassData.name,
+            previousCount: previousCourseHistory.length,
+            courseHistory: previousCourseHistory,
+          });
           return;
         }
       }
@@ -88,8 +95,10 @@ export function AssignmentModal({
 
   const handleConfirmReassignment = () => {
     if (selectedProgram && selectedClass) {
+      console.log('[AssignmentModal] Confirming course repeat assignment');
       onAssign(studentId, selectedProgram, selectedClass);
       setShowCourseWarning(false);
+      setTakenCourseHistory([]);
       onCancel();
     }
   };
@@ -113,30 +122,56 @@ export function AssignmentModal({
   };
 
   if (showCourseWarning) {
+    const selectedClassData = classes.find((c) => c.id === selectedClass);
+    const selectedProgramData = programs.find((p) => p.id === selectedProgram);
+
     return (
       <div className="space-y-4">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-semibold text-yellow-900 mb-2">Course History Alert</h4>
-          <p className="text-sm text-yellow-800 mb-3">
-            <span className="font-semibold">{studentName}</span> has previously taken:
-          </p>
-          <ul className="space-y-1 mb-4">
-            {takenCourseNames.map((courseName, index) => (
-              <li key={index} className="text-sm text-yellow-800 flex items-start">
-                <span className="mr-2">•</span>
-                <span>{courseName}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm text-yellow-800">
-            Would you like to reassign them to this course?
-          </p>
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <span className="text-2xl">⚠️</span>
+            <div className="flex-1">
+              <h4 className="font-bold text-yellow-900 text-lg">Course Repeat Warning</h4>
+              <p className="text-sm text-yellow-800 mt-1">
+                <span className="font-semibold">{studentName}</span> has previously completed this course.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 mb-4 border border-yellow-200">
+            <p className="text-sm font-semibold text-gray-900 mb-3">Previous Course History:</p>
+            <div className="space-y-3">
+              {takenCourseHistory.map((history, index) => (
+                <div key={index} className="text-sm">
+                  <p className="font-semibold text-gray-900">{history.courseName}</p>
+                  <div className="text-xs text-gray-600 mt-1 space-y-1">
+                    <p>Status: <span className="font-semibold text-green-700">{history.completionStatus}</span></p>
+                    {history.programName && <p>Program: {history.programName}</p>}
+                    {history.batch && <p>Batch: {history.batch}</p>}
+                    {history.endDate && <p>Completed: {new Date(history.endDate).toLocaleDateString()}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-yellow-100 border border-yellow-300 rounded p-3 mb-3">
+            <p className="text-sm text-yellow-900">
+              <span className="font-semibold">Current Assignment:</span> {selectedClassData?.name} ({selectedProgramData?.name})
+            </p>
+            <p className="text-xs text-yellow-800 mt-2">
+              Students may repeat courses to improve their skills or reinforce learning. Please confirm this is intentional.
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={() => setShowCourseWarning(false)}
+            onClick={() => {
+              setShowCourseWarning(false);
+              setTakenCourseHistory([]);
+            }}
             className="flex-1"
           >
             Cancel Assignment
@@ -144,9 +179,9 @@ export function AssignmentModal({
           <Button
             variant="primary"
             onClick={handleConfirmReassignment}
-            className="flex-1"
+            className="flex-1 bg-yellow-600 hover:bg-yellow-700"
           >
-            Confirm Reassignment
+            Confirm Course Repeat
           </Button>
         </div>
       </div>
@@ -342,11 +377,11 @@ export function AssignmentModal({
                   To confirm payment:
                 </p>
                 <ol className="text-xs text-amber-700 list-decimal list-inside space-y-1">
-                  <li>Close this modal by clicking "Cancel"</li>
-                  <li>Go to the "Program Payment Status" section below</li>
-                  <li>Click "Edit" next to the program</li>
-                  <li>Change the status to "Confirmed - Payment Verified"</li>
-                  <li>Click "Save" and try assigning again</li>
+                  <li>Close this modal by clicking &quot;Cancel&quot;</li>
+                  <li>Go to the &quot;Program Payment Status&quot; section below</li>
+                  <li>Click &quot;Edit&quot; next to the program</li>
+                  <li>Change the status to &quot;Confirmed - Payment Verified&quot;</li>
+                  <li>Click &quot;Save&quot; and try assigning again</li>
                 </ol>
               </div>
             )}

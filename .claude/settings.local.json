@@ -31,7 +31,9 @@
       "Bash(xargs sed:*)",
       "Bash(bash:*)",
       "Bash(pgrep:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(xargs kill:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

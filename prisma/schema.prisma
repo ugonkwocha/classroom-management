@@ -67,7 +67,7 @@ model Program {
   year              Int
   batches           Int
   slots             String[] // Time slots for this program
-  startDate         DateTime? // Start date of the program
+  startDate         DateTime // Start date of the program
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -129,12 +129,12 @@ model Student {
   firstName         String
   lastName          String
   email             String?   @unique
-  phone             String?
+  phone             String?   @unique
   dateOfBirth       DateTime?
   isReturningStudent Boolean  @default(false)
   paymentStatus     PaymentStatus @default(PENDING)
-  parentEmail       String?
-  parentPhone       String?
+  parentEmail       String?   @unique
+  parentPhone       String?   @unique
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -143,6 +143,9 @@ model Student {
   courseHistory     CourseHistory[]
 
   @@index([email])
+  @@index([phone])
+  @@index([parentEmail])
+  @@index([parentPhone])
   @@index([isReturningStudent])
   @@index([dateOfBirth])
 }

@@ -19,7 +19,7 @@ export interface Program {
   year: number;
   batches: number;
   slots: string[];
-  startDate?: string;
+  startDate: string;
   createdAt: string;
 }
 

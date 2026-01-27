@@ -16,6 +16,39 @@ interface StudentDetailsViewProps {
   onEdit: () => void;
 }
 
+// Helper function to check if a program can accept new enrollments based on start date
+const canEnrollInProgram = (program: any): { allowed: boolean; reason?: string } => {
+  if (!program.startDate) {
+    return { allowed: false, reason: 'Program start date is missing' };
+  }
+
+  const startDate = new Date(program.startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (program.type === 'WEEKEND_CLUB') {
+    // Weekend clubs: can enroll up to 4 weeks (28 days) after start
+    if (daysPassed > 28) {
+      return {
+        allowed: false,
+        reason: `Cannot enroll in weekend programs more than 4 weeks after the start date (${daysPassed} days have passed)`,
+      };
+    }
+  } else if (program.type === 'HOLIDAY_CAMP') {
+    // Holiday camps: can enroll up to 5 days after start
+    if (daysPassed > 5) {
+      return {
+        allowed: false,
+        reason: `Cannot enroll in holiday programs more than 5 days after the start date (${daysPassed} days have passed)`,
+      };
+    }
+  }
+
+  return { allowed: true };
+};
+
 export function StudentDetailsView({ student: initialStudent, onClose, onEdit }: StudentDetailsViewProps) {
   const { classes, updateClass } = useClasses();
   const { programs } = usePrograms();
@@ -29,17 +62,33 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
 
-  // Get the latest student data from SWR cache and update whenever it changes
+  // Get the latest student data from SWR cache
   const cachedStudent = getStudent(initialStudent.id);
 
   useEffect(() => {
-    console.log('[StudentDetailsView] cachedStudent changed:', cachedStudent);
+    console.log('[StudentDetailsView] cachedStudent changed:', cachedStudent?.id);
     if (cachedStudent) {
-      const enrollments = cachedStudent.enrollments || cachedStudent.programEnrollments || [];
-      console.log('[StudentDetailsView] Updating displayStudent with cached data. Enrollments:', enrollments.length);
-      setDisplayStudent(cachedStudent);
+      // Only update displayStudent if the cached data has actually changed meaningfully
+      // This prevents manual state updates from being overwritten immediately
+      const cachedEnrollments = cachedStudent.enrollments || cachedStudent.programEnrollments || [];
+      const displayEnrollments = displayStudent.enrollments || displayStudent.programEnrollments || [];
+
+      // Check if enrollments have changed by comparing key properties
+      // Treat undefined and null as equivalent for classId
+      const enrollmentsChanged = cachedEnrollments.length !== displayEnrollments.length ||
+        cachedEnrollments.some((ce, idx) => {
+          const de = displayEnrollments[idx];
+          return !de || ce.id !== de.id || (ce.classId || null) !== (de.classId || null) || ce.status !== de.status;
+        });
+
+      if (enrollmentsChanged) {
+        console.log('[StudentDetailsView] Enrollments have changed. Updating displayStudent with cached data');
+        setDisplayStudent(cachedStudent);
+      } else {
+        console.log('[StudentDetailsView] Enrollments are in sync, not overwriting');
+      }
     }
-  }, [cachedStudent]);
+  }, [cachedStudent, displayStudent]);
 
   const student = displayStudent;
 
@@ -82,15 +131,48 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const updatedEnrollments = getEnrollments().map((e) =>
         e.id === enrollmentId ? { ...e, classId: undefined } : e
       );
-      await updateStudent(studentId, { programEnrollments: updatedEnrollments });
+
+      console.log('[handleUnassignFromClass] Starting unassign process for enrollment:', enrollmentId);
+      console.log('[handleUnassignFromClass] Updated enrollments:', updatedEnrollments);
+
+      // Get the class data to find the course being unassigned
+      const classData = classes.find((c) => c.id === classId);
+
+      // Remove the IN_PROGRESS course history entry for this class
+      const updatedCourseHistory = (student.courseHistory || []).filter((h) => {
+        // Keep all course history entries except those that match this class's course and are IN_PROGRESS
+        if (classData && h.courseId === classData.courseId && h.completionStatus === 'IN_PROGRESS') {
+          console.log('[handleUnassignFromClass] Removing IN_PROGRESS course history for:', h.courseName);
+          return false;
+        }
+        return true;
+      });
+
+      console.log('[handleUnassignFromClass] Updated course history:', updatedCourseHistory);
+
+      await updateStudent(studentId, {
+        programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
+      });
+      console.log('[handleUnassignFromClass] updateStudent completed');
 
       // Remove student from the class
-      const classData = classes.find((c) => c.id === classId);
       if (classData) {
         await updateClass(classId, {
           students: classData.students.filter((id) => id !== studentId),
         });
+        console.log('[handleUnassignFromClass] updateClass completed');
       }
+
+      // Update displayStudent immediately to reflect the change
+      const updatedDisplayStudent = {
+        ...student,
+        enrollments: updatedEnrollments,
+        programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
+      };
+      console.log('[handleUnassignFromClass] Updating displayStudent state directly');
+      setDisplayStudent(updatedDisplayStudent);
 
       // Show success message
       setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${classData?.name || 'the class'}`);
@@ -114,10 +196,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       // Also remove related course history entries for this program
       const updatedCourseHistory = (student.courseHistory || []).filter((h) => h.programId !== programId);
 
+      console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
+      console.log('[handleUnassignFromProgram] Updated enrollments:', updatedEnrollments);
+      console.log('[handleUnassignFromProgram] Updated course history:', updatedCourseHistory);
+
       await updateStudent(studentId, {
         programEnrollments: updatedEnrollments,
         courseHistory: updatedCourseHistory,
       });
+      console.log('[handleUnassignFromProgram] updateStudent completed');
 
       // If the enrollment has a classId, also remove from the class
       if (enrollmentToRemove?.classId) {
@@ -126,8 +213,19 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           await updateClass(enrollmentToRemove.classId, {
             students: classData.students.filter((id) => id !== studentId),
           });
+          console.log('[handleUnassignFromProgram] updateClass completed');
         }
       }
+
+      // Update displayStudent immediately to reflect the change
+      const updatedDisplayStudent = {
+        ...student,
+        enrollments: updatedEnrollments,
+        programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
+      };
+      console.log('[handleUnassignFromProgram] Updating displayStudent state directly');
+      setDisplayStudent(updatedDisplayStudent);
 
       // Show success message
       const programName = programs.find((p) => p.id === programId)?.name || 'Program';
@@ -168,17 +266,34 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       // Remove the enrollment from programEnrollments
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
+      console.log('[handleMarkAsCompleted] Starting mark as completed process');
+      console.log('[handleMarkAsCompleted] Updated enrollments:', updatedEnrollments);
+      console.log('[handleMarkAsCompleted] Updated course history:', updatedCourseHistory);
+
       // Update student with both changes and mark as returning student since they completed a course
       await updateStudent(studentId, {
         courseHistory: updatedCourseHistory,
         programEnrollments: updatedEnrollments,
         isReturningStudent: true,
       });
+      console.log('[handleMarkAsCompleted] updateStudent completed');
 
       // Remove student from the class
       await updateClass(classId, {
         students: classData.students.filter((id) => id !== studentId),
       });
+      console.log('[handleMarkAsCompleted] updateClass completed');
+
+      // Update displayStudent immediately to reflect the change
+      const updatedDisplayStudent = {
+        ...student,
+        enrollments: updatedEnrollments,
+        programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
+        isReturningStudent: true,
+      };
+      console.log('[handleMarkAsCompleted] Updating displayStudent state directly');
+      setDisplayStudent(updatedDisplayStudent);
 
       // Show success message
       setSuccessMessage(`✓ Marked ${classData.name} as completed`);
@@ -197,6 +312,13 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const handleAddToWaitlist = (studentId: string, programId: string) => {
     const program = programs.find((p) => p.id === programId);
     if (!program) return;
+
+    // Check if program can accept enrollments based on start date
+    const enrollmentCheck = canEnrollInProgram(program);
+    if (!enrollmentCheck.allowed) {
+      alert(enrollmentCheck.reason);
+      return;
+    }
 
     // Check if student is already enrolled in this program
     const existingEnrollment = getEnrollments().find((e) => e.programId === programId);
@@ -497,35 +619,46 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {programs.map((program) => {
                     const isAlreadyEnrolled = getEnrollments().some((e) => e.programId === program.id);
+                    const enrollmentCheck = canEnrollInProgram(program);
+                    const isDisabled = isAlreadyEnrolled || !enrollmentCheck.allowed;
+                    const disabledReason = isAlreadyEnrolled ? 'Enrolled' : enrollmentCheck.reason;
+
                     return (
-                      <button
-                        key={program.id}
-                        onClick={() => {
-                          if (!isAlreadyEnrolled) {
-                            setEnrollmentFlow({ programId: program.id, programName: program.name });
-                          }
-                        }}
-                        disabled={isAlreadyEnrolled}
-                        className={`w-full p-3 text-left border rounded-lg transition-colors ${
-                          isAlreadyEnrolled
-                            ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
-                            : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {program.name} - {program.season} {program.year}
-                            </p>
-                            <p className="text-xs text-gray-600 mt-1">
-                              Type: {program.type} | Batches: {program.batches}
-                            </p>
+                      <div key={program.id} title={isDisabled ? disabledReason : ''}>
+                        <button
+                          onClick={() => {
+                            if (!isDisabled) {
+                              setEnrollmentFlow({ programId: program.id, programName: program.name });
+                            }
+                          }}
+                          disabled={isDisabled}
+                          className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                            isDisabled
+                              ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
+                              : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {program.name} - {program.season} {program.year}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1">
+                                Type: {program.type} | Batches: {program.batches}
+                              </p>
+                            </div>
+                            {isDisabled && (
+                              <span className="text-xs font-semibold">
+                                {isAlreadyEnrolled ? (
+                                  <span className="text-gray-600">Enrolled</span>
+                                ) : (
+                                  <span className="text-red-600">Closed</span>
+                                )}
+                              </span>
+                            )}
                           </div>
-                          {isAlreadyEnrolled && (
-                            <span className="text-xs text-gray-600 font-semibold">Enrolled</span>
-                          )}
-                        </div>
-                      </button>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -602,6 +735,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                   <Button
                     variant="primary"
                     onClick={() => {
+                      const program = programs.find((p) => p.id === enrollmentFlow.programId);
+                      if (!program) return;
+
+                      const enrollmentCheck = canEnrollInProgram(program);
+                      if (!enrollmentCheck.allowed) {
+                        alert(enrollmentCheck.reason);
+                        return;
+                      }
+
                       const newEnrollment: ProgramEnrollment = {
                         id: generateId(),
                         programId: enrollmentFlow.programId,
@@ -637,6 +779,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     <Button
                       variant="outline"
                       onClick={() => {
+                        const program = programs.find((p) => p.id === enrollmentFlow.programId);
+                        if (!program) return;
+
+                        const enrollmentCheck = canEnrollInProgram(program);
+                        if (!enrollmentCheck.allowed) {
+                          alert(enrollmentCheck.reason);
+                          return;
+                        }
+
                         const newEnrollment: ProgramEnrollment = {
                           id: generateId(),
                           programId: enrollmentFlow.programId,
@@ -670,6 +821,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     <Button
                       variant="primary"
                       onClick={() => {
+                        const program = programs.find((p) => p.id === enrollmentFlow.programId);
+                        if (!program) return;
+
+                        const enrollmentCheck = canEnrollInProgram(program);
+                        if (!enrollmentCheck.allowed) {
+                          alert(enrollmentCheck.reason);
+                          return;
+                        }
+
                         // Create enrollment for the program with CONFIRMED payment and ASSIGNED status
                         // This creates a "Pending Class Assignment" entry, matching student creation process
                         const newEnrollment: ProgramEnrollment = {

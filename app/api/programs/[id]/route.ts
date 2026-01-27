@@ -58,6 +58,7 @@ export async function PUT(
         year: data.year,
         batches: data.batches,
         slots: data.slots,
+        startDate: data.startDate ? new Date(data.startDate) : undefined,
       },
       include: {
         classes: true,

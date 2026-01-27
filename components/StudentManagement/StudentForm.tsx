@@ -11,9 +11,10 @@ interface StudentFormProps {
   onCancel?: () => void;
   initialData?: Student;
   isLoading?: boolean;
+  apiErrors?: string[];
 }
 
-export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false }: StudentFormProps) {
+export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false, apiErrors = [] }: StudentFormProps) {
   const { courses } = useCourses();
   const { programs } = usePrograms();
 
@@ -119,7 +120,19 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Error Summary */}
+      {/* API Error Summary */}
+      {apiErrors.length > 0 && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+          <p className="font-semibold">The following contacts are already in use:</p>
+          <ul className="mt-1 ml-4 list-disc">
+            {apiErrors.map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Validation Error Summary */}
       {Object.keys(errors).length > 0 && (
         <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
           <p className="font-semibold">Please fix the following errors:</p>

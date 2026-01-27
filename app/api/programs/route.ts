@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         year: data.year,
         batches: data.batches,
         slots: data.slots || [],
+        startDate: new Date(data.startDate),
       },
       include: {
         classes: true,

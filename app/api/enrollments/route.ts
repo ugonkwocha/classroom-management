@@ -41,6 +41,39 @@ export async function POST(request: NextRequest) {
     console.log('[API] Creating enrollment with data:', data);
     console.log('[API] Stack trace:', new Error().stack);
 
+    // Fetch the program to check if enrollment is allowed based on start date
+    const program = await prisma.program.findUnique({
+      where: { id: data.programId },
+    });
+
+    if (!program) {
+      return NextResponse.json(
+        { error: 'Program not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if program can accept enrollments based on start date
+    if (program.startDate) {
+      const startDate = new Date(program.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (program.type === 'WEEKEND_CLUB' && daysPassed > 28) {
+        return NextResponse.json(
+          { error: `Cannot enroll in weekend programs more than 4 weeks after the start date (${daysPassed} days have passed)` },
+          { status: 400 }
+        );
+      } else if (program.type === 'HOLIDAY_CAMP' && daysPassed > 5) {
+        return NextResponse.json(
+          { error: `Cannot enroll in holiday programs more than 5 days after the start date (${daysPassed} days have passed)` },
+          { status: 400 }
+        );
+      }
+    }
+
     const enrollment = await prisma.programEnrollment.create({
       data: {
         studentId: data.studentId,

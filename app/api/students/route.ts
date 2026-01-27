@@ -39,6 +39,61 @@ export async function POST(request: NextRequest) {
     console.log('[API] POST /api/students received data keys:', Object.keys(data));
     console.log('[API] programEnrollments in request:', data.programEnrollments ? 'YES' : 'NO');
 
+    // Validate uniqueness for email, phone, parentEmail, and parentPhone
+    const validationErrors: string[] = [];
+
+    if (data.email) {
+      const existingEmail = await prisma.student.findUnique({
+        where: { email: data.email },
+      });
+      if (existingEmail) {
+        validationErrors.push(`Email "${data.email}" is already in use by another student`);
+      }
+    }
+
+    if (data.phone) {
+      const existingPhone = await prisma.student.findFirst({
+        where: { phone: data.phone },
+      });
+      if (existingPhone) {
+        validationErrors.push(`Phone number "${data.phone}" is already in use by another student`);
+      }
+    }
+
+    if (data.parentEmail) {
+      const existingParentEmail = await prisma.student.findFirst({
+        where: { parentEmail: data.parentEmail },
+      });
+      if (existingParentEmail) {
+        validationErrors.push(`Parent email "${data.parentEmail}" is already in use by another student's parent`);
+      }
+    }
+
+    if (data.parentPhone) {
+      const existingParentPhone = await prisma.student.findFirst({
+        where: { parentPhone: data.parentPhone },
+      });
+      if (existingParentPhone) {
+        validationErrors.push(`Parent phone number "${data.parentPhone}" is already in use by another student's parent`);
+      }
+    }
+
+    // Cross-validation: Student and parent shouldn't have the same email or phone
+    if (data.email && data.parentEmail && data.email.toLowerCase() === data.parentEmail.toLowerCase()) {
+      validationErrors.push(`Student email and parent email cannot be the same`);
+    }
+
+    if (data.phone && data.parentPhone && data.phone === data.parentPhone) {
+      validationErrors.push(`Student phone and parent phone cannot be the same`);
+    }
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validationErrors },
+        { status: 400 }
+      );
+    }
+
     const student = await prisma.student.create({
       data: {
         firstName: data.firstName,

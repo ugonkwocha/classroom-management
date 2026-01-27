@@ -47,6 +47,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
     if (!formData.season) newErrors.season = 'Season is required';
     if (formData.year < 2024) newErrors.year = 'Year must be 2024 or later';
     if (formData.year > 2100) newErrors.year = 'Year must be 2100 or earlier';
+    if (!formData.startDate) newErrors.startDate = 'Program start date is required';
     if (formData.batches < 1) newErrors.batches = 'Batches must be at least 1';
     if (formData.batches > 10) newErrors.batches = 'Batches cannot exceed 10';
     if (formData.slots.length === 0) newErrors.slots = 'At least one slot is required';
@@ -63,7 +64,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       year: formData.year,
       batches: Math.floor(formData.batches),
       slots: formData.slots,
-      startDate: formData.startDate || undefined,
+      startDate: formData.startDate,
     });
 
     setFormData({
@@ -138,6 +139,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
         type="date"
         value={formData.startDate}
         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+        error={errors.startDate}
       />
 
       <Input

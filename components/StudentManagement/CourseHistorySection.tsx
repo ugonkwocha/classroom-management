@@ -14,7 +14,7 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
       <Card>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Course History</h3>
         <p className="text-gray-600 text-center py-6">
-          This student hasn't taken any courses yet.
+          This student hasn&apos;t taken any courses yet.
         </p>
       </Card>
     );

@@ -65,6 +65,7 @@ async function main() {
       type: 'WEEKEND_CLUB',
       batches: 1,
       slots: ['Saturday 10am-12pm'],
+      startDate: new Date('2025-01-01'),
     },
   });
 
@@ -76,6 +77,7 @@ async function main() {
       type: 'HOLIDAY_CAMP',
       batches: 2,
       slots: ['Morning 9am-11am', 'Afternoon 1pm-3pm'],
+      startDate: new Date('2025-06-01'),
     },
   });
 
