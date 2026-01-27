@@ -35,11 +35,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/prisma ./prisma
 
+# Install netcat for database readiness checks
+RUN apk add --no-cache netcat-openbsd
+
+# Copy startup script
+COPY scripts/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
-
-USER nextjs
 
 # Expose port
 EXPOSE 3000
@@ -48,5 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application with database initialization
+CMD ["./start.sh"]
