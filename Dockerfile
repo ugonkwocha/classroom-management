@@ -38,14 +38,9 @@ COPY --from=builder /app/prisma ./prisma
 # Install postgresql client for database operations
 RUN apk add --no-cache postgresql-client
 
-# Copy init scripts
-COPY scripts/init-db.js ./init-db.js
-COPY scripts/start.sh ./start.sh
-RUN chmod +x ./init-db.js ./start.sh
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000
@@ -54,5 +49,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# Start with database initialization then Next.js
-CMD ["sh", "-c", "node ./init-db.js && npm start"]
+# Use entrypoint for database initialization and startup
+ENTRYPOINT ["./docker-entrypoint.sh"]
