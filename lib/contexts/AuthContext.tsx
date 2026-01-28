@@ -20,16 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state on mount
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      refreshUser();
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
-
   const refreshUser = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -59,6 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  // Initialize auth state on mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      refreshUser();
+    } else {
+      setIsLoading(false);
+    }
+  }, [refreshUser]);
 
   const login = useCallback(
     async (email: string, password: string) => {

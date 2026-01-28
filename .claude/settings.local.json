@@ -38,7 +38,12 @@
       "Bash(docker compose:*)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset --force)",
       "Bash(npx ts-node /tmp/check_user_table.ts)",
-      "Bash(npm run prisma:seed)"
+      "Bash(npm run prisma:seed)",
+      "Bash(node create_admin.js:*)",
+      "Bash(node test_login.js:*)",
+      "Bash(pg_isready:*)",
+      "Bash(cd /Users/ugonkwocha/Documents/Academy\\\\ Enrollment && PGPASSWORD='' psql:*)",
+      "Bash(node -e \"\nconst bcrypt = require\\(''bcryptjs''\\);\nbcrypt.hash\\(''Admin@123'', 10\\).then\\(hash => console.log\\(hash\\)\\);\n\")"
     ],
     "deny": [],
     "ask": []
