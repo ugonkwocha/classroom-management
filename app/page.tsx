@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -15,12 +15,21 @@ type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teac
 
 function HomeContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
 
   useEffect(() => {
     setIsHydrated(true);
+    // Handle tab from query parameter
+    const tabParam = searchParams.get('tab') as Tab;
+    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'waitlist'];
+
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+
     // Handle student ID from query parameter
     const studentId = searchParams.get('id');
     if (studentId) {
@@ -68,6 +77,8 @@ function HomeContent() {
                   if (tab.id !== 'students') {
                     setSelectedStudentId('');
                   }
+                  // Update URL with tab parameter
+                  router.push(`/?tab=${tab.id}`);
                 }}
                 className={`px-6 py-2 font-medium text-sm whitespace-nowrap rounded-lg transition-all ${
                   activeTab === tab.id
@@ -97,6 +108,7 @@ function HomeContent() {
               <Dashboard onSelectStudent={(studentId) => {
                 setSelectedStudentId(studentId);
                 setActiveTab('students');
+                router.push(`/?tab=students&id=${studentId}`);
               }} />
             )}
             {activeTab === 'students' && <StudentManagement selectedStudentId={selectedStudentId} />}
