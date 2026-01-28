@@ -269,10 +269,8 @@ export function AssignmentModal({
     // Check if we're selecting program first or batch
     if (!selectedProgram) {
       // Step 1: Select Program for Waitlist
-      const enrolledProgramIds = studentProgramEnrollments.map((e) => e.programId);
-      const availablePrograms = programs.filter(
-        (p) => !enrolledProgramIds.includes(p.id)
-      );
+      // Note: We allow ALL programs - batch-level duplicate checking happens in StudentDetailsView
+      const availablePrograms = programs;
 
       return (
         <div className="space-y-6">
@@ -286,7 +284,7 @@ export function AssignmentModal({
           {availablePrograms.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
-                This student is already enrolled in all available programs.
+                No programs available. Please create a program first.
               </p>
             </div>
           ) : (
