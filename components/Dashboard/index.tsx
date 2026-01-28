@@ -23,11 +23,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   }
 
   const totalStudents = students.length;
-  const totalClasses = classes.length;
+  const classesArray = Array.isArray(classes) ? classes : [];
+  const totalClasses = classesArray.length;
 
   // Calculate actual enrolled students (respecting capacity limits)
   let totalEnrolled = 0;
-  classes.forEach((cls) => {
+  classesArray.forEach((cls) => {
     const enrolledInClass = students.filter((s) =>
       s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'ASSIGNED')
     ).length;
@@ -35,7 +36,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   });
 
   const waitlistCount = waitlist.length;
-  const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
+  const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
   // Group students by program level (based on their age)

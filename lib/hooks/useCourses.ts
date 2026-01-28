@@ -4,7 +4,18 @@ import useSWR, { SWRConfiguration } from 'swr';
 import { Course } from '@/types';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
-const fetcher = (url: string) => fetchWithAuth(url).then((res) => res.json());
+const fetcher = (url: string) =>
+  fetchWithAuth(url)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      // Ensure data is always an array
+      return Array.isArray(data) ? data : [];
+    });
 
 export function useCourses() {
   const { data: courses = [], isLoading, error, mutate } = useSWR<Course[]>(
