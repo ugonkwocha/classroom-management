@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useTeachers, useCourses, useClasses, usePrograms } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Teacher } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
+import { PERMISSIONS } from '@/lib/permissions';
 import { TeacherForm } from './TeacherForm';
 import { TeacherList } from './TeacherList';
 import { TeacherDetailsView } from './TeacherDetailsView';
@@ -15,12 +17,17 @@ export function TeachersManagement() {
   const { courses } = useCourses();
   const { classes } = useClasses();
   const { programs } = usePrograms();
+  const { hasPermission } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | undefined>();
   const [viewingTeacher, setViewingTeacher] = useState<Teacher | undefined>();
   const [filter, setFilter] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabType>('all');
+
+  const canCreate = hasPermission(PERMISSIONS.CREATE_TEACHER);
+  const canEdit = hasPermission(PERMISSIONS.UPDATE_TEACHER);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_TEACHER);
 
   // Get unassigned teachers (teachers with no classes assigned)
   const assignedTeacherIds = useMemo(() => {
@@ -116,12 +123,14 @@ export function TeachersManagement() {
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-        >
-          + Add Teacher
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+          >
+            + Add Teacher
+          </button>
+        )}
       </div>
 
       {/* Info Card */}
@@ -165,6 +174,8 @@ export function TeachersManagement() {
           onView={handleView}
           showUnassignedOnly={activeTab === 'unassigned'}
           unassignedTeacherIds={unassignedTeacherIds}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </Card>
 

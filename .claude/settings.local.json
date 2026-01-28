@@ -34,7 +34,11 @@
       "Bash(git checkout:*)",
       "Bash(xargs kill:*)",
       "Bash(ls:*)",
-      "Bash(cd /Users/ugonkwocha/Documents/Academy\\\\ Enrollment && PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)"
+      "Bash(cd /Users/ugonkwocha/Documents/Academy\\\\ Enrollment && PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)",
+      "Bash(docker compose:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset --force)",
+      "Bash(npx ts-node /tmp/check_user_table.ts)",
+      "Bash(npm run prisma:seed)"
     ],
     "deny": [],
     "ask": []

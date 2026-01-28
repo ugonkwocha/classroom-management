@@ -2,18 +2,25 @@
 
 import { useState } from 'react';
 import { usePrograms } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Program } from '@/types';
 import { Card, Modal } from '@/components/ui';
+import { PERMISSIONS } from '@/lib/permissions';
 import { ProgramForm } from './ProgramForm';
 import { ProgramList } from './ProgramList';
 import { ProgramDetailsView } from './ProgramDetailsView';
 
 export function ProgramsManagement() {
   const { programs, isLoaded, addProgram, updateProgram, deleteProgram } = usePrograms();
+  const { hasPermission } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | undefined>();
   const [viewingProgram, setViewingProgram] = useState<Program | undefined>();
   const [filter, setFilter] = useState<string>('');
+
+  const canCreate = hasPermission(PERMISSIONS.CREATE_PROGRAM);
+  const canEdit = hasPermission(PERMISSIONS.UPDATE_PROGRAM);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_PROGRAM);
 
   const filteredPrograms = programs.filter((program) =>
     program.name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -74,12 +81,14 @@ export function ProgramsManagement() {
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-        >
-          + Add Program
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+          >
+            + Add Program
+          </button>
+        )}
       </div>
 
       <Card className="bg-blue-50 border-blue-200">
@@ -94,6 +103,8 @@ export function ProgramsManagement() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </Card>
 

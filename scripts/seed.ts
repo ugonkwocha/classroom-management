@@ -1,33 +1,77 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
 
 async function main() {
   console.log('Seeding database with test data...');
 
-  // Create Teachers
+  // Create initial superadmin user
+  console.log('Creating superadmin user...');
+  try {
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: 'admin@9jacodekids.com' },
+    });
+
+    if (!existingAdmin) {
+      const hashedPassword = await hashPassword('Admin@123');
+      await prisma.user.create({
+        data: {
+          email: 'admin@9jacodekids.com',
+          password: hashedPassword,
+          firstName: 'Super',
+          lastName: 'Admin',
+          role: 'SUPERADMIN',
+          isActive: true,
+        },
+      });
+      console.log('✅ Superadmin user created: admin@9jacodekids.com (password: Admin@123)');
+    } else {
+      console.log('ℹ️  Superadmin user already exists');
+    }
+  } catch (error) {
+    console.error('Error creating superadmin:', error);
+  }
+
+  // Create Teachers (skip if they exist)
   console.log('Creating teachers...');
-  const teacher1 = await prisma.teacher.create({
-    data: {
-      firstName: 'Alice',
-      lastName: 'Johnson',
-      email: 'alice@transcendai.com',
-      phone: '+1-234-567-8900',
-      status: 'ACTIVE',
-      qualifiedCourses: ['Python Basics', 'Web Development'],
-    },
+  let teacher1 = await prisma.teacher.findUnique({
+    where: { email: 'alice@transcendai.com' },
   });
 
-  const teacher2 = await prisma.teacher.create({
-    data: {
-      firstName: 'Bob',
-      lastName: 'Smith',
-      email: 'bob@transcendai.com',
-      phone: '+1-234-567-8901',
-      status: 'ACTIVE',
-      qualifiedCourses: ['Game Design', 'Robotics'],
-    },
+  if (!teacher1) {
+    teacher1 = await prisma.teacher.create({
+      data: {
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        email: 'alice@transcendai.com',
+        phone: '+1-234-567-8900',
+        status: 'ACTIVE',
+        qualifiedCourses: ['Python Basics', 'Web Development'],
+      },
+    });
+  }
+
+  let teacher2 = await prisma.teacher.findUnique({
+    where: { email: 'bob@transcendai.com' },
   });
+
+  if (!teacher2) {
+    teacher2 = await prisma.teacher.create({
+      data: {
+        firstName: 'Bob',
+        lastName: 'Smith',
+        email: 'bob@transcendai.com',
+        phone: '+1-234-567-8901',
+        status: 'ACTIVE',
+        qualifiedCourses: ['Game Design', 'Robotics'],
+      },
+    });
+  }
 
   // Create Courses
   console.log('Creating courses...');
@@ -304,6 +348,7 @@ async function main() {
   console.log('Database seeded successfully!');
   console.log(`
 ✅ Created:
+  - 1 Superadmin User (admin@9jacodekids.com)
   - 2 Teachers
   - 3 Courses
   - 2 Programs
@@ -311,6 +356,10 @@ async function main() {
   - 5 Students
   - 6 Program Enrollments (2 assigned, 4 waitlist)
   - 3 Course History Records
+
+📝 Test Credentials:
+  Email: admin@9jacodekids.com
+  Password: Admin@123
 
 You can now start using the application with test data.
   `);

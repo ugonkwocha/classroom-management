@@ -13,9 +13,11 @@ interface ClassCardProps {
   onViewStudents: (classData: Class) => void;
   studentCount: number;
   teacher?: Teacher;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive, onViewStudents, studentCount, teacher }: ClassCardProps) {
+export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive, onViewStudents, studentCount, teacher, canEdit = true, canDelete = true }: ClassCardProps) {
   const capacity = classData.capacity;
   const percentage = Math.round((studentCount / capacity) * 100);
   const isFull = studentCount >= capacity;
@@ -76,17 +78,19 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
           >
             View Students
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(classData)}
-            className="flex-1"
-            disabled={classData.isArchived}
-            title={classData.isArchived ? 'Cannot edit archived class' : ''}
-          >
-            Edit
-          </Button>
-          {classData.isArchived ? (
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(classData)}
+              className="flex-1"
+              disabled={classData.isArchived}
+              title={classData.isArchived ? 'Cannot edit archived class' : ''}
+            >
+              Edit
+            </Button>
+          )}
+          {canEdit && (classData.isArchived ? (
             <Button
               variant="outline"
               size="sm"
@@ -104,15 +108,17 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
             >
               Archive
             </Button>
+          ))}
+          {canDelete && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => onDelete(classData.id)}
+              className="flex-1"
+            >
+              Delete
+            </Button>
           )}
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => onDelete(classData.id)}
-            className="flex-1"
-          >
-            Delete
-          </Button>
         </div>
       </div>
     </motion.div>

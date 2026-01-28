@@ -7,9 +7,11 @@ interface CourseListProps {
   courses: Course[];
   onEdit: (course: Course) => void;
   onDelete: (id: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function CourseList({ courses, onEdit, onDelete }: CourseListProps) {
+export function CourseList({ courses, onEdit, onDelete, canEdit = true, canDelete = true }: CourseListProps) {
   if (courses.length === 0) {
     return (
       <div className="text-center py-12">
@@ -38,20 +40,24 @@ export function CourseList({ courses, onEdit, onDelete }: CourseListProps) {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(course)}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(course.id)}
-            >
-              Delete
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(course)}
+              >
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDelete(course.id)}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       ))}

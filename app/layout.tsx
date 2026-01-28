@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/lib/contexts/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Academy Enrollment System',
@@ -15,7 +16,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-100">
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </div>
       </body>
     </html>

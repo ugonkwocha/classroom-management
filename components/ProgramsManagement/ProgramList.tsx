@@ -8,9 +8,11 @@ interface ProgramListProps {
   onEdit: (program: Program) => void;
   onDelete: (id: string) => void;
   onView: (program: Program) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function ProgramList({ programs, onEdit, onDelete, onView }: ProgramListProps) {
+export function ProgramList({ programs, onEdit, onDelete, onView, canEdit = true, canDelete = true }: ProgramListProps) {
   if (programs.length === 0) {
     return (
       <div className="text-center py-12">
@@ -57,22 +59,26 @@ export function ProgramList({ programs, onEdit, onDelete, onView }: ProgramListP
             >
               View Classes
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(program)}
-              className="flex-1"
-            >
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(program.id)}
-              className="flex-1"
-            >
-              Delete
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(program)}
+                className="flex-1"
+              >
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDelete(program.id)}
+                className="flex-1"
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       ))}

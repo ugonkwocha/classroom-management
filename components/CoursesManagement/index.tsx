@@ -2,16 +2,23 @@
 
 import { useState } from 'react';
 import { useCourses } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Course } from '@/types';
 import { Card, Modal } from '@/components/ui';
+import { PERMISSIONS } from '@/lib/permissions';
 import { CourseForm } from './CourseForm';
 import { CourseList } from './CourseList';
 
 export function CoursesManagement() {
   const { courses, isLoaded, addCourse, updateCourse, deleteCourse } = useCourses();
+  const { hasPermission } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | undefined>();
   const [filter, setFilter] = useState<string>('');
+
+  const canCreate = hasPermission(PERMISSIONS.CREATE_COURSE);
+  const canEdit = hasPermission(PERMISSIONS.UPDATE_COURSE);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_COURSE);
 
   const filteredCourses = courses.filter((course) =>
     course.name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -65,12 +72,14 @@ export function CoursesManagement() {
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-        >
-          + Add Course
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+          >
+            + Add Course
+          </button>
+        )}
       </div>
 
       <Card>
@@ -78,6 +87,8 @@ export function CoursesManagement() {
           courses={filteredCourses}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </Card>
 

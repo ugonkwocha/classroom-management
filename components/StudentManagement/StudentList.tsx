@@ -9,9 +9,11 @@ interface StudentListProps {
   onView: (student: Student) => void;
   onEdit: (student: Student) => void;
   onDelete: (id: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function StudentList({ students, onView, onEdit, onDelete }: StudentListProps) {
+export function StudentList({ students, onView, onEdit, onDelete, canEdit = true, canDelete = true }: StudentListProps) {
   if (students.length === 0) {
     return (
       <div className="text-center py-12">
@@ -72,20 +74,24 @@ export function StudentList({ students, onView, onEdit, onDelete }: StudentListP
               >
                 View
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(student)}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => onDelete(student.id)}
-              >
-                Delete
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(student)}
+                >
+                  Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => onDelete(student.id)}
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         );

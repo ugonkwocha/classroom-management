@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { PERMISSIONS } from '@/lib/permissions';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -9,22 +11,31 @@ import { CoursesManagement } from '@/components/CoursesManagement';
 import { ProgramsManagement } from '@/components/ProgramsManagement';
 import { TeachersManagement } from '@/components/TeachersManagement';
 import { WaitlistManagement } from '@/components/Waitlist';
+import { UserManagement } from '@/components/UserManagement';
 import { Button } from '@/components/ui';
 
-type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'waitlist';
+type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'waitlist' | 'users';
 
 function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isAuthenticated, isLoading, user, logout, hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
 
   useEffect(() => {
     setIsHydrated(true);
+
+    // Redirect to login if not authenticated
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     // Handle tab from query parameter
     const tabParam = searchParams.get('tab') as Tab;
-    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'waitlist'];
+    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'waitlist', 'users'];
 
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
@@ -36,7 +47,7 @@ function HomeContent() {
       setSelectedStudentId(studentId);
       setActiveTab('students');
     }
-  }, [searchParams]);
+  }, [searchParams, isAuthenticated, isLoading, router]);
 
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -46,6 +57,7 @@ function HomeContent() {
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'waitlist', label: 'Waitlist' },
+    ...(hasPermission(PERMISSIONS.READ_USERS) ? [{ id: 'users' as Tab, label: 'Users' }] : []),
   ];
 
   return (
@@ -60,6 +72,25 @@ function HomeContent() {
               </h1>
               <p className="text-gray-600 text-sm mt-1">Transcend AI Academy - Class Management System</p>
             </div>
+            {user && (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">{user.role.toLowerCase()}</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    logout();
+                    router.push('/login');
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  Logout
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -117,6 +148,7 @@ function HomeContent() {
             {activeTab === 'classes' && <ClassManagement />}
             {activeTab === 'teachers' && <TeachersManagement />}
             {activeTab === 'waitlist' && <WaitlistManagement />}
+            {activeTab === 'users' && <UserManagement />}
           </>
         )}
       </div>

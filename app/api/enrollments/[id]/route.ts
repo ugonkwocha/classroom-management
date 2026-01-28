@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSessionUser } from '@/lib/auth';
+import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.READ_ENROLLMENTS);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const enrollment = await prisma.programEnrollment.findUnique({
       where: { id: params.id },
@@ -36,6 +58,26 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.UPDATE_ENROLLMENT);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const data = await request.json();
     console.log('[PUT /api/enrollments/:id] Updating enrollment:', params.id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
@@ -70,6 +112,26 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.DELETE_ENROLLMENT);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     await prisma.programEnrollment.delete({
       where: { id: params.id },

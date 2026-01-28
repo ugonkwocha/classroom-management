@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useClasses, useStudents, useTeachers, usePrograms } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
+import { PERMISSIONS } from '@/lib/permissions';
 import { ClassForm } from './ClassForm';
 import { ClassCard } from './ClassCard';
 import { ClassNameMigration } from './ClassNameMigration';
@@ -15,6 +17,7 @@ export function ClassManagement() {
   const { students, updateStudent } = useStudents();
   const { teachers } = useTeachers();
   const { programs } = usePrograms();
+  const { hasPermission } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
   const [selectedClassForStudents, setSelectedClassForStudents] = useState<Class | undefined>();
@@ -23,6 +26,10 @@ export function ClassManagement() {
   const [showArchived, setShowArchived] = useState(false);
   const [archiveConfirmationClass, setArchiveConfirmationClass] = useState<Class | undefined>();
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+
+  const canCreate = hasPermission(PERMISSIONS.CREATE_CLASS);
+  const canEdit = hasPermission(PERMISSIONS.UPDATE_CLASS);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_CLASS);
 
   const filteredClasses = classes.filter((cls) => {
     const matchesFilter =
@@ -222,12 +229,14 @@ export function ClassManagement() {
             onChange={(e) => setFilter(e.target.value)}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-          >
-            + Create Class
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+            >
+              + Create Class
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -283,6 +292,8 @@ export function ClassManagement() {
                 onViewStudents={handleViewStudents}
                 studentCount={Math.min(studentCount, classData.capacity)}
                 teacher={teacher}
+                canEdit={canEdit}
+                canDelete={canDelete}
               />
             );
           })}

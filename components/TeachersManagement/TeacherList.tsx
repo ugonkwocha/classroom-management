@@ -10,6 +10,8 @@ interface TeacherListProps {
   onView: (teacher: Teacher) => void;
   showUnassignedOnly?: boolean;
   unassignedTeacherIds?: string[];
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 const statusColors: Record<TeacherStatus, 'primary' | 'warning' | 'danger' | 'success' | 'info'> = {
@@ -25,6 +27,8 @@ export function TeacherList({
   onView,
   showUnassignedOnly = false,
   unassignedTeacherIds = [],
+  canEdit = true,
+  canDelete = true,
 }: TeacherListProps) {
   let filteredTeachers = teachers;
 
@@ -80,26 +84,30 @@ export function TeacherList({
             >
               View Details
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(teacher)}
-              className="flex-1"
-            >
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                if (window.confirm(`Delete ${teacher.firstName} ${teacher.lastName}?`)) {
-                  onDelete(teacher.id);
-                }
-              }}
-              className="flex-1"
-            >
-              Delete
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(teacher)}
+                className="flex-1"
+              >
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm(`Delete ${teacher.firstName} ${teacher.lastName}?`)) {
+                    onDelete(teacher.id);
+                  }
+                }}
+                className="flex-1"
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       ))}

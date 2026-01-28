@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useStudents } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Student } from '@/types';
 import { Card, Modal } from '@/components/ui';
+import { PERMISSIONS } from '@/lib/permissions';
 import { StudentForm } from './StudentForm';
 import { StudentList } from './StudentList';
 import { StudentDetailsView } from './StudentDetailsView';
@@ -14,12 +16,17 @@ interface StudentManagementProps {
 
 export function StudentManagement({ selectedStudentId }: StudentManagementProps) {
   const { students, isLoaded, addStudent, updateStudent, deleteStudent } = useStudents();
+  const { hasPermission } = useAuth();
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>();
   const [viewingStudent, setViewingStudent] = useState<Student | undefined>();
   const [filter, setFilter] = useState<string>('');
   const [formApiErrors, setFormApiErrors] = useState<string[]>([]);
+
+  const canCreate = hasPermission(PERMISSIONS.CREATE_STUDENT);
+  const canEdit = hasPermission(PERMISSIONS.UPDATE_STUDENT);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_STUDENT);
 
   // Handle student ID from parent component (e.g., from dashboard modal)
   useEffect(() => {
@@ -134,15 +141,17 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
-        <button
-          onClick={() => {
-            setEditingStudent(undefined);
-            setIsFormModalOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-        >
-          + Add Student
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => {
+              setEditingStudent(undefined);
+              setIsFormModalOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+          >
+            + Add Student
+          </button>
+        )}
       </div>
 
       <Card>
@@ -151,6 +160,8 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </Card>
 

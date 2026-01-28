@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSessionUser } from '@/lib/auth';
+import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.READ_COURSE_HISTORY);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const history = await prisma.courseHistory.findUnique({
       where: { id: params.id },
@@ -34,6 +56,26 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.UPDATE_COURSE_HISTORY);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const data = await request.json();
 
@@ -63,6 +105,26 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.DELETE_COURSE_HISTORY);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     await prisma.courseHistory.delete({
       where: { id: params.id },
