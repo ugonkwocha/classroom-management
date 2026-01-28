@@ -176,8 +176,12 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
 };
 
-export function hasPermission(role: UserRole, permission: Permission): boolean {
-  return rolePermissions[role].includes(permission);
+export function hasPermission(role: UserRole | undefined, permission: Permission): boolean {
+  if (!role || !rolePermissions[role]) {
+    return false;
+  }
+  const permissions = rolePermissions[role];
+  return Array.isArray(permissions) && permissions.includes(permission);
 }
 
 export function checkPermission(role: UserRole, permission: Permission): void {
