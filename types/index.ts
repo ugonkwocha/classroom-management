@@ -2,6 +2,18 @@ export type ProgramLevel = 'CREATORS' | 'INNOVATORS' | 'INVENTORS';
 export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
 export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
+export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
+
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Course {
   id: string;

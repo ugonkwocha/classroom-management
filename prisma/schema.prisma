@@ -10,6 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== Users (Authentication) ====================
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String   // Hashed with bcrypt
+  firstName     String
+  lastName      String
+  role          UserRole @default(STAFF)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  STAFF
+}
+
 // ==================== Teachers ====================
 model Teacher {
   id                String   @id @default(cuid())
