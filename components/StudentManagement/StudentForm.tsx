@@ -35,6 +35,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [selectedBatch, setSelectedBatch] = useState<number>(1);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -92,7 +93,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       const newEnrollment = {
         id: generateId(),  // Generate a temporary ID for the form
         programId: selectedProgram,
-        batchNumber: 1,
+        batchNumber: selectedBatch,
         enrollmentDate: new Date().toISOString(),
         status: 'ASSIGNED' as const,
         paymentStatus: 'CONFIRMED' as const,
@@ -236,6 +237,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
               setEnrollInProgram(e.target.checked);
               if (!e.target.checked) {
                 setSelectedProgram('');
+                setSelectedBatch(1);
                 setPaymentConfirmed(false);
               }
             }}
@@ -255,6 +257,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                   value={selectedProgram}
                   onChange={(e) => {
                     setSelectedProgram(e.target.value);
+                    setSelectedBatch(1); // Reset batch to 1 when program changes
                     setPaymentConfirmed(false); // Reset payment when program changes
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -269,6 +272,32 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
               )}
               {errors.selectedProgram && <p className="text-red-600 text-xs mt-1">{errors.selectedProgram}</p>}
             </div>
+
+            {selectedProgram && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Batch</label>
+                {(() => {
+                  const program = programs.find((p) => p.id === selectedProgram);
+                  return (
+                    <div className="space-y-2">
+                      {Array.from({ length: program?.batches || 1 }, (_, i) => i + 1).map((batchNum) => (
+                        <label key={batchNum} className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="batch"
+                            value={batchNum}
+                            checked={selectedBatch === batchNum}
+                            onChange={(e) => setSelectedBatch(parseInt(e.target.value))}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-900">Batch {batchNum}</span>
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {selectedProgram && (
               <div className="bg-white p-3 rounded-lg border border-purple-200">

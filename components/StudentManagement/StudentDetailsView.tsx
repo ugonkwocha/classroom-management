@@ -309,7 +309,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
 
   // Add student to waitlist for a program
-  const handleAddToWaitlist = (studentId: string, programId: string) => {
+  const handleAddToWaitlist = (studentId: string, programId: string, batchNumber: number) => {
     const program = programs.find((p) => p.id === programId);
     if (!program) return;
 
@@ -320,18 +320,44 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       return;
     }
 
-    // Check if student is already enrolled in this program
-    const existingEnrollment = getEnrollments().find((e) => e.programId === programId);
-    if (existingEnrollment) {
-      alert(`Student is already enrolled in ${program.name}`);
+    // Check for duplicate enrollment in SAME BATCH
+    const currentEnrollments = getEnrollments();
+    const existingEnrollmentInBatch = currentEnrollments.find(
+      (e) => e.programId === programId && e.batchNumber === batchNumber
+    );
+    if (existingEnrollmentInBatch) {
+      alert(`Student is already enrolled in ${program.name} - Batch ${batchNumber}`);
       return;
+    }
+
+    // Check course history for completed courses in SAME BATCH
+    const completedInBatch = (student.courseHistory || []).some(
+      (h) => h.programId === programId &&
+             h.batch === batchNumber &&
+             h.completionStatus === 'COMPLETED'
+    );
+    if (completedInBatch) {
+      alert(`Student already completed ${program.name} - Batch ${batchNumber}`);
+      return;
+    }
+
+    // Warning: Student enrolled in DIFFERENT batch of same program
+    const enrolledInOtherBatch = currentEnrollments.find(
+      (e) => e.programId === programId && e.batchNumber !== batchNumber
+    );
+    if (enrolledInOtherBatch) {
+      const confirmed = window.confirm(
+        `Student is already enrolled in ${program.name} - Batch ${enrolledInOtherBatch.batchNumber}. ` +
+        `Enroll in Batch ${batchNumber} anyway?`
+      );
+      if (!confirmed) return;
     }
 
     // Create new waitlist enrollment
     const newEnrollment: ProgramEnrollment = {
       id: generateId(),
       programId,
-      batchNumber: 1,
+      batchNumber,
       enrollmentDate: new Date().toISOString(),
       status: 'WAITLIST',
       paymentStatus: 'PENDING',
@@ -351,12 +377,19 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     }, 3000);
   };
 
-  const handleAssignStudent = (studentId: string, programId: string, classId: string) => {
-    console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, classId });
+  const handleAssignStudent = (studentId: string, programId: string, batchNumber: number, classId: string) => {
+    console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, batchNumber, classId });
 
     // Get current enrollments (handle both field names)
     const currentEnrollments = student.enrollments || student.programEnrollments || [];
     console.log('[handleAssignStudent] Current enrollments:', currentEnrollments.length);
+
+    // Validate that the class belongs to the correct batch
+    const selectedClassData = classes.find((c) => c.id === classId);
+    if (selectedClassData?.batch !== batchNumber) {
+      alert(`Selected class is not in Batch ${batchNumber}`);
+      return;
+    }
 
     // Check if student is already assigned to this class via any enrollment
     const alreadyAssignedToClass = currentEnrollments.some((e) => e.classId === classId && e.status === 'ASSIGNED');
@@ -366,7 +399,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     }
 
     // Check if payment is confirmed for this program
-    const programEnrollment = currentEnrollments.find((e) => e.programId === programId);
+    const programEnrollment = currentEnrollments.find((e) => e.programId === programId && e.batchNumber === batchNumber);
     console.log('[handleAssignStudent] Found program enrollment:', !!programEnrollment, 'Payment status:', programEnrollment?.paymentStatus);
 
     if (!programEnrollment || programEnrollment.paymentStatus !== 'CONFIRMED') {
@@ -374,9 +407,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       return;
     }
 
-    // Check if student already has a different class assignment for this program
+    // Check if student already has a different class assignment for this program/batch
     const existingClassAssignmentForProgram = currentEnrollments.find(
-      (e) => e.programId === programId && e.classId && e.status === 'ASSIGNED'
+      (e) => e.programId === programId && e.batchNumber === batchNumber && e.classId && e.status === 'ASSIGNED'
     );
     if (existingClassAssignmentForProgram) {
       alert('This student is already assigned to a class in this program. Remove the existing assignment first.');
@@ -384,12 +417,12 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     }
 
     // Update existing enrollment by adding classId - there should always be an enrollment here
-    // since we already validated that programEnrollment exists above (line 277)
+    // since we already validated that programEnrollment exists above
     let foundExistingEnrollment = false;
     const updatedEnrollments = currentEnrollments.map((e) => {
-      if (e.programId === programId) {
+      if (e.programId === programId && e.batchNumber === batchNumber) {
         foundExistingEnrollment = true;
-        console.log('[handleAssignStudent] Found existing enrollment for program, updating with classId and status ASSIGNED');
+        console.log('[handleAssignStudent] Found existing enrollment for program/batch, updating with classId and status ASSIGNED');
         return { ...e, classId, status: 'ASSIGNED' as const };
       }
       return e;

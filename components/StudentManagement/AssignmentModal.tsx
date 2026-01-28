@@ -13,8 +13,8 @@ interface AssignmentModalProps {
   assignedClassIds: string[]; // Track which classes student is already in
   courseHistory: CourseHistory[];
   studentProgramEnrollments: ProgramEnrollment[]; // Program enrollments to check payment status
-  onAssign: (studentId: string, programId: string, classId: string) => void;
-  onAddToWaitlist?: (studentId: string, programId: string) => void;
+  onAssign: (studentId: string, programId: string, batchNumber: number, classId: string) => void;
+  onAddToWaitlist?: (studentId: string, programId: string, batchNumber: number) => void;
   onCancel: () => void;
 }
 
@@ -32,16 +32,25 @@ export function AssignmentModal({
   onCancel,
 }: AssignmentModalProps) {
   const [mode, setMode] = useState<'choice' | 'assign' | 'waitlist'>('choice');
-  const [step, setStep] = useState<'program' | 'payment' | 'class'>('program');
+  const [step, setStep] = useState<'program' | 'batch' | 'payment' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [selectedBatch, setSelectedBatch] = useState<number>(1);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [showCourseWarning, setShowCourseWarning] = useState(false);
   const [takenCourseNames, setTakenCourseNames] = useState<string[]>([]);
   const [takenCourseHistory, setTakenCourseHistory] = useState<CourseHistory[]>([]);
 
-  // Filter classes by selected program (excluding archived classes)
+  // Get selected program data
+  const selectedProgramData = programs.find((p) => p.id === selectedProgram);
+
+  // Filter classes by selected program and batch (excluding archived classes)
   const programClasses = selectedProgram
-    ? classes.filter((cls) => cls.programId === selectedProgram && !cls.isArchived)
+    ? classes.filter(
+        (cls) =>
+          cls.programId === selectedProgram &&
+          cls.batch === selectedBatch &&
+          !cls.isArchived
+      )
     : [];
 
   // Check if selected program has confirmed payment
@@ -52,8 +61,14 @@ export function AssignmentModal({
 
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(programId);
-    setStep('payment'); // Move to payment confirmation step instead of directly to class selection
+    setSelectedBatch(1); // Reset batch to 1 when program changes
+    setStep('batch'); // Move to batch selection
     setSelectedClass(''); // Reset class selection when program changes
+  };
+
+  const handleBatchSelect = (batchNum: number) => {
+    setSelectedBatch(batchNum);
+    setStep('payment'); // Move to payment confirmation after batch selection
   };
 
   const handlePaymentConfirmed = () => {
@@ -88,7 +103,7 @@ export function AssignmentModal({
       }
 
       // If no previous courses, proceed with assignment
-      onAssign(studentId, selectedProgram, selectedClass);
+      onAssign(studentId, selectedProgram, selectedBatch, selectedClass);
       onCancel();
     }
   };
@@ -96,7 +111,7 @@ export function AssignmentModal({
   const handleConfirmReassignment = () => {
     if (selectedProgram && selectedClass) {
       console.log('[AssignmentModal] Confirming course repeat assignment');
-      onAssign(studentId, selectedProgram, selectedClass);
+      onAssign(studentId, selectedProgram, selectedBatch, selectedClass);
       setShowCourseWarning(false);
       setTakenCourseHistory([]);
       onCancel();
@@ -104,9 +119,13 @@ export function AssignmentModal({
   };
 
   const handleBack = () => {
-    if (step === 'payment') {
+    if (step === 'batch') {
       setStep('program');
       setSelectedProgram('');
+      setSelectedBatch(1);
+      setSelectedClass('');
+    } else if (step === 'payment') {
+      setStep('batch');
       setSelectedClass('');
     } else if (step === 'class') {
       setStep('payment');
@@ -247,54 +266,104 @@ export function AssignmentModal({
 
   // Handle waitlist mode
   if (mode === 'waitlist') {
-    const enrolledProgramIds = studentProgramEnrollments.map((e) => e.programId);
-    const availablePrograms = programs.filter(
-      (p) => !enrolledProgramIds.includes(p.id)
-    );
+    // Check if we're selecting program first or batch
+    if (!selectedProgram) {
+      // Step 1: Select Program for Waitlist
+      const enrolledProgramIds = studentProgramEnrollments.map((e) => e.programId);
+      const availablePrograms = programs.filter(
+        (p) => !enrolledProgramIds.includes(p.id)
+      );
 
+      return (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Add to Waitlist</h3>
+            <p className="text-sm text-gray-600">
+              Step 1: Select a program to add <span className="font-semibold">{studentName}</span> to the waitlist.
+            </p>
+          </div>
+
+          {availablePrograms.length === 0 ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                This student is already enrolled in all available programs.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {availablePrograms.map((program) => (
+                <button
+                  key={program.id}
+                  onClick={() => {
+                    setSelectedProgram(program.id);
+                    setSelectedBatch(1);
+                  }}
+                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-500 transition-colors"
+                >
+                  <p className="font-semibold text-gray-900">
+                    {program.name} - {program.season} {program.year}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Type: {program.type} | Batches: {program.batches}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={() => setMode('choice')}
+              className="flex-1"
+            >
+              Back
+            </Button>
+            <Button variant="outline" onClick={onCancel} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: Select Batch for Waitlist
+    const selectedProgramWaitlist = programs.find((p) => p.id === selectedProgram);
     return (
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Add to Waitlist</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Select Batch</h3>
           <p className="text-sm text-gray-600">
-            Select a program to add <span className="font-semibold">{studentName}</span> to the waitlist.
+            Step 2: Select a batch for <span className="font-semibold">{selectedProgramWaitlist?.name}</span>
           </p>
         </div>
 
-        {availablePrograms.length === 0 ? (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              This student is already enrolled in all available programs.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {availablePrograms.map((program) => (
+        <div className="space-y-2">
+          {Array.from({ length: selectedProgramWaitlist?.batches || 1 }, (_, i) => i + 1).map(
+            (batchNum) => (
               <button
-                key={program.id}
+                key={batchNum}
                 onClick={() => {
                   if (onAddToWaitlist) {
-                    onAddToWaitlist(studentId, program.id);
+                    onAddToWaitlist(studentId, selectedProgram, batchNum);
                     onCancel();
                   }
                 }}
-                className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-500 transition-colors"
+                className="w-full p-3 text-left border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
               >
-                <p className="font-semibold text-gray-900">
-                  {program.name} - {program.season} {program.year}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Type: {program.type} | Batches: {program.batches}
-                </p>
+                <p className="font-semibold text-gray-900">Batch {batchNum}</p>
               </button>
-            ))}
-          </div>
-        )}
+            )
+          )}
+        </div>
 
         <div className="flex gap-3 pt-4 border-t border-gray-200">
           <Button
             variant="outline"
-            onClick={() => setMode('choice')}
+            onClick={() => {
+              setSelectedProgram('');
+              setSelectedBatch(1);
+            }}
             className="flex-1"
           >
             Back
@@ -341,6 +410,34 @@ export function AssignmentModal({
             </div>
           )}
         </div>
+      ) : step === 'batch' ? (
+        <div className="space-y-4">
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">Selected Program:</span>{' '}
+              {selectedProgramData?.name}
+            </p>
+          </div>
+
+          <h4 className="font-semibold text-gray-900">Step 2: Select a Batch</h4>
+          <div className="space-y-2">
+            {Array.from({ length: selectedProgramData?.batches || 1 }, (_, i) => i + 1).map(
+              (batchNum) => (
+                <button
+                  key={batchNum}
+                  onClick={() => handleBatchSelect(batchNum)}
+                  className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                    selectedBatch === batchNum
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                  }`}
+                >
+                  <p className="font-semibold text-gray-900">Batch {batchNum}</p>
+                </button>
+              )
+            )}
+          </div>
+        </div>
       ) : step === 'payment' ? (
         <div className="space-y-4">
           <div className="bg-purple-50 p-4 rounded-lg">
@@ -350,7 +447,7 @@ export function AssignmentModal({
             </p>
           </div>
 
-          <h4 className="font-semibold text-gray-900">Step 2: Confirm Payment Status</h4>
+          <h4 className="font-semibold text-gray-900">Step 3: Confirm Payment Status</h4>
           <div className={`p-4 rounded-lg border-2 ${
             isPaymentConfirmed
               ? 'border-green-300 bg-green-50'
@@ -396,7 +493,7 @@ export function AssignmentModal({
             </p>
           </div>
 
-          <h4 className="font-semibold text-gray-900">Step 3: Select a Class</h4>
+          <h4 className="font-semibold text-gray-900">Step 4: Select a Class</h4>
           {programClasses.length === 0 ? (
             <p className="text-gray-500 text-sm">No classes available for this program.</p>
           ) : (
@@ -464,7 +561,7 @@ export function AssignmentModal({
             Back
           </Button>
         )}
-        {(step === 'class' || step === 'payment') && (
+        {(step === 'batch' || step === 'class' || step === 'payment') && (
           <Button variant="outline" onClick={handleBack} className="flex-1">
             Back
           </Button>
@@ -472,6 +569,15 @@ export function AssignmentModal({
         <Button variant="outline" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
+        {step === 'batch' && (
+          <Button
+            variant="primary"
+            onClick={() => setStep('payment')}
+            className="flex-1"
+          >
+            Continue to Payment
+          </Button>
+        )}
         {step === 'payment' && (
           <Button
             variant="primary"
