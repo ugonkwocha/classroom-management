@@ -13,16 +13,16 @@ async function initializeDatabase() {
     return;
   }
 
-  console.log('Database URL is configured, running migrations...');
+  console.log('Database URL is configured, syncing schema...');
 
-  // Run migrations - this will wait for database to be ready
+  // Sync schema - this will push the schema to the database
   try {
-    execSync('npx prisma migrate deploy --skip-generate', { stdio: 'inherit' });
-    console.log('Migrations completed successfully');
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    console.log('Database schema synced successfully');
   } catch (error) {
-    // If migrations fail, still allow server to start
+    // If schema sync fails, still allow server to start
     // (database might not be reachable yet, but will be retried on requests)
-    console.warn('WARNING: Migration attempt failed, but continuing startup');
+    console.warn('WARNING: Database sync attempt failed, but continuing startup');
     console.warn('The app will retry database operations when needed');
   }
 

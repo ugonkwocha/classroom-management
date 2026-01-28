@@ -20,12 +20,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (setLoading = true) => {
+    if (setLoading) {
+      setIsLoading(true);
+    }
+
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         setUser(null);
-        setIsLoading(false);
+        if (setLoading) {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -46,19 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to refresh user:', error);
       setUser(null);
     } finally {
-      setIsLoading(false);
+      if (setLoading) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
-  // Initialize auth state on mount
+  // Initialize auth state on mount only
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (token) {
-      refreshUser();
+      refreshUser(true);
     } else {
       setIsLoading(false);
     }
-  }, [refreshUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
