@@ -651,10 +651,13 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {programs.map((program) => {
-                    const isAlreadyEnrolled = getEnrollments().some((e) => e.programId === program.id);
+                    // Note: This modal always uses batch 1, so only disable if already enrolled in batch 1
+                    const isAlreadyEnrolledInBatch1 = getEnrollments().some(
+                      (e) => e.programId === program.id && e.batchNumber === 1 && e.status !== 'COMPLETED'
+                    );
                     const enrollmentCheck = canEnrollInProgram(program);
-                    const isDisabled = isAlreadyEnrolled || !enrollmentCheck.allowed;
-                    const disabledReason = isAlreadyEnrolled ? 'Enrolled' : enrollmentCheck.reason;
+                    const isDisabled = isAlreadyEnrolledInBatch1 || !enrollmentCheck.allowed;
+                    const disabledReason = isAlreadyEnrolledInBatch1 ? 'Enrolled in Batch 1' : enrollmentCheck.reason;
 
                     return (
                       <div key={program.id} title={isDisabled ? disabledReason : ''}>
@@ -682,7 +685,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                             </div>
                             {isDisabled && (
                               <span className="text-xs font-semibold">
-                                {isAlreadyEnrolled ? (
+                                {isAlreadyEnrolledInBatch1 ? (
                                   <span className="text-gray-600">Enrolled</span>
                                 ) : (
                                   <span className="text-red-600">Closed</span>
