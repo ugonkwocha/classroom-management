@@ -2,8 +2,9 @@
 
 import useSWR, { SWRConfiguration } from 'swr';
 import { Course } from '@/types';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetchWithAuth(url).then((res) => res.json());
 
 export function useCourses() {
   const { data: courses = [], isLoading, error, mutate } = useSWR<Course[]>(
@@ -16,9 +17,8 @@ export function useCourses() {
 
   const addCourse = async (course: Omit<Course, 'id' | 'createdAt'>) => {
     try {
-      const res = await fetch('/api/courses', {
+      const res = await fetchWithAuth('/api/courses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(course),
       });
       const newCourse = await res.json();
@@ -32,9 +32,8 @@ export function useCourses() {
 
   const updateCourse = async (id: string, updates: Partial<Course>) => {
     try {
-      const res = await fetch(`/api/courses/${id}`, {
+      const res = await fetchWithAuth(`/api/courses/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
       const updatedCourse = await res.json();
@@ -48,7 +47,7 @@ export function useCourses() {
 
   const deleteCourse = async (id: string) => {
     try {
-      await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/courses/${id}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to delete course:', error);

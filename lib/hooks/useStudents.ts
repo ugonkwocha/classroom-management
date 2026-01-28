@@ -2,10 +2,16 @@
 
 import useSWR, { SWRConfiguration } from 'swr';
 import { Student, CourseHistory, ProgramEnrollment } from '@/types';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 const fetcher = (url: string) =>
-  fetch(url)
-    .then((res) => res.json())
+  fetchWithAuth(url)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      return res.json();
+    })
     .then((data) => {
       // Transform API response to match TypeScript types
       // API returns 'enrollments', but our type expects 'programEnrollments'
@@ -39,9 +45,8 @@ export function useStudents() {
       console.log('[useStudents.addStudent] Extracted programEnrollments:', programEnrollments);
       console.log('[useStudents.addStudent] Extracted courseHistory:', courseHistory);
 
-      const res = await fetch('/api/students', {
+      const res = await fetchWithAuth('/api/students', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentData),
       });
 
@@ -62,9 +67,8 @@ export function useStudents() {
       if (courseHistory && courseHistory.length > 0) {
         for (const history of courseHistory) {
           try {
-            const courseRes = await fetch('/api/course-history', {
+            const courseRes = await fetchWithAuth('/api/course-history', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 studentId: newStudent.id,
                 courseId: history.courseId,
@@ -99,9 +103,8 @@ export function useStudents() {
               paymentStatus: enrollment.paymentStatus,
             };
             console.log(`[addStudent] Enrollment ${i + 1}/${programEnrollments.length} - Sending payload:`, enrollmentPayload);
-            const enrollRes = await fetch('/api/enrollments', {
+            const enrollRes = await fetchWithAuth('/api/enrollments', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(enrollmentPayload),
             });
 
@@ -133,7 +136,7 @@ export function useStudents() {
       console.log('[addStudent] Mutate returned:', revalidatedData);
 
       // Fetch fresh data directly to verify enrollments exist
-      const freshRes = await fetch(`/api/students/${newStudent.id}`);
+      const freshRes = await fetchWithAuth(`/api/students/${newStudent.id}`);
       const freshData = await freshRes.json();
       console.log('[addStudent] Fresh student data after enrollment creation:', {
         id: freshData.id,
@@ -157,9 +160,8 @@ export function useStudents() {
       const enrollmentsToProcess = programEnrollments || enrollments;
       const hasCourseHistoryUpdate = Object.prototype.hasOwnProperty.call(updates, 'courseHistory');
 
-      const res = await fetch(`/api/students/${id}`, {
+      const res = await fetchWithAuth(`/api/students/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentData),
       });
 
@@ -204,9 +206,8 @@ export function useStudents() {
           if (oldHistory && oldHistory.id && oldHistory.completionStatus !== newHistory.completionStatus) {
             console.log('[updateStudent] Updating course history:', oldHistory.id, 'from', oldHistory.completionStatus, 'to', newHistory.completionStatus);
             try {
-              const updateRes = await fetch(`/api/course-history/${oldHistory.id}`, {
+              const updateRes = await fetchWithAuth(`/api/course-history/${oldHistory.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   completionStatus: newHistory.completionStatus,
                   endDate: newHistory.endDate,
@@ -231,7 +232,7 @@ export function useStudents() {
           if (!newByKey.has(key) && oldHistory.id) {
             console.log('[updateStudent] Deleting course history:', oldHistory.id, 'Key:', key);
             try {
-              await fetch(`/api/course-history/${oldHistory.id}`, { method: 'DELETE' });
+              await fetchWithAuth(`/api/course-history/${oldHistory.id}`, { method: 'DELETE' });
             } catch (error) {
               console.error('Failed to delete course history:', error);
             }
@@ -243,9 +244,8 @@ export function useStudents() {
           if (!existingByKey.has(key)) {
             console.log('[updateStudent] Creating new course history with key:', key);
             try {
-              const courseRes = await fetch('/api/course-history', {
+              const courseRes = await fetchWithAuth('/api/course-history', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   studentId: id,
                   courseId: history.courseId,
@@ -293,7 +293,7 @@ export function useStudents() {
         for (const enrollment of deletedEnrollments) {
           try {
             console.log('[updateStudent] Deleting enrollment:', enrollment.id);
-            const deleteRes = await fetch(`/api/enrollments/${enrollment.id}`, {
+            const deleteRes = await fetchWithAuth(`/api/enrollments/${enrollment.id}`, {
               method: 'DELETE',
             });
 
@@ -320,9 +320,8 @@ export function useStudents() {
         for (const enrollment of modifiedEnrollments) {
           try {
             console.log('[updateStudent] Updating enrollment:', enrollment.id, 'with classId:', enrollment.classId, 'classId is undefined:', enrollment.classId === undefined, 'status:', enrollment.status);
-            const enrollRes = await fetch(`/api/enrollments/${enrollment.id}`, {
+            const enrollRes = await fetchWithAuth(`/api/enrollments/${enrollment.id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 classId: enrollment.classId || null,
                 batchNumber: enrollment.batchNumber,
@@ -349,9 +348,8 @@ export function useStudents() {
         for (const enrollment of newEnrollments) {
           try {
             console.log('[updateStudent] Creating enrollment for program:', enrollment.programId);
-            const enrollRes = await fetch('/api/enrollments', {
+            const enrollRes = await fetchWithAuth('/api/enrollments', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 studentId: id,
                 programId: enrollment.programId,
@@ -394,7 +392,7 @@ export function useStudents() {
 
   const deleteStudent = async (id: string) => {
     try {
-      await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/students/${id}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to delete student:', error);
@@ -412,9 +410,8 @@ export function useStudents() {
       const student = getStudent(studentId);
       if (!student) throw new Error('Student not found');
 
-      const res = await fetch('/api/course-history', {
+      const res = await fetchWithAuth('/api/course-history', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(courseHistory),
       });
       const newHistory = await res.json();
@@ -428,7 +425,7 @@ export function useStudents() {
 
   const removeCourseHistory = async (studentId: string, historyId: string) => {
     try {
-      await fetch(`/api/course-history/${historyId}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/course-history/${historyId}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to remove course history:', error);
@@ -442,9 +439,8 @@ export function useStudents() {
     updates: Partial<CourseHistory>
   ) => {
     try {
-      const res = await fetch(`/api/course-history/${historyId}`, {
+      const res = await fetchWithAuth(`/api/course-history/${historyId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
       const updatedHistory = await res.json();
@@ -462,9 +458,8 @@ export function useStudents() {
     enrollment: Omit<ProgramEnrollment, 'id'>
   ) => {
     try {
-      const res = await fetch('/api/enrollments', {
+      const res = await fetchWithAuth('/api/enrollments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...enrollment, studentId }),
       });
       const newEnrollment = await res.json();
@@ -478,7 +473,7 @@ export function useStudents() {
 
   const removeProgramEnrollment = async (studentId: string, enrollmentId: string) => {
     try {
-      await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to remove program enrollment:', error);
@@ -492,9 +487,8 @@ export function useStudents() {
     updates: Partial<ProgramEnrollment>
   ) => {
     try {
-      const res = await fetch(`/api/enrollments/${enrollmentId}`, {
+      const res = await fetchWithAuth(`/api/enrollments/${enrollmentId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
       const updatedEnrollment = await res.json();

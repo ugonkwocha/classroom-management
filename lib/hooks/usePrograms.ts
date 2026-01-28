@@ -2,8 +2,9 @@
 
 import useSWR, { SWRConfiguration } from 'swr';
 import { Program } from '@/types';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetchWithAuth(url).then((res) => res.json());
 
 export function usePrograms() {
   const { data: programs = [], isLoading, error, mutate } = useSWR<Program[]>(
@@ -16,9 +17,8 @@ export function usePrograms() {
 
   const addProgram = async (program: Omit<Program, 'id' | 'createdAt'>) => {
     try {
-      const res = await fetch('/api/programs', {
+      const res = await fetchWithAuth('/api/programs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(program),
       });
       const newProgram = await res.json();
@@ -32,9 +32,8 @@ export function usePrograms() {
 
   const updateProgram = async (id: string, updates: Partial<Program>) => {
     try {
-      const res = await fetch(`/api/programs/${id}`, {
+      const res = await fetchWithAuth(`/api/programs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
       const updatedProgram = await res.json();
@@ -48,7 +47,7 @@ export function usePrograms() {
 
   const deleteProgram = async (id: string) => {
     try {
-      await fetch(`/api/programs/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/programs/${id}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to delete program:', error);

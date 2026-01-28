@@ -2,8 +2,9 @@
 
 import useSWR, { SWRConfiguration } from 'swr';
 import { Class } from '@/types';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetchWithAuth(url).then((res) => res.json());
 
 export function useClasses() {
   const { data: classes = [], isLoading, error, mutate } = useSWR<Class[]>(
@@ -16,9 +17,8 @@ export function useClasses() {
 
   const addClass = async (classData: Omit<Class, 'id' | 'createdAt'>) => {
     try {
-      const res = await fetch('/api/classes', {
+      const res = await fetchWithAuth('/api/classes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(classData),
       });
       const newClass = await res.json();
@@ -32,9 +32,8 @@ export function useClasses() {
 
   const updateClass = async (id: string, updates: Partial<Class>) => {
     try {
-      const res = await fetch(`/api/classes/${id}`, {
+      const res = await fetchWithAuth(`/api/classes/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
       const updatedClass = await res.json();
@@ -48,7 +47,7 @@ export function useClasses() {
 
   const deleteClass = async (id: string) => {
     try {
-      await fetch(`/api/classes/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/classes/${id}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
       console.error('Failed to delete class:', error);
