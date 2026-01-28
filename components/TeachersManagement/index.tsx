@@ -13,7 +13,7 @@ import { TeacherDetailsView } from './TeacherDetailsView';
 type TabType = 'all' | 'active' | 'inactive' | 'on-leave' | 'unassigned';
 
 export function TeachersManagement() {
-  const { teachers, isLoaded, addTeacher, updateTeacher, deleteTeacher } = useTeachers();
+  const { teachers, isLoaded, error, addTeacher, updateTeacher, deleteTeacher } = useTeachers();
   const { courses } = useCourses();
   const { classes } = useClasses();
   const { programs } = usePrograms();
@@ -108,8 +108,18 @@ export function TeachersManagement() {
     setViewingTeacher(undefined);
   };
 
-  if (!isLoaded) {
+  if (!isLoaded && !error) {
     return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-red-50 border-red-200">
+        <p className="text-red-800">
+          Unable to load teachers. You may not have permission to view teachers. Please contact an administrator if you believe this is an error.
+        </p>
+      </Card>
+    );
   }
 
   return (

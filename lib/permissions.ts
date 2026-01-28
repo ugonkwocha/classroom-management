@@ -158,7 +158,8 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.READ_PROGRAMS,
     // Classes - read only
     PERMISSIONS.READ_CLASSES,
-    // Teachers - NO
+    // Teachers - read only
+    PERMISSIONS.READ_TEACHERS,
     // Enrollments - full
     PERMISSIONS.CREATE_ENROLLMENT,
     PERMISSIONS.READ_ENROLLMENTS,

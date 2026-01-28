@@ -81,6 +81,7 @@ export function useTeachers() {
   return {
     teachers,
     isLoaded,
+    error,
     addTeacher,
     updateTeacher,
     deleteTeacher,
