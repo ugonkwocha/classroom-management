@@ -239,5 +239,4 @@ model CourseHistory {
 enum CompletionStatus {
   IN_PROGRESS
   COMPLETED
-  DROPPED
 }

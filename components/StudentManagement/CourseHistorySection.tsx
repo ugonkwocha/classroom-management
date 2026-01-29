@@ -22,7 +22,6 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
 
   const completedCount = courseHistory.filter((c) => c.completionStatus === 'COMPLETED').length;
   const inProgressCount = courseHistory.filter((c) => c.completionStatus === 'IN_PROGRESS').length;
-  const droppedCount = courseHistory.filter((c) => c.completionStatus === 'DROPPED').length;
 
   return (
     <Card>
@@ -42,10 +41,6 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
             <p className="font-bold text-blue-600">{inProgressCount}</p>
             <p className="text-gray-600 text-xs">In Progress</p>
           </div>
-          <div className="text-center">
-            <p className="font-bold text-red-600">{droppedCount}</p>
-            <p className="text-gray-600 text-xs">Dropped</p>
-          </div>
         </div>
       </div>
 
@@ -54,23 +49,17 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
           const statusColor =
             history.completionStatus === 'COMPLETED'
               ? 'bg-green-50 border-green-200'
-              : history.completionStatus === 'IN_PROGRESS'
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-red-50 border-red-200';
+              : 'bg-blue-50 border-blue-200';
 
           const statusBadgeColor =
             history.completionStatus === 'COMPLETED'
               ? 'bg-green-200 text-green-800'
-              : history.completionStatus === 'IN_PROGRESS'
-              ? 'bg-blue-200 text-blue-800'
-              : 'bg-red-200 text-red-800';
+              : 'bg-blue-200 text-blue-800';
 
           const statusLabel =
             history.completionStatus === 'COMPLETED'
               ? 'Completed'
-              : history.completionStatus === 'IN_PROGRESS'
-              ? 'In Progress'
-              : 'Dropped';
+              : 'In Progress';
 
           return (
             <div key={history.id} className={`p-4 rounded-lg border ${statusColor}`}>

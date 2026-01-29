@@ -45,7 +45,6 @@ export function ProgramEnrollmentsSection({
   const assignedCount = classEnrollments.filter((e) => e.status === 'ASSIGNED').length;
   const waitlistCount = enrollments.filter((e) => e.status === 'WAITLIST').length;
   const completedCount = classEnrollments.filter((e) => e.status === 'COMPLETED').length;
-  const droppedCount = classEnrollments.filter((e) => e.status === 'DROPPED').length;
 
   return (
     <Card>
@@ -69,10 +68,6 @@ export function ProgramEnrollmentsSection({
             <p className="font-bold text-blue-600">{completedCount}</p>
             <p className="text-gray-600 text-xs">Completed</p>
           </div>
-          <div className="text-center">
-            <p className="font-bold text-red-600">{droppedCount}</p>
-            <p className="text-gray-600 text-xs">Dropped</p>
-          </div>
         </div>
       </div>
 
@@ -88,27 +83,21 @@ export function ProgramEnrollmentsSection({
               ? 'bg-green-50 border-green-200'
               : enrollment.status === 'WAITLIST'
               ? 'bg-amber-50 border-amber-200'
-              : enrollment.status === 'COMPLETED'
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-red-50 border-red-200';
+              : 'bg-blue-50 border-blue-200';
 
           const statusBadgeColor =
             enrollment.status === 'ASSIGNED'
               ? 'bg-green-200 text-green-800'
               : enrollment.status === 'WAITLIST'
               ? 'bg-amber-200 text-amber-800'
-              : enrollment.status === 'COMPLETED'
-              ? 'bg-blue-200 text-blue-800'
-              : 'bg-red-200 text-red-800';
+              : 'bg-blue-200 text-blue-800';
 
           const statusLabel =
             enrollment.status === 'ASSIGNED'
               ? 'Assigned'
               : enrollment.status === 'WAITLIST'
               ? 'On Waitlist'
-              : enrollment.status === 'COMPLETED'
-              ? 'Completed'
-              : 'Dropped';
+              : 'Completed';
 
           return (
             <div key={enrollment.id} className={`p-4 rounded-lg border ${statusColor}`}>

@@ -194,20 +194,18 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-      // When unassigning from a batch, mark any IN_PROGRESS courses for that batch as DROPPED
-      const updatedCourseHistory = (student.courseHistory || []).map((history) => {
+      // When unassigning from a batch, remove any IN_PROGRESS courses for that batch
+      const updatedCourseHistory = (student.courseHistory || []).filter((history) => {
+        // Delete IN_PROGRESS entries for this batch
+        // Keep all other entries (COMPLETED courses should be preserved)
         if (
           history.programId === programId &&
           history.batch === enrollmentToRemove?.batchNumber &&
           history.completionStatus === 'IN_PROGRESS'
         ) {
-          return {
-            ...history,
-            completionStatus: 'DROPPED' as const,
-            endDate: new Date().toISOString(),
-          };
+          return false; // Delete this entry
         }
-        return history;
+        return true; // Keep this entry
       });
 
       console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
