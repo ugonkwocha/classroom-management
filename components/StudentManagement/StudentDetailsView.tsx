@@ -194,8 +194,11 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-      // Also remove related course history entries for this program
-      const updatedCourseHistory = (student.courseHistory || []).filter((h) => h.programId !== programId);
+      // Only remove IN_PROGRESS course history entries for this program
+      // Keep COMPLETED courses as they are permanent records
+      const updatedCourseHistory = (student.courseHistory || []).filter(
+        (h) => !(h.programId === programId && h.completionStatus === 'IN_PROGRESS')
+      );
 
       console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
       console.log('[handleUnassignFromProgram] Updated enrollments:', updatedEnrollments);
