@@ -795,13 +795,18 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                       return;
                     }
 
-                    // Create enrollments for selected batches
+                    // Create enrollments only for batches with confirmed payment
                     const batchesWithPayment = selectedBatchesForPayment.filter((b) => b.paymentConfirmed);
-                    const batchesWithoutPayment = selectedBatchesForPayment.filter((b) => !b.paymentConfirmed);
+
+                    // Only enroll in batches with confirmed payment
+                    if (batchesWithPayment.length === 0) {
+                      alert('Please confirm payment for at least one batch to proceed.');
+                      return;
+                    }
 
                     const newEnrollments: ProgramEnrollment[] = [];
 
-                    // Add enrollments for batches with confirmed payment (ASSIGNED status)
+                    // Add enrollments for batches with confirmed payment (ASSIGNED status - pending class assignment)
                     batchesWithPayment.forEach((batch) => {
                       newEnrollments.push({
                         id: generateId(),
@@ -810,18 +815,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                         enrollmentDate: new Date().toISOString(),
                         status: 'ASSIGNED',
                         paymentStatus: 'CONFIRMED',
-                      });
-                    });
-
-                    // Add enrollments for batches without confirmed payment (WAITLIST status)
-                    batchesWithoutPayment.forEach((batch) => {
-                      newEnrollments.push({
-                        id: generateId(),
-                        programId: enrollmentFlow.programId,
-                        batchNumber: batch.batchNumber,
-                        enrollmentDate: new Date().toISOString(),
-                        status: 'WAITLIST',
-                        paymentStatus: 'PENDING',
                       });
                     });
 
@@ -847,7 +840,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     setSelectedBatchesForPayment([]);
                     setEnrollmentStep('program');
                   }}
-                  disabled={selectedBatchesForPayment.length === 0}
+                  disabled={selectedBatchesForPayment.filter((b) => b.paymentConfirmed).length === 0}
                   className="flex-1"
                 >
                   Enroll in Selected Batches
