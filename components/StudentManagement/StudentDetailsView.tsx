@@ -205,6 +205,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
       await updateStudent(studentId, {
         programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
       });
       console.log('[handleUnassignFromProgram] updateStudent completed');
 
