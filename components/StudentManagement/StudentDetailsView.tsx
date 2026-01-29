@@ -82,11 +82,20 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           return !de || ce.id !== de.id || (ce.classId || null) !== (de.classId || null) || ce.status !== de.status;
         });
 
-      if (enrollmentsChanged) {
-        console.log('[StudentDetailsView] Enrollments have changed. Updating displayStudent with cached data');
+      // Also check if course history has changed
+      const cachedCourseHistory = cachedStudent.courseHistory || [];
+      const displayCourseHistory = displayStudent.courseHistory || [];
+      const courseHistoryChanged = cachedCourseHistory.length !== displayCourseHistory.length ||
+        cachedCourseHistory.some((ch, idx) => {
+          const dh = displayCourseHistory[idx];
+          return !dh || ch.id !== dh.id;
+        });
+
+      if (enrollmentsChanged || courseHistoryChanged) {
+        console.log('[StudentDetailsView] Enrollments or course history have changed. Updating displayStudent with cached data');
         setDisplayStudent(cachedStudent);
       } else {
-        console.log('[StudentDetailsView] Enrollments are in sync, not overwriting');
+        console.log('[StudentDetailsView] Data is in sync, not overwriting');
       }
     }
   }, [cachedStudent, displayStudent]);
