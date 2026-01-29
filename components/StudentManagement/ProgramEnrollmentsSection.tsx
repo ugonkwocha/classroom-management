@@ -213,13 +213,13 @@ export function ProgramEnrollmentsSection({
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                        if (window.confirm(`Remove ${getProgramName(enrollment.programId)} - Batch ${enrollment.batchNumber} enrollment? This cannot be undone.`)) {
                           await onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
                         }
                       }}
                       className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Unassign from Program
+                      Unassign from Batch
                     </Button>
                   )}
                 </div>
@@ -290,13 +290,13 @@ export function ProgramEnrollmentsSection({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} - Batch ${enrollment.batchNumber} enrollment? This cannot be undone.`)) {
                             onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
                           }
                         }}
                         className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        Remove Enrollment
+                        Remove Batch Enrollment
                       </Button>
                     </div>
                   )}
@@ -376,13 +376,13 @@ export function ProgramEnrollmentsSection({
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} enrollment entirely? This cannot be undone.`)) {
+                          if (window.confirm(`Remove ${getProgramName(enrollment.programId)} - Batch ${enrollment.batchNumber} enrollment? This cannot be undone.`)) {
                             await onUnassignFromProgram(enrollment.id, enrollment.programId, studentId || '');
                           }
                         }}
                         className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        Remove from Waitlist
+                        Remove from Batch Waitlist
                       </Button>
                     </div>
                   )}

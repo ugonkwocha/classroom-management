@@ -190,7 +190,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   // Unassign student from a program entirely (remove program enrollment)
   const handleUnassignFromProgram = async (enrollmentId: string, programId: string, studentId: string) => {
     try {
-      // Remove the entire program enrollment
+      // Remove only this specific batch enrollment
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
@@ -200,6 +200,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const updatedCourseHistory = student.courseHistory || [];
 
       console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
+      console.log('[handleUnassignFromProgram] Enrollment batch:', enrollmentToRemove?.batchNumber);
       console.log('[handleUnassignFromProgram] Updated enrollments:', updatedEnrollments);
       console.log('[handleUnassignFromProgram] Course history PRESERVED (not modified):', updatedCourseHistory.length);
 
@@ -229,9 +230,10 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       console.log('[handleUnassignFromProgram] Updating displayStudent state directly');
       setDisplayStudent(updatedDisplayStudent);
 
-      // Show success message
+      // Show success message - indicate it's unassigning from this specific batch
       const programName = programs.find((p) => p.id === programId)?.name || 'Program';
-      setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${programName} (refund/unable to attend)`);
+      const batchNumber = enrollmentToRemove?.batchNumber || 1;
+      setSuccessMessage(`Removed ${student.firstName} ${student.lastName} from ${programName} - Batch ${batchNumber}`);
       setShowSuccessMessage(true);
       setTimeout(() => {
         setShowSuccessMessage(false);
