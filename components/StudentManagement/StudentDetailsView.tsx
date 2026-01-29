@@ -194,19 +194,17 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-      // Only remove IN_PROGRESS course history entries for this program
-      // Keep COMPLETED courses as they are permanent records
-      const updatedCourseHistory = (student.courseHistory || []).filter(
-        (h) => !(h.programId === programId && h.completionStatus === 'IN_PROGRESS')
-      );
+      // IMPORTANT: Never delete course history - it's a permanent record of student achievements
+      // Course history is only created when a student completes a class, so removing enrollment
+      // should not affect the course history at all
+      const updatedCourseHistory = student.courseHistory || [];
 
       console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
       console.log('[handleUnassignFromProgram] Updated enrollments:', updatedEnrollments);
-      console.log('[handleUnassignFromProgram] Updated course history:', updatedCourseHistory);
+      console.log('[handleUnassignFromProgram] Course history PRESERVED (not modified):', updatedCourseHistory.length);
 
       await updateStudent(studentId, {
         programEnrollments: updatedEnrollments,
-        courseHistory: updatedCourseHistory,
       });
       console.log('[handleUnassignFromProgram] updateStudent completed');
 
@@ -226,7 +224,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         ...student,
         enrollments: updatedEnrollments,
         programEnrollments: updatedEnrollments,
-        courseHistory: updatedCourseHistory,
       };
       console.log('[handleUnassignFromProgram] Updating displayStudent state directly');
       setDisplayStudent(updatedDisplayStudent);
