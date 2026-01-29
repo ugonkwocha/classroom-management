@@ -194,15 +194,26 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       const enrollmentToRemove = getEnrollments().find((e) => e.id === enrollmentId);
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
 
-      // IMPORTANT: Never delete course history - it's a permanent record of student achievements
-      // Course history is only created when a student completes a class, so removing enrollment
-      // should not affect the course history at all
-      const updatedCourseHistory = student.courseHistory || [];
+      // When unassigning from a batch, mark any IN_PROGRESS courses for that batch as DROPPED
+      const updatedCourseHistory = (student.courseHistory || []).map((history) => {
+        if (
+          history.programId === programId &&
+          history.batch === enrollmentToRemove?.batchNumber &&
+          history.completionStatus === 'IN_PROGRESS'
+        ) {
+          return {
+            ...history,
+            completionStatus: 'DROPPED' as const,
+            endDate: new Date().toISOString(),
+          };
+        }
+        return history;
+      });
 
       console.log('[handleUnassignFromProgram] Starting unassign process for enrollment:', enrollmentId);
       console.log('[handleUnassignFromProgram] Enrollment batch:', enrollmentToRemove?.batchNumber);
       console.log('[handleUnassignFromProgram] Updated enrollments:', updatedEnrollments);
-      console.log('[handleUnassignFromProgram] Course history PRESERVED (not modified):', updatedCourseHistory.length);
+      console.log('[handleUnassignFromProgram] Updated course history:', updatedCourseHistory.length);
 
       await updateStudent(studentId, {
         programEnrollments: updatedEnrollments,
@@ -226,6 +237,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         ...student,
         enrollments: updatedEnrollments,
         programEnrollments: updatedEnrollments,
+        courseHistory: updatedCourseHistory,
       };
       console.log('[handleUnassignFromProgram] Updating displayStudent state directly');
       setDisplayStudent(updatedDisplayStudent);
