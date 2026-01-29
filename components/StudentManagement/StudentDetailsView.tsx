@@ -251,9 +251,18 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       if (!classData || !enrollment || !program) return;
 
       // Update existing course history entry from "in-progress" to "completed"
-      const updatedCourseHistory = (student.courseHistory || []).map((history) => {
-        // Find the matching course history entry by matching courseId and programId
-        if (history.courseId === classData.courseId && history.programId === program.id && history.completionStatus === 'IN_PROGRESS') {
+      // Match by courseId, programId, batch, and completionStatus to handle multiple batches
+      const courseHistory = student.courseHistory || [];
+      let foundCourseHistory = false;
+
+      const updatedCourseHistory = courseHistory.map((history) => {
+        if (
+          history.courseId === classData.courseId &&
+          history.programId === program.id &&
+          history.batch === enrollment.batchNumber &&
+          history.completionStatus === 'IN_PROGRESS'
+        ) {
+          foundCourseHistory = true;
           console.log('[handleMarkAsCompleted] Updating course history entry:', history.id);
           return {
             ...history,
@@ -263,6 +272,24 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         }
         return history;
       });
+
+      // If no IN_PROGRESS entry was found, create a new COMPLETED entry
+      if (!foundCourseHistory) {
+        console.log('[handleMarkAsCompleted] No IN_PROGRESS entry found, creating new COMPLETED entry');
+        updatedCourseHistory.push({
+          id: generateId(),
+          courseId: classData.courseId,
+          courseName: classData.name || 'Unknown Course',
+          programId: program.id,
+          programName: program.name,
+          batch: enrollment.batchNumber,
+          year: program.year,
+          completionStatus: 'COMPLETED' as const,
+          startDate: new Date().toISOString(),
+          endDate: new Date().toISOString(),
+          dateAdded: new Date().toISOString(),
+        });
+      }
 
       // Remove the enrollment from programEnrollments
       const updatedEnrollments = getEnrollments().filter((e) => e.id !== enrollmentId);
