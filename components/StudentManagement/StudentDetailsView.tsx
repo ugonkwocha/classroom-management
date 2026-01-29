@@ -804,6 +804,40 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                       return;
                     }
 
+                    // Check for duplicate enrollments in selected batches
+                    const currentEnrollments = getEnrollments();
+                    const courseHistoryItems = student.courseHistory || [];
+                    const duplicateBatches: number[] = [];
+
+                    for (const batch of batchesWithPayment) {
+                      // Check if already enrolled in this batch
+                      const alreadyEnrolled = currentEnrollments.some(
+                        (e) => e.programId === enrollmentFlow.programId && e.batchNumber === batch.batchNumber
+                      );
+                      if (alreadyEnrolled) {
+                        duplicateBatches.push(batch.batchNumber);
+                        continue;
+                      }
+
+                      // Check if already completed this batch
+                      const alreadyCompleted = courseHistoryItems.some(
+                        (h) => h.programId === enrollmentFlow.programId &&
+                               h.batch === batch.batchNumber &&
+                               h.completionStatus === 'COMPLETED'
+                      );
+                      if (alreadyCompleted) {
+                        duplicateBatches.push(batch.batchNumber);
+                      }
+                    }
+
+                    if (duplicateBatches.length > 0) {
+                      const batchText = duplicateBatches.length === 1
+                        ? `Batch ${duplicateBatches[0]}`
+                        : `Batches ${duplicateBatches.join(', ')}`;
+                      alert(`Student is already enrolled or completed in ${batchText} of this program.`);
+                      return;
+                    }
+
                     const newEnrollments: ProgramEnrollment[] = [];
 
                     // Add enrollments for batches with confirmed payment (ASSIGNED status - pending class assignment)
