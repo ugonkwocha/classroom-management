@@ -127,6 +127,7 @@ model Class {
   capacity          Int
   students          String[] // Array of student IDs
   teacherId         String?
+  meetLink          String?  // Google Meet link for this class
   isArchived        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

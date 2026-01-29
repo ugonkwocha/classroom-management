@@ -520,6 +520,29 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       });
     }
 
+    // Send enrollment notification emails
+    fetch('/api/emails/send-enrollment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        studentId,
+        classId,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          console.log('[Email] Enrollment emails sent:', data.emailsSent);
+        } else {
+          console.warn('[Email] Failed to send enrollment emails:', data.error);
+        }
+      })
+      .catch((error) => {
+        console.error('[Email] Error sending enrollment emails:', error);
+      });
+
     // Show success message
     const className = classData?.name || 'Unknown Class';
     const programName = programs.find((p) => p.id === programId)?.name || 'Unknown Program';

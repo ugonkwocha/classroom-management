@@ -138,6 +138,7 @@ async function main() {
       courseId: course1.id,
       programId: program1.id,
       teacherId: teacher1.id,
+      meetLink: null,
       isArchived: false,
     },
   });
@@ -153,6 +154,7 @@ async function main() {
       courseId: course3.id,
       programId: program2.id,
       teacherId: teacher2.id,
+      meetLink: null,
       isArchived: false,
     },
   });
@@ -168,6 +170,7 @@ async function main() {
       courseId: course2.id,
       programId: program2.id,
       teacherId: teacher1.id,
+      meetLink: null,
       isArchived: false,
     },
   });

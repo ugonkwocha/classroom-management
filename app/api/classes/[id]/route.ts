@@ -99,6 +99,7 @@ export async function PUT(
         capacity: data.capacity,
         students: data.students,
         teacherId: data.teacherId,
+        meetLink: data.meetLink || null,
         isArchived: data.isArchived,
       },
       include: {

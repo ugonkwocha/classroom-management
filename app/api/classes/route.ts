@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
         capacity: data.capacity,
         students: data.students || [],
         teacherId: data.teacherId,
+        meetLink: data.meetLink || null,
         isArchived: false,
       },
       include: {
