@@ -56,8 +56,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const { updateStudent, students, getStudent } = useStudents();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
-  const [enrollmentFlow, setEnrollmentFlow] = useState<{ programId: string; programName: string } | null>(null);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [enrollmentFlow, setEnrollmentFlow] = useState<{ programId: string; programName: string; batches: number } | null>(null);
+  const [selectedBatchesForPayment, setSelectedBatchesForPayment] = useState<{ batchNumber: number; paymentConfirmed: boolean }[]>([]);
+  const [enrollmentStep, setEnrollmentStep] = useState<'program' | 'batch-payment'>('program');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
@@ -631,13 +632,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         onClose={() => {
           setIsEnrollmentModalOpen(false);
           setEnrollmentFlow(null);
-          setPaymentConfirmed(false);
+          setSelectedBatchesForPayment([]);
+          setEnrollmentStep('program');
         }}
-        title={enrollmentFlow ? "Confirm Payment Status" : "Enroll Student in Program"}
+        title={enrollmentStep === 'program' ? "Enroll Student in Program" : "Confirm Payment Status"}
         size="md"
       >
         <div className="space-y-6">
-          {!enrollmentFlow ? (
+          {enrollmentStep === 'program' ? (
             <>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Select a Program</h3>
@@ -651,20 +653,32 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {programs.map((program) => {
-                    // Note: This modal always uses batch 1, so only disable if already enrolled in batch 1
-                    const isAlreadyEnrolledInBatch1 = getEnrollments().some(
-                      (e) => e.programId === program.id && e.batchNumber === 1 && e.status !== 'COMPLETED'
-                    );
+                    // Check which batches student is already enrolled in
+                    const enrolledBatches = getEnrollments()
+                      .filter((e) => e.programId === program.id && e.status !== 'COMPLETED')
+                      .map((e) => e.batchNumber);
+                    const allBatchesEnrolled = enrolledBatches.length === program.batches;
                     const enrollmentCheck = canEnrollInProgram(program);
-                    const isDisabled = isAlreadyEnrolledInBatch1 || !enrollmentCheck.allowed;
-                    const disabledReason = isAlreadyEnrolledInBatch1 ? 'Enrolled in Batch 1' : enrollmentCheck.reason;
+                    const isDisabled = allBatchesEnrolled || !enrollmentCheck.allowed;
+                    const disabledReason = allBatchesEnrolled ? 'Enrolled in all batches' : enrollmentCheck.reason;
 
                     return (
                       <div key={program.id} title={isDisabled ? disabledReason : ''}>
                         <button
                           onClick={() => {
                             if (!isDisabled) {
-                              setEnrollmentFlow({ programId: program.id, programName: program.name });
+                              setEnrollmentFlow({
+                                programId: program.id,
+                                programName: program.name,
+                                batches: program.batches
+                              });
+                              // Initialize batch payment selection
+                              const batchesForPayment = Array.from({ length: program.batches }, (_, i) => ({
+                                batchNumber: i + 1,
+                                paymentConfirmed: false
+                              }));
+                              setSelectedBatchesForPayment(batchesForPayment);
+                              setEnrollmentStep('batch-payment');
                             }
                           }}
                           disabled={isDisabled}
@@ -682,11 +696,16 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                               <p className="text-xs text-gray-600 mt-1">
                                 Type: {program.type} | Batches: {program.batches}
                               </p>
+                              {enrolledBatches.length > 0 && (
+                                <p className="text-xs text-amber-600 mt-1">
+                                  Already enrolled: Batch{enrolledBatches.length > 1 ? 'es' : ''} {enrolledBatches.join(', ')}
+                                </p>
+                              )}
                             </div>
                             {isDisabled && (
                               <span className="text-xs font-semibold">
-                                {isAlreadyEnrolledInBatch1 ? (
-                                  <span className="text-gray-600">Enrolled</span>
+                                {allBatchesEnrolled ? (
+                                  <span className="text-gray-600">All enrolled</span>
                                 ) : (
                                   <span className="text-red-600">Closed</span>
                                 )}
@@ -721,184 +740,118 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                 </p>
               </div>
 
-              <h4 className="font-semibold text-gray-900">Confirm Payment Status</h4>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 font-semibold mb-3">
-                  Has the student made payment for this program?
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Confirm Payment Status for Each Batch</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Check which batches the student has made payment for:
                 </p>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+                {selectedBatchesForPayment.map((batch) => (
+                  <label key={batch.batchNumber} className="flex items-center gap-3 cursor-pointer hover:bg-yellow-100 p-2 rounded transition-colors">
                     <input
-                      type="radio"
-                      name="payment"
-                      value="confirmed"
-                      checked={paymentConfirmed === true}
-                      onChange={() => setPaymentConfirmed(true)}
-                      className="w-4 h-4"
+                      type="checkbox"
+                      checked={batch.paymentConfirmed}
+                      onChange={() => {
+                        setSelectedBatchesForPayment(
+                          selectedBatchesForPayment.map((b) =>
+                            b.batchNumber === batch.batchNumber
+                              ? { ...b, paymentConfirmed: !b.paymentConfirmed }
+                              : b
+                          )
+                        );
+                      }}
+                      className="w-4 h-4 cursor-pointer"
                     />
-                    <span className="text-sm text-yellow-800">
-                      Yes, payment has been confirmed
+                    <span className="text-sm text-yellow-800 font-medium">
+                      Batch {batch.batchNumber} - Payment {batch.paymentConfirmed ? '✓ Confirmed' : 'Pending'}
                     </span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="pending"
-                      checked={paymentConfirmed === false}
-                      onChange={() => setPaymentConfirmed(false)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-yellow-800">
-                      No, payment is pending
-                    </span>
-                  </label>
-                </div>
+                ))}
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <Button
                   variant="outline"
                   onClick={() => {
+                    setEnrollmentStep('program');
                     setEnrollmentFlow(null);
-                    setPaymentConfirmed(false);
+                    setSelectedBatchesForPayment([]);
                   }}
                   className="flex-1"
                 >
                   Back
                 </Button>
-                {!paymentConfirmed ? (
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      const program = programs.find((p) => p.id === enrollmentFlow.programId);
-                      if (!program) return;
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const program = programs.find((p) => p.id === enrollmentFlow.programId);
+                    if (!program) return;
 
-                      const enrollmentCheck = canEnrollInProgram(program);
-                      if (!enrollmentCheck.allowed) {
-                        alert(enrollmentCheck.reason);
-                        return;
-                      }
+                    const enrollmentCheck = canEnrollInProgram(program);
+                    if (!enrollmentCheck.allowed) {
+                      alert(enrollmentCheck.reason);
+                      return;
+                    }
 
-                      const newEnrollment: ProgramEnrollment = {
+                    // Create enrollments for selected batches
+                    const batchesWithPayment = selectedBatchesForPayment.filter((b) => b.paymentConfirmed);
+                    const batchesWithoutPayment = selectedBatchesForPayment.filter((b) => !b.paymentConfirmed);
+
+                    const newEnrollments: ProgramEnrollment[] = [];
+
+                    // Add enrollments for batches with confirmed payment (ASSIGNED status)
+                    batchesWithPayment.forEach((batch) => {
+                      newEnrollments.push({
                         id: generateId(),
                         programId: enrollmentFlow.programId,
-                        batchNumber: 1,
+                        batchNumber: batch.batchNumber,
+                        enrollmentDate: new Date().toISOString(),
+                        status: 'ASSIGNED',
+                        paymentStatus: 'CONFIRMED',
+                      });
+                    });
+
+                    // Add enrollments for batches without confirmed payment (WAITLIST status)
+                    batchesWithoutPayment.forEach((batch) => {
+                      newEnrollments.push({
+                        id: generateId(),
+                        programId: enrollmentFlow.programId,
+                        batchNumber: batch.batchNumber,
                         enrollmentDate: new Date().toISOString(),
                         status: 'WAITLIST',
                         paymentStatus: 'PENDING',
-                      };
-
-                      const updatedEnrollments = [...getEnrollments(), newEnrollment];
-                      updateStudent(student.id, {
-                        programEnrollments: updatedEnrollments,
                       });
+                    });
 
-                      setSuccessMessage(
-                        `✓ Added ${student.firstName} ${student.lastName} to ${enrollmentFlow.programName} waitlist (Payment pending)`
-                      );
-                      setShowSuccessMessage(true);
-                      setTimeout(() => {
-                        setShowSuccessMessage(false);
-                      }, 3000);
+                    const updatedEnrollments = [...getEnrollments(), ...newEnrollments];
+                    updateStudent(student.id, {
+                      programEnrollments: updatedEnrollments,
+                    });
 
-                      setIsEnrollmentModalOpen(false);
-                      setEnrollmentFlow(null);
-                      setPaymentConfirmed(false);
-                    }}
-                    className="flex-1"
-                  >
-                    Add to Waitlist
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const program = programs.find((p) => p.id === enrollmentFlow.programId);
-                        if (!program) return;
+                    const batchesText = newEnrollments.length === 1
+                      ? `Batch ${newEnrollments[0].batchNumber}`
+                      : `Batches ${newEnrollments.map((e) => e.batchNumber).join(', ')}`;
 
-                        const enrollmentCheck = canEnrollInProgram(program);
-                        if (!enrollmentCheck.allowed) {
-                          alert(enrollmentCheck.reason);
-                          return;
-                        }
+                    setSuccessMessage(
+                      `✓ Enrolled ${student.firstName} ${student.lastName} in ${enrollmentFlow.programName} - ${batchesText}`
+                    );
+                    setShowSuccessMessage(true);
+                    setTimeout(() => {
+                      setShowSuccessMessage(false);
+                    }, 3000);
 
-                        const newEnrollment: ProgramEnrollment = {
-                          id: generateId(),
-                          programId: enrollmentFlow.programId,
-                          batchNumber: 1,
-                          enrollmentDate: new Date().toISOString(),
-                          status: 'WAITLIST',
-                          paymentStatus: 'CONFIRMED',
-                        };
-
-                        const updatedEnrollments = [...getEnrollments(), newEnrollment];
-                        updateStudent(student.id, {
-                          programEnrollments: updatedEnrollments,
-                        });
-
-                        setSuccessMessage(
-                          `✓ Enrolled ${student.firstName} ${student.lastName} in ${enrollmentFlow.programName} (Payment confirmed)`
-                        );
-                        setShowSuccessMessage(true);
-                        setTimeout(() => {
-                          setShowSuccessMessage(false);
-                        }, 3000);
-
-                        setIsEnrollmentModalOpen(false);
-                        setEnrollmentFlow(null);
-                        setPaymentConfirmed(false);
-                      }}
-                      className="flex-1"
-                    >
-                      Add to Waitlist
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        const program = programs.find((p) => p.id === enrollmentFlow.programId);
-                        if (!program) return;
-
-                        const enrollmentCheck = canEnrollInProgram(program);
-                        if (!enrollmentCheck.allowed) {
-                          alert(enrollmentCheck.reason);
-                          return;
-                        }
-
-                        // Create enrollment for the program with CONFIRMED payment and ASSIGNED status
-                        // This creates a "Pending Class Assignment" entry, matching student creation process
-                        const newEnrollment: ProgramEnrollment = {
-                          id: generateId(),
-                          programId: enrollmentFlow.programId,
-                          batchNumber: 1,
-                          enrollmentDate: new Date().toISOString(),
-                          status: 'ASSIGNED',
-                          paymentStatus: 'CONFIRMED',
-                        };
-
-                        const updatedEnrollments = [...getEnrollments(), newEnrollment];
-                        updateStudent(student.id, {
-                          programEnrollments: updatedEnrollments,
-                        });
-
-                        setIsEnrollmentModalOpen(false);
-                        setEnrollmentFlow(null);
-                        setPaymentConfirmed(false);
-
-                        // Open assignment modal to select a class
-                        // The student now has an enrollment for this program with CONFIRMED payment
-                        // and can be assigned to a class immediately
-                        setTimeout(() => {
-                          setIsAssignmentModalOpen(true);
-                        }, 100);
-                      }}
-                      className="flex-1"
-                    >
-                      Assign to Class
-                    </Button>
-                  </>
-                )}
+                    setIsEnrollmentModalOpen(false);
+                    setEnrollmentFlow(null);
+                    setSelectedBatchesForPayment([]);
+                    setEnrollmentStep('program');
+                  }}
+                  disabled={selectedBatchesForPayment.length === 0}
+                  className="flex-1"
+                >
+                  Enroll in Selected Batches
+                </Button>
               </div>
             </>
           )}

@@ -155,14 +155,18 @@ export function ProgramEnrollmentsSection({
               {/* Payment Status */}
               {enrollment.paymentStatus && (
                 <div className="mt-3 pt-3 border-t border-current border-opacity-20">
-                  <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                  <p className={`text-sm font-semibold ${
-                    enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
-                    enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
-                    'text-amber-600'
-                  }`}>
-                    {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                      enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
+                      {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
+                      {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -257,14 +261,18 @@ export function ProgramEnrollmentsSection({
                   {/* Payment Status */}
                   {enrollment.paymentStatus && (
                     <div className="mb-4 pt-3 border-t border-purple-200">
-                      <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                      <p className={`text-sm font-semibold ${
-                        enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
-                        enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
-                        'text-amber-600'
-                      }`}>
-                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                          enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
+                          {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
+                          {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -341,14 +349,18 @@ export function ProgramEnrollmentsSection({
                   {/* Payment Status */}
                   {enrollment.paymentStatus && (
                     <div className="mb-4 pt-3 border-t border-amber-200">
-                      <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                      <p className={`text-sm font-semibold ${
-                        enrollment.paymentStatus === 'COMPLETED' ? 'text-green-600' :
-                        enrollment.paymentStatus === 'CONFIRMED' ? 'text-blue-600' :
-                        'text-amber-600'
-                      }`}>
-                        {enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1).toLowerCase()}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                          enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
+                          {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
+                          {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                        </span>
+                      </div>
                     </div>
                   )}
 
