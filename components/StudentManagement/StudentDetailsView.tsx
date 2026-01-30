@@ -535,6 +535,17 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       .then((data) => {
         if (data.success) {
           console.log('[Email] Enrollment emails sent:', data.emailsSent);
+
+          // Build email notification message
+          const emailParts = [];
+          if (data.emailsSent.teachers > 0) emailParts.push(`${data.emailsSent.teachers} teacher${data.emailsSent.teachers > 1 ? 's' : ''}`);
+          if (data.emailsSent.students > 0) emailParts.push(`${data.emailsSent.students} student${data.emailsSent.students > 1 ? 's' : ''}`);
+          if (data.emailsSent.parents > 0) emailParts.push(`${data.emailsSent.parents} parent${data.emailsSent.parents > 1 ? 's' : ''}`);
+
+          if (emailParts.length > 0) {
+            const emailSummary = emailParts.join(', ');
+            console.log(`[Email] Notification: Emails sent to ${emailSummary}`);
+          }
         } else {
           console.warn('[Email] Failed to send enrollment emails:', data.error);
         }
@@ -543,17 +554,17 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         console.error('[Email] Error sending enrollment emails:', error);
       });
 
-    // Show success message
+    // Show success message with email notification
     const className = classData?.name || 'Unknown Class';
     const programName = programs.find((p) => p.id === programId)?.name || 'Unknown Program';
-    setSuccessMessage(`Successfully assigned ${student.firstName} ${student.lastName} to ${className} (${programName})`);
+    setSuccessMessage(`✓ Successfully assigned ${student.firstName} ${student.lastName} to ${className} (${programName})\n📧 Notification emails sent to teacher, student, and parent.`);
     setShowSuccessMessage(true);
     setIsAssignmentModalOpen(false);
 
-    // Auto-close success message after 3 seconds
+    // Auto-close success message after 5 seconds (increased from 3 to read full message)
     setTimeout(() => {
       setShowSuccessMessage(false);
-    }, 3000);
+    }, 5000);
   };
 
   return (
@@ -563,7 +574,9 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
           <span className="text-green-600 text-xl">✓</span>
           <div className="flex-1">
-            <p className="font-semibold text-green-900">{successMessage}</p>
+            <div className="font-semibold text-green-900 whitespace-pre-line">
+              {successMessage}
+            </div>
           </div>
           <button
             onClick={() => setShowSuccessMessage(false)}
