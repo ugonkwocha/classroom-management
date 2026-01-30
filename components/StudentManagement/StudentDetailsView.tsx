@@ -569,24 +569,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
   return (
     <div className="space-y-6">
-      {/* Success Message */}
-      {showSuccessMessage && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-          <span className="text-green-600 text-xl">✓</span>
-          <div className="flex-1">
-            <div className="font-semibold text-green-900 whitespace-pre-line">
-              {successMessage}
-            </div>
-          </div>
-          <button
-            onClick={() => setShowSuccessMessage(false)}
-            className="text-green-600 hover:text-green-800 text-lg"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       {/* Student Header */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-200">
         <div className="flex justify-between items-start gap-4 mb-4">
@@ -969,6 +951,24 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           )}
         </div>
       </Modal>
+
+      {/* Success Message - Positioned at end to appear on top of modals */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 left-4 right-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 shadow-lg z-50 max-w-md">
+          <span className="text-green-600 text-xl flex-shrink-0">✓</span>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-green-900 whitespace-pre-line break-words">
+              {successMessage}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSuccessMessage(false)}
+            className="text-green-600 hover:text-green-800 text-lg flex-shrink-0 ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
