@@ -25,11 +25,40 @@ interface EmailResponse {
   error?: string;
 }
 
-const ses = new SES({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1',
-});
+// Initialize SES with credentials from environment variables
+function initializeSES(): SES {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const region = process.env.AWS_REGION || 'us-east-1';
+
+  console.log('[Email] Initializing AWS SES with:', {
+    hasAccessKey: !!accessKeyId,
+    hasSecretKey: !!secretAccessKey,
+    region,
+    fromEmail: process.env.AWS_SES_FROM_EMAIL,
+  });
+
+  if (!accessKeyId || !secretAccessKey) {
+    console.error('[Email] ❌ AWS credentials are missing!');
+    console.error('[Email] AWS_ACCESS_KEY_ID:', accessKeyId ? 'SET' : 'MISSING');
+    console.error('[Email] AWS_SECRET_ACCESS_KEY:', secretAccessKey ? 'SET' : 'MISSING');
+  }
+
+  return new SES({
+    accessKeyId,
+    secretAccessKey,
+    region,
+  });
+}
+
+let ses: SES | null = null;
+
+function getSES(): SES {
+  if (!ses) {
+    ses = initializeSES();
+  }
+  return ses;
+}
 
 /**
  * Generate HTML email template for class assignment
@@ -151,28 +180,43 @@ export async function sendClassAssignmentEmail(
   params: ClassAssignmentEmailParams
 ): Promise<EmailResponse[]> {
   try {
+    console.log('[Email] Starting email sending process...');
+
     if (!params.recipients || params.recipients.length === 0) {
+      console.warn('[Email] No recipients provided');
       return [{ success: false, error: 'No recipients provided' }];
     }
 
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-      console.warn('AWS credentials not configured. Email sending skipped.');
-      return [
-        {
-          success: false,
-          error: 'AWS credentials not configured',
-        },
-      ];
+    console.log(`[Email] Sending emails to ${params.recipients.length} recipient(s)`);
+
+    // Check AWS credentials
+    const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
+    const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
+    const hasSESEmail = !!process.env.AWS_SES_FROM_EMAIL;
+
+    if (!hasAccessKey || !hasSecretKey || !hasSESEmail) {
+      const missing = [];
+      if (!hasAccessKey) missing.push('AWS_ACCESS_KEY_ID');
+      if (!hasSecretKey) missing.push('AWS_SECRET_ACCESS_KEY');
+      if (!hasSESEmail) missing.push('AWS_SES_FROM_EMAIL');
+
+      const errorMsg = `AWS credentials not fully configured. Missing: ${missing.join(', ')}`;
+      console.error(`[Email] ❌ ${errorMsg}`);
+      return [{ success: false, error: errorMsg }];
     }
 
+    const sesInstance = getSES();
     const results: EmailResponse[] = [];
 
     for (const recipient of params.recipients) {
       try {
+        console.log(`[Email] Preparing email for ${recipient.email}...`);
+
         const htmlContent = generateClassAssignmentEmailHTML(params, recipient.name);
+        const fromEmail = process.env.AWS_SES_FROM_EMAIL || 'noreply@9jacodekids.com';
 
         const params_ses = {
-          Source: process.env.AWS_SES_FROM_EMAIL || 'noreply@9jacodekids.com',
+          Source: fromEmail,
           Destination: {
             ToAddresses: [recipient.email],
           },
@@ -190,30 +234,38 @@ export async function sendClassAssignmentEmail(
           },
         };
 
-        const response = await ses.sendEmail(params_ses).promise();
+        console.log(`[Email] Calling AWS SES.sendEmail() for ${recipient.email}...`);
+        const response = await sesInstance.sendEmail(params_ses).promise();
 
         results.push({
           success: true,
           messageId: response.MessageId,
         });
-
         console.log(
-          `[Email] Class assignment email sent to ${recipient.email} (${params.recipientType}). MessageId: ${response.MessageId}`
+          `[Email] ✅ Email sent to ${recipient.email} (${params.recipientType}). MessageId: ${response.MessageId}`
         );
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
+
         results.push({
           success: false,
           error: errorMessage,
         });
-        console.error(`[Email] Failed to send email to ${recipient.email}:`, error);
+
+        console.error(`[Email] ❌ Failed to send email to ${recipient.email}:`, {
+          error: errorMessage,
+          code: errorCode,
+          recipientType: params.recipientType,
+        });
       }
     }
 
+    console.log(`[Email] Email sending complete. Sent: ${results.filter(r => r.success).length}/${results.length}`);
     return results;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Email] Unexpected error in sendClassAssignmentEmail:', error);
+    console.error('[Email] ❌ Unexpected error in sendClassAssignmentEmail:', error);
     return [{ success: false, error: errorMessage }];
   }
 }
