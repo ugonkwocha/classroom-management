@@ -561,10 +561,10 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     setShowSuccessMessage(true);
     setIsAssignmentModalOpen(false);
 
-    // Auto-close success message after 5 seconds (increased from 3 to read full message)
+    // Auto-close success message after 8 seconds to allow reading full message
     setTimeout(() => {
       setShowSuccessMessage(false);
-    }, 5000);
+    }, 8000);
   };
 
   return (
