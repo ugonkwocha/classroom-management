@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Student, CourseHistory, ProgramEnrollment } from '@/types';
 import { useClasses, usePrograms, useCourses, useStudents } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
@@ -62,6 +62,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
+  const successMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get the latest student data from SWR cache
   const cachedStudent = getStudent(initialStudent.id);
@@ -99,6 +100,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       }
     }
   }, [cachedStudent, displayStudent]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (successMessageTimeoutRef.current) {
+        clearTimeout(successMessageTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const student = displayStudent;
 
@@ -561,9 +571,15 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     setShowSuccessMessage(true);
     setIsAssignmentModalOpen(false);
 
+    // Clear any existing timeout
+    if (successMessageTimeoutRef.current) {
+      clearTimeout(successMessageTimeoutRef.current);
+    }
+
     // Auto-close success message after 8 seconds to allow reading full message
-    setTimeout(() => {
+    successMessageTimeoutRef.current = setTimeout(() => {
       setShowSuccessMessage(false);
+      successMessageTimeoutRef.current = null;
     }, 8000);
   };
 
