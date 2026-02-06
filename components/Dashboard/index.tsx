@@ -16,6 +16,8 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const { programs } = usePrograms();
   const [selectedProgram, setSelectedProgram] = useState<string>(''); // Filter by program
   const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({ type: null, programFilter: '' });
+  const [analyticsViewMode, setAnalyticsViewMode] = useState<'program' | 'season' | 'year'>('program');
+  const [analyticsYearFilter, setAnalyticsYearFilter] = useState<string>('all');
 
   if (!studentsLoaded || !classesLoaded) {
     return <div>Loading...</div>;
@@ -41,6 +43,116 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
   const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrollmentSlots / totalCapacity) * 100) : 0;
+
+  // Helper: Get all unique years from programs
+  const getUniqueYears = (): number[] => {
+    const years = new Set(programs.map((p) => p.year));
+    return Array.from(years).sort((a, b) => a - b);
+  };
+
+  // Helper: Get analytics for a specific program
+  const getProgramAnalytics = (programId: string) => {
+    const program = programs.find((p) => p.id === programId);
+    if (!program) return null;
+
+    const uniqueStudents = students.filter((s) => {
+      if (!s.programEnrollments) return false;
+      return s.programEnrollments.some((e) => e.programId === programId && e.status === 'ASSIGNED');
+    }).length;
+
+    const enrollmentSlots = students.reduce((sum, s) => {
+      if (!s.programEnrollments) return sum;
+      const slots = s.programEnrollments.filter(
+        (e) => e.programId === programId && e.classId && e.status === 'ASSIGNED'
+      ).length;
+      return sum + slots;
+    }, 0);
+
+    const capacity = classesArray
+      .filter((c) => c.programId === programId)
+      .reduce((sum, c) => sum + c.capacity, 0);
+
+    const utilization = capacity > 0 ? Math.round((enrollmentSlots / capacity) * 100) : 0;
+
+    return {
+      id: programId,
+      name: `${program.name} ${program.year}`,
+      uniqueStudents,
+      enrollmentSlots,
+      capacity,
+      utilization,
+    };
+  };
+
+  // Helper: Get analytics for a specific year
+  const getYearAnalytics = (year: number) => {
+    const yearPrograms = programs.filter((p) => p.year === year);
+
+    const uniqueStudents = new Set<string>();
+    const enrollmentSlots = students.reduce((sum, s) => {
+      if (!s.programEnrollments) return sum;
+
+      s.programEnrollments.forEach((e) => {
+        if (yearPrograms.some((p) => p.id === e.programId) && e.status === 'ASSIGNED') {
+          uniqueStudents.add(s.id);
+          if (e.classId) {
+            sum += 1;
+          }
+        }
+      });
+      return sum;
+    }, 0);
+
+    const capacity = classesArray
+      .filter((c) => yearPrograms.some((p) => p.id === c.programId))
+      .reduce((sum, c) => sum + c.capacity, 0);
+
+    const utilization = capacity > 0 ? Math.round((enrollmentSlots / capacity) * 100) : 0;
+
+    return {
+      id: `year-${year}`,
+      name: `${year}`,
+      uniqueStudents: uniqueStudents.size,
+      enrollmentSlots,
+      capacity,
+      utilization,
+    };
+  };
+
+  // Helper: Get analytics for a specific season
+  const getSeasonAnalytics = (season: string) => {
+    const seasonPrograms = programs.filter((p) => p.season === season);
+
+    const uniqueStudents = new Set<string>();
+    const enrollmentSlots = students.reduce((sum, s) => {
+      if (!s.programEnrollments) return sum;
+
+      s.programEnrollments.forEach((e) => {
+        if (seasonPrograms.some((p) => p.id === e.programId) && e.status === 'ASSIGNED') {
+          uniqueStudents.add(s.id);
+          if (e.classId) {
+            sum += 1;
+          }
+        }
+      });
+      return sum;
+    }, 0);
+
+    const capacity = classesArray
+      .filter((c) => seasonPrograms.some((p) => p.id === c.programId))
+      .reduce((sum, c) => sum + c.capacity, 0);
+
+    const utilization = capacity > 0 ? Math.round((enrollmentSlots / capacity) * 100) : 0;
+
+    return {
+      id: `season-${season}`,
+      name: season,
+      uniqueStudents: uniqueStudents.size,
+      enrollmentSlots,
+      capacity,
+      utilization,
+    };
+  };
 
   // Group students by program level (based on their class assignments)
   // If a program is selected, filter students by that program's enrollments
@@ -83,6 +195,44 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const filteredStudentsCount = selectedProgram
     ? students.filter((s) => s.programEnrollments && s.programEnrollments.some((e) => e.programId === selectedProgram)).length
     : Object.values(programDistribution).reduce((sum, count) => sum + count, 0);
+
+  // Build analytics data based on view mode and year filter
+  const getAnalyticsData = () => {
+    const uniqueYears = getUniqueYears();
+
+    if (analyticsViewMode === 'program') {
+      const filteredPrograms =
+        analyticsYearFilter === 'all'
+          ? programs
+          : programs.filter((p) => p.year === parseInt(analyticsYearFilter));
+
+      return filteredPrograms
+        .map((p) => getProgramAnalytics(p.id))
+        .filter((a) => a !== null);
+    }
+
+    if (analyticsViewMode === 'year') {
+      return uniqueYears.map((year) => getYearAnalytics(year));
+    }
+
+    if (analyticsViewMode === 'season') {
+      const seasons = new Set(programs.map((p) => p.season));
+      const filteredSeasons =
+        analyticsYearFilter === 'all'
+          ? Array.from(seasons)
+          : Array.from(seasons).filter((season) =>
+              programs
+                .filter((p) => p.season === season)
+                .some((p) => p.year === parseInt(analyticsYearFilter))
+            );
+      return filteredSeasons.map((season) => getSeasonAnalytics(season));
+    }
+
+    return [];
+  };
+
+  const analyticsData = getAnalyticsData();
+  const uniqueYears = getUniqueYears();
 
   return (
     <div className="space-y-6">
@@ -164,6 +314,83 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
               {selectedProgram ? 'for selected program' : 'across all programs'}
             </p>
           </div>
+        </div>
+      </Card>
+
+      {/* Program & Year Analytics */}
+      <Card>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-gray-900">Program & Year Analytics</h2>
+          <div className="flex gap-3">
+            <select
+              value={analyticsViewMode}
+              onChange={(e) => setAnalyticsViewMode(e.target.value as 'program' | 'season' | 'year')}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="program">By Program</option>
+              <option value="season">By Season</option>
+              <option value="year">By Year</option>
+            </select>
+            {analyticsViewMode !== 'year' && (
+              <select
+                value={analyticsYearFilter}
+                onChange={(e) => setAnalyticsYearFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="all">All Years</option>
+                {uniqueYears.map((year) => (
+                  <option key={year} value={year.toString()}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {analyticsData.length > 0 ? (
+            analyticsData.map((analytics) => {
+              let bgColor = 'bg-green-50';
+              let borderColor = 'border-green-200';
+              let textColor = 'text-green-700';
+
+              if (analytics.utilization >= 90) {
+                bgColor = 'bg-red-50';
+                borderColor = 'border-red-200';
+                textColor = 'text-red-700';
+              } else if (analytics.utilization >= 70) {
+                bgColor = 'bg-yellow-50';
+                borderColor = 'border-yellow-200';
+                textColor = 'text-yellow-700';
+              }
+
+              return (
+                <div key={analytics.id} className={`p-4 ${bgColor} rounded-lg border ${borderColor}`}>
+                  <p className="text-sm font-semibold text-gray-900 mb-3">{analytics.name}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Unique Students:</span>
+                      <span className="text-lg font-bold text-gray-900">{analytics.uniqueStudents}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Enrollment Slots:</span>
+                      <span className="text-lg font-bold text-gray-900">{analytics.enrollmentSlots}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Capacity:</span>
+                      <span className="text-lg font-bold text-gray-900">{analytics.capacity}</span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-300 flex justify-between items-center">
+                      <span className="text-xs font-semibold text-gray-700">Utilization:</span>
+                      <span className={`text-lg font-bold ${textColor}`}>{analytics.utilization}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="col-span-full text-center text-gray-500 py-8">No data available</p>
+          )}
         </div>
       </Card>
 
