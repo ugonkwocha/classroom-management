@@ -26,14 +26,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const classesArray = Array.isArray(classes) ? classes : [];
   const totalClasses = classesArray.length;
 
-  // Calculate actual enrolled students (respecting capacity limits)
-  let totalEnrolled = 0;
-  classesArray.forEach((cls) => {
-    const enrolledInClass = students.filter((s) =>
-      s.programEnrollments && s.programEnrollments.some((e) => e.classId === cls.id && e.status === 'ASSIGNED')
-    ).length;
-    totalEnrolled += Math.min(enrolledInClass, cls.capacity);
-  });
+  // Calculate unique enrolled students (count each student only once even if in multiple classes)
+  const totalEnrolled = students.filter((s) => {
+    if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
+    // Student is enrolled if they have at least one class assignment with ASSIGNED status
+    return s.programEnrollments.some((e) => e.classId && e.status === 'ASSIGNED');
+  }).length;
 
   const waitlistCount = waitlist.length;
   const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
