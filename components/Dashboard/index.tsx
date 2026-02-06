@@ -27,15 +27,22 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const totalClasses = classesArray.length;
 
   // Calculate unique enrolled students (count each student only once even if in multiple classes)
-  const totalEnrolled = students.filter((s) => {
+  const totalUniqueEnrolled = students.filter((s) => {
     if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
     // Student is enrolled if they have at least one class assignment with ASSIGNED status
     return s.programEnrollments.some((e) => e.classId && e.status === 'ASSIGNED');
   }).length;
 
+  // Calculate total enrollment slots (count each class assignment separately)
+  const totalEnrollmentSlots = students.reduce((sum, s) => {
+    if (!s.programEnrollments || s.programEnrollments.length === 0) return sum;
+    const assignedSlots = s.programEnrollments.filter((e) => e.classId && e.status === 'ASSIGNED').length;
+    return sum + assignedSlots;
+  }, 0);
+
   const waitlistCount = waitlist.length;
   const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
-  const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
+  const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrollmentSlots / totalCapacity) * 100) : 0;
 
   // Group students by program level (based on their class assignments)
   // If a program is selected, filter students by that program's enrollments
@@ -86,7 +93,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         <StatCard
           label="Total Students"
           value={totalStudents}
-          subtext={`${totalEnrolled} enrolled`}
+          subtext={`${totalUniqueEnrolled} unique enrolled`}
           variant="primary"
         />
         <StatCard
@@ -96,9 +103,15 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           variant="success"
         />
         <StatCard
+          label="Enrollment Slots"
+          value={totalEnrollmentSlots}
+          subtext={`assigned across classes`}
+          variant="primary"
+        />
+        <StatCard
           label="Enrollment Rate"
           value={`${capacityPercentage}%`}
-          subtext={`${totalEnrolled}/${totalCapacity} spots filled`}
+          subtext={`${totalEnrollmentSlots}/${totalCapacity} spots filled`}
           variant={capacityPercentage < 50 ? 'success' : capacityPercentage < 100 ? 'warning' : 'danger'}
         />
         <StatCard
