@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
+import { EnrollmentTrendsChart } from './EnrollmentTrendsChart';
 import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
@@ -350,6 +351,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           variant={capacityPercentage < 50 ? 'success' : capacityPercentage < 100 ? 'warning' : 'danger'}
         />
       </div>
+
+      {/* Enrollment Trends Chart */}
+      <Card>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
+        <EnrollmentTrendsChart students={students} programs={programs} />
+      </Card>
 
       {/* Program & Year Analytics */}
       <Card>
