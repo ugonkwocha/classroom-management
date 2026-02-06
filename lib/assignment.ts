@@ -1,4 +1,4 @@
-import { Student, Class, WaitlistEntry } from '@/types';
+import { Student, Class } from '@/types';
 
 export interface AssignmentResult {
   assigned: Array<{ studentId: string; classId: string }>;
@@ -8,7 +8,7 @@ export interface AssignmentResult {
 export function assignStudentsToClasses(
   students: Student[],
   classes: Class[],
-  existingWaitlist: WaitlistEntry[]
+  existingWaitlist: any[]
 ): AssignmentResult {
   const assigned: Array<{ studentId: string; classId: string }> = [];
   const waitlisted: Array<{ studentId: string; programLevel: string }> = [];
@@ -68,8 +68,8 @@ export function assignStudentsToClasses(
 
 export function calculateWaitlistPriority(
   student: Student,
-  existingWaitlistEntry: WaitlistEntry | undefined,
-  waitlistEntries: WaitlistEntry[]
+  existingWaitlistEntry: any | undefined,
+  waitlistEntries: any[]
 ): number {
   let priority = 0;
 
@@ -90,7 +90,7 @@ export function calculateWaitlistPriority(
 
 export function promoteFromWaitlist(
   classes: Class[],
-  waitlistEntries: WaitlistEntry[],
+  waitlistEntries: any[],
   students: Student[]
 ): Array<{ studentId: string; classId: string }> {
   const promoted: Array<{ studentId: string; classId: string }> = [];
