@@ -234,6 +234,87 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const analyticsData = getAnalyticsData();
   const uniqueYears = getUniqueYears();
 
+  // Calculate summary totals for the current view
+  const getAnalyticsSummary = () => {
+    if (analyticsData.length === 0) {
+      return { uniqueStudents: 0, enrollmentSlots: 0, capacity: 0, utilization: 0 };
+    }
+
+    const uniqueStudents = new Set<string>();
+    let totalEnrollmentSlots = 0;
+    let totalCapacity = 0;
+
+    // For program and season views, we need to count unique students across all selected items
+    if (analyticsViewMode === 'program' || analyticsViewMode === 'season') {
+      const filteredPrograms =
+        analyticsViewMode === 'program'
+          ? analyticsYearFilter === 'all'
+            ? programs
+            : programs.filter((p) => p.year === parseInt(analyticsYearFilter))
+          : analyticsYearFilter === 'all'
+          ? programs
+          : programs.filter((p) =>
+              analyticsData.some((a) => a.id === `season-${p.season}`)
+            );
+
+      filteredPrograms.forEach((prog) => {
+        students.forEach((student) => {
+          if (student.programEnrollments) {
+            if (
+              student.programEnrollments.some(
+                (e) => e.programId === prog.id && e.status === 'ASSIGNED'
+              )
+            ) {
+              uniqueStudents.add(student.id);
+            }
+          }
+        });
+      });
+
+      totalEnrollmentSlots = students.reduce((sum, s) => {
+        if (!s.programEnrollments) return sum;
+        return (
+          sum +
+          s.programEnrollments.filter((e) => {
+            const prog = filteredPrograms.find((p) => p.id === e.programId);
+            return prog && e.classId && e.status === 'ASSIGNED';
+          }).length
+        );
+      }, 0);
+
+      totalCapacity = classesArray
+        .filter((c) => filteredPrograms.some((p) => p.id === c.programId))
+        .reduce((sum, c) => sum + c.capacity, 0);
+    } else {
+      // For year view, sum up all the data
+      analyticsData.forEach((data) => {
+        totalEnrollmentSlots += data.enrollmentSlots;
+        totalCapacity += data.capacity;
+      });
+
+      // Count unique students across all years
+      students.forEach((student) => {
+        if (student.programEnrollments) {
+          if (student.programEnrollments.some((e) => e.status === 'ASSIGNED')) {
+            uniqueStudents.add(student.id);
+          }
+        }
+      });
+    }
+
+    const utilization =
+      totalCapacity > 0 ? Math.round((totalEnrollmentSlots / totalCapacity) * 100) : 0;
+
+    return {
+      uniqueStudents: uniqueStudents.size,
+      enrollmentSlots: totalEnrollmentSlots,
+      capacity: totalCapacity,
+      utilization,
+    };
+  };
+
+  const analyticsSummary = getAnalyticsSummary();
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -347,6 +428,42 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             )}
           </div>
         </div>
+
+        {/* Summary Card */}
+        {analyticsData.length > 0 && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200">
+            <p className="text-sm font-semibold text-gray-600 mb-3">
+              {analyticsViewMode === 'program'
+                ? analyticsYearFilter === 'all'
+                  ? 'Total across all programs'
+                  : `Total for ${analyticsYearFilter}`
+                : analyticsViewMode === 'year'
+                ? 'Total across all years'
+                : analyticsYearFilter === 'all'
+                ? 'Total across all seasons'
+                : `Total for seasons in ${analyticsYearFilter}`}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-gray-600">Unique Students</p>
+                <p className="text-2xl font-bold text-purple-600">{analyticsSummary.uniqueStudents}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Enrollment Slots</p>
+                <p className="text-2xl font-bold text-blue-600">{analyticsSummary.enrollmentSlots}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Total Capacity</p>
+                <p className="text-2xl font-bold text-gray-900">{analyticsSummary.capacity}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Utilization</p>
+                <p className="text-2xl font-bold text-gray-900">{analyticsSummary.utilization}%</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {analyticsData.length > 0 ? (
             analyticsData.map((analytics) => {
