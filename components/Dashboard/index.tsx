@@ -193,7 +193,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
   // Get total students in the filtered view
   const filteredStudentsCount = selectedProgram
-    ? students.filter((s) => s.programEnrollments && s.programEnrollments.some((e) => e.programId === selectedProgram)).length
+    ? students.filter((s) => s.programEnrollments && s.programEnrollments.some((e) => e.programId === selectedProgram && e.status === 'ASSIGNED')).length
     : Object.values(programDistribution).reduce((sum, count) => sum + count, 0);
 
   // Build analytics data based on view mode and year filter
