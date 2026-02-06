@@ -351,53 +351,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         />
       </div>
 
-      {/* Program Distribution */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Program Distribution</h2>
-          <div className="flex gap-2">
-            <select
-              value={selectedProgram}
-              onChange={(e) => setSelectedProgram(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="">All Programs</option>
-              {programs.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.name} - {program.season} {program.year}
-                </option>
-              ))}
-            </select>
-            {selectedProgram && (
-              <button
-                onClick={() => setSelectedProgram('')}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
-              >
-                Clear Filter
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          {Object.entries(programDistribution).map(([program, count]) => (
-            <div key={program} className="p-4 bg-purple-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">{program}</p>
-              <p className="text-2xl font-bold text-purple-600">{count}</p>
-              <p className="text-xs text-gray-500 mt-2">
-                {Math.round((count / filteredStudentsCount) * 100) || 0}% of students
-              </p>
-            </div>
-          ))}
-          <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-            <p className="text-sm text-blue-600 font-semibold mb-1">Total Enrolled</p>
-            <p className="text-2xl font-bold text-blue-900">{filteredStudentsCount}</p>
-            <p className="text-xs text-gray-500 mt-2">
-              {selectedProgram ? 'for selected program' : 'across all programs'}
-            </p>
-          </div>
-        </div>
-      </Card>
-
       {/* Program & Year Analytics */}
       <Card>
         <div className="flex items-center justify-between mb-6">
@@ -508,6 +461,53 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           ) : (
             <p className="col-span-full text-center text-gray-500 py-8">No data available</p>
           )}
+        </div>
+      </Card>
+
+      {/* Program Distribution */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Program Distribution</h2>
+          <div className="flex gap-2">
+            <select
+              value={selectedProgram}
+              onChange={(e) => setSelectedProgram(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">All Programs</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name} - {program.season} {program.year}
+                </option>
+              ))}
+            </select>
+            {selectedProgram && (
+              <button
+                onClick={() => setSelectedProgram('')}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {Object.entries(programDistribution).map(([program, count]) => (
+            <div key={program} className="p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-1">{program}</p>
+              <p className="text-2xl font-bold text-purple-600">{count}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {Math.round((count / filteredStudentsCount) * 100) || 0}% of students
+              </p>
+            </div>
+          ))}
+          <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <p className="text-sm text-blue-600 font-semibold mb-1">Total Enrolled</p>
+            <p className="text-2xl font-bold text-blue-900">{filteredStudentsCount}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              {selectedProgram ? 'for selected program' : 'across all programs'}
+            </p>
+          </div>
         </div>
       </Card>
 
