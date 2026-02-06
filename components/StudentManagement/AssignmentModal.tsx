@@ -14,7 +14,6 @@ interface AssignmentModalProps {
   courseHistory: CourseHistory[];
   studentProgramEnrollments: ProgramEnrollment[]; // Program enrollments to check payment status
   onAssign: (studentId: string, programId: string, batchNumber: number, classId: string) => void;
-  onAddToWaitlist?: (studentId: string, programId: string, batchNumber: number) => void;
   onCancel: () => void;
 }
 
@@ -28,10 +27,9 @@ export function AssignmentModal({
   courseHistory,
   studentProgramEnrollments,
   onAssign,
-  onAddToWaitlist,
   onCancel,
 }: AssignmentModalProps) {
-  const [mode, setMode] = useState<'choice' | 'assign' | 'waitlist'>('choice');
+  const [mode, setMode] = useState<'choice' | 'assign'>('choice');
   const [step, setStep] = useState<'program' | 'batch' | 'payment' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatch, setSelectedBatch] = useState<number>(1);
@@ -212,9 +210,9 @@ export function AssignmentModal({
     return (
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">How would you like to enroll {studentName}?</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Assign {studentName} to a Class</h3>
           <p className="text-sm text-gray-600 mb-6">
-            Choose to assign them to a class directly, or add them to the waitlist if classes are full.
+            Select a class to enroll the student. Course history will be tracked automatically.
           </p>
         </div>
 
@@ -237,22 +235,6 @@ export function AssignmentModal({
               </div>
             </div>
           </button>
-
-          {/* Waitlist Option */}
-          <button
-            onClick={() => setMode('waitlist')}
-            className="w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition-colors"
-          >
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">⏳</div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">Add to Waitlist</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Add student to waitlist for a program. Promote to class when spots become available.
-                </p>
-              </div>
-            </div>
-          </button>
         </div>
 
         <div className="flex gap-3 pt-4 border-t border-gray-200">
@@ -264,117 +246,7 @@ export function AssignmentModal({
     );
   }
 
-  // Handle waitlist mode
-  if (mode === 'waitlist') {
-    // Check if we're selecting program first or batch
-    if (!selectedProgram) {
-      // Step 1: Select Program for Waitlist
-      // Note: We allow ALL programs - batch-level duplicate checking happens in StudentDetailsView
-      const availablePrograms = programs;
-
-      return (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Add to Waitlist</h3>
-            <p className="text-sm text-gray-600">
-              Step 1: Select a program to add <span className="font-semibold">{studentName}</span> to the waitlist.
-            </p>
-          </div>
-
-          {availablePrograms.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                No programs available. Please create a program first.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {availablePrograms.map((program) => (
-                <button
-                  key={program.id}
-                  onClick={() => {
-                    setSelectedProgram(program.id);
-                    setSelectedBatch(1);
-                  }}
-                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-500 transition-colors"
-                >
-                  <p className="font-semibold text-gray-900">
-                    {program.name} - {program.season} {program.year}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Type: {program.type} | Batches: {program.batches}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button
-              variant="outline"
-              onClick={() => setMode('choice')}
-              className="flex-1"
-            >
-              Back
-            </Button>
-            <Button variant="outline" onClick={onCancel} className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 2: Select Batch for Waitlist
-    const selectedProgramWaitlist = programs.find((p) => p.id === selectedProgram);
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Select Batch</h3>
-          <p className="text-sm text-gray-600">
-            Step 2: Select a batch for <span className="font-semibold">{selectedProgramWaitlist?.name}</span>
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          {Array.from({ length: selectedProgramWaitlist?.batches || 1 }, (_, i) => i + 1).map(
-            (batchNum) => (
-              <button
-                key={batchNum}
-                onClick={() => {
-                  if (onAddToWaitlist) {
-                    onAddToWaitlist(studentId, selectedProgram, batchNum);
-                    onCancel();
-                  }
-                }}
-                className="w-full p-3 text-left border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
-              >
-                <p className="font-semibold text-gray-900">Batch {batchNum}</p>
-              </button>
-            )
-          )}
-        </div>
-
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSelectedProgram('');
-              setSelectedBatch(1);
-            }}
-            className="flex-1"
-          >
-            Back
-          </Button>
-          <Button variant="outline" onClick={onCancel} className="flex-1">
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Handle assign mode
+// Handle assign mode
   return (
     <div className="space-y-6">
       <div>

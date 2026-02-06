@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useStudents, useClasses, useWaitlist, usePrograms } from '@/lib/hooks';
+import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
 import { calculateAge } from '@/lib/utils';
@@ -13,12 +13,11 @@ interface DashboardProps {
 export function Dashboard({ onSelectStudent }: DashboardProps) {
   const { students, isLoaded: studentsLoaded } = useStudents();
   const { classes, isLoaded: classesLoaded } = useClasses();
-  const { waitlist, isLoaded: waitlistLoaded } = useWaitlist();
   const { programs } = usePrograms();
   const [selectedProgram, setSelectedProgram] = useState<string>(''); // Filter by program
   const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({ type: null, programFilter: '' });
 
-  if (!studentsLoaded || !classesLoaded || !waitlistLoaded) {
+  if (!studentsLoaded || !classesLoaded) {
     return <div>Loading...</div>;
   }
 
@@ -40,7 +39,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
     return sum + assignedSlots;
   }, 0);
 
-  const waitlistCount = waitlist.length;
   const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrollmentSlots / totalCapacity) * 100) : 0;
 
@@ -119,12 +117,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           value={`${capacityPercentage}%`}
           subtext={`${totalEnrollmentSlots}/${totalCapacity} spots filled`}
           variant={capacityPercentage < 50 ? 'success' : capacityPercentage < 100 ? 'warning' : 'danger'}
-        />
-        <StatCard
-          label="Waitlist"
-          value={waitlistCount}
-          subtext="Waiting for placement"
-          variant={waitlistCount > 0 ? 'warning' : 'success'}
         />
       </div>
 

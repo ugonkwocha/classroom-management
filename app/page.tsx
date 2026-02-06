@@ -10,11 +10,10 @@ import { ClassManagement } from '@/components/ClassManagement';
 import { CoursesManagement } from '@/components/CoursesManagement';
 import { ProgramsManagement } from '@/components/ProgramsManagement';
 import { TeachersManagement } from '@/components/TeachersManagement';
-import { WaitlistManagement } from '@/components/Waitlist';
 import { UserManagement } from '@/components/UserManagement';
 import { Button } from '@/components/ui';
 
-type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'waitlist' | 'users';
+type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'users';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -35,7 +34,7 @@ function HomeContent() {
 
     // Handle tab from query parameter
     const tabParam = searchParams.get('tab') as Tab;
-    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'waitlist', 'users'];
+    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'users'];
 
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
@@ -56,7 +55,6 @@ function HomeContent() {
     { id: 'programs', label: 'Programs' },
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
-    { id: 'waitlist', label: 'Waitlist' },
     ...(hasPermission(PERMISSIONS.READ_USERS) ? [{ id: 'users' as Tab, label: 'Users' }] : []),
   ];
 
@@ -147,7 +145,6 @@ function HomeContent() {
             {activeTab === 'programs' && <ProgramsManagement />}
             {activeTab === 'classes' && <ClassManagement />}
             {activeTab === 'teachers' && <TeachersManagement />}
-            {activeTab === 'waitlist' && <WaitlistManagement />}
             {activeTab === 'users' && <UserManagement />}
           </>
         )}

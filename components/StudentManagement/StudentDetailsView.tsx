@@ -366,77 +366,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       alert(`Error: ${error instanceof Error ? error.message : 'Failed to mark class as completed'}`);
     }
   };
-
-
-  // Add student to waitlist for a program
-  const handleAddToWaitlist = (studentId: string, programId: string, batchNumber: number) => {
-    const program = programs.find((p) => p.id === programId);
-    if (!program) return;
-
-    // Check if program can accept enrollments based on start date
-    const enrollmentCheck = canEnrollInProgram(program);
-    if (!enrollmentCheck.allowed) {
-      alert(enrollmentCheck.reason);
-      return;
-    }
-
-    // Check for duplicate enrollment in SAME BATCH
-    const currentEnrollments = getEnrollments();
-    const existingEnrollmentInBatch = currentEnrollments.find(
-      (e) => e.programId === programId && e.batchNumber === batchNumber
-    );
-    if (existingEnrollmentInBatch) {
-      alert(`Student is already enrolled in ${program.name} - Batch ${batchNumber}`);
-      return;
-    }
-
-    // Check course history for completed courses in SAME BATCH
-    const completedInBatch = (student.courseHistory || []).some(
-      (h) => h.programId === programId &&
-             h.batch === batchNumber &&
-             h.completionStatus === 'COMPLETED'
-    );
-    if (completedInBatch) {
-      alert(`Student already completed ${program.name} - Batch ${batchNumber}`);
-      return;
-    }
-
-    // Warning: Student enrolled in DIFFERENT batch of same program
-    const enrolledInOtherBatch = currentEnrollments.find(
-      (e) => e.programId === programId && e.batchNumber !== batchNumber
-    );
-    if (enrolledInOtherBatch) {
-      const confirmed = window.confirm(
-        `Student is already enrolled in ${program.name} - Batch ${enrolledInOtherBatch.batchNumber}. ` +
-        `Enroll in Batch ${batchNumber} anyway?`
-      );
-      if (!confirmed) return;
-    }
-
-    // Create new waitlist enrollment
-    const newEnrollment: ProgramEnrollment = {
-      id: generateId(),
-      programId,
-      batchNumber,
-      enrollmentDate: new Date().toISOString(),
-      status: 'WAITLIST',
-      paymentStatus: 'PENDING',
-    };
-
-    const updatedEnrollments = [...getEnrollments(), newEnrollment];
-
-    updateStudent(studentId, {
-      programEnrollments: updatedEnrollments,
-    });
-
-    // Show success message
-    setSuccessMessage(`✓ Added ${student.firstName} ${student.lastName} to ${program.name} waitlist`);
-    setShowSuccessMessage(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
-  };
-
   const handleAssignStudent = (studentId: string, programId: string, batchNumber: number, classId: string) => {
     console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, batchNumber, classId });
 
@@ -704,7 +633,6 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           courseHistory={student.courseHistory || []}
           studentProgramEnrollments={getEnrollments()}
           onAssign={handleAssignStudent}
-          onAddToWaitlist={handleAddToWaitlist}
           onCancel={() => setIsAssignmentModalOpen(false)}
         />
       </Modal>

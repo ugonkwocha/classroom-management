@@ -108,14 +108,6 @@ export interface Class {
   createdAt: string;
 }
 
-export interface WaitlistEntry {
-  id: string;
-  studentId: string;
-  programLevel: ProgramLevel;
-  priority: number;
-  timestamp: string;
-}
-
 export interface Stats {
   totalStudents: number;
   totalClasses: number;
