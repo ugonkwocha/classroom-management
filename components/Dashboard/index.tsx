@@ -89,11 +89,17 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           label="Total Students"
           value={totalStudents}
-          subtext={`${totalUniqueEnrolled} unique enrolled`}
+          subtext="total registered"
+          variant="primary"
+        />
+        <StatCard
+          label="Unique Enrolled"
+          value={totalUniqueEnrolled}
+          subtext="students in classes"
           variant="primary"
         />
         <StatCard
