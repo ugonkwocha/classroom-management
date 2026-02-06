@@ -81,7 +81,7 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
       const key =
         viewMode === 'month'
           ? format(periodDate, 'MMM yyyy') // "Jan 2026"
-          : format(periodDate, 'QQQ yyyy'); // "Q1 2026"
+          : `Q${format(periodDate, 'Q')} ${format(periodDate, 'yyyy')}`; // "Q1 2026"
 
       if (!groupedData[key]) {
         groupedData[key] = {
@@ -105,14 +105,20 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
       }))
       .sort((a, b) => {
         // Parse period strings to dates for proper sorting
-        const aDate =
-          viewMode === 'month'
-            ? parseISO(`${a.period.split(' ')[1]}-${getMonthNumber(a.period.split(' ')[0])}-01`)
-            : parseISO(`${a.period.split(' ')[1]}-${getQuarterMonth(a.period.split(' ')[0])}-01`);
-        const bDate =
-          viewMode === 'month'
-            ? parseISO(`${b.period.split(' ')[1]}-${getMonthNumber(b.period.split(' ')[0])}-01`)
-            : parseISO(`${b.period.split(' ')[1]}-${getQuarterMonth(b.period.split(' ')[0])}-01`);
+        const getPeriodDate = (period: string): Date => {
+          const parts = period.split(' ');
+          if (viewMode === 'month') {
+            const monthNum = getMonthNumber(parts[0]);
+            return parseISO(`${parts[1]}-${monthNum}-01`);
+          } else {
+            // Extract quarter number from "Q1", "Q2", etc.
+            const quarterNum = parts[0].charAt(1);
+            const quarterMonthNum = getQuarterMonth(`Q${quarterNum}`);
+            return parseISO(`${parts[1]}-${quarterMonthNum}-01`);
+          }
+        };
+        const aDate = getPeriodDate(a.period);
+        const bDate = getPeriodDate(b.period);
         return aDate.getTime() - bDate.getTime();
       });
 
