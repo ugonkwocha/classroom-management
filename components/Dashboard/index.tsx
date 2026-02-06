@@ -1,11 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
-import { EnrollmentTrendsChart } from './EnrollmentTrendsChart';
 import { calculateAge } from '@/lib/utils';
+
+const EnrollmentTrendsChart = dynamic(() => import('./EnrollmentTrendsChart').then(mod => ({ default: mod.EnrollmentTrendsChart })), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-gray-500">Loading chart...</div>,
+});
 
 interface DashboardProps {
   onSelectStudent?: (studentId: string) => void;
