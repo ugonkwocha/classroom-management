@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useStudents, useClasses, useWaitlist, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
-import { calculateAge, getProgramLevel } from '@/lib/utils';
+import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
   onSelectStudent?: (studentId: string) => void;
@@ -39,28 +39,35 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const totalCapacity = classesArray.reduce((sum, cls) => sum + cls.capacity, 0);
   const capacityPercentage = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
-  // Group students by program level (based on their age)
+  // Group students by program level (based on their class assignments)
   // If a program is selected, filter students by that program's enrollments
   const getFilteredStudents = (programLevelName: string) => {
-    return students.filter((s) => {
-      if (!s.dateOfBirth) return false;
-      const age = calculateAge(s.dateOfBirth);
-      try {
-        const studentLevel = getProgramLevel(age);
-        if (studentLevel !== programLevelName) return false;
+    const filteredCount = students.filter((s) => {
+      if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
 
-        if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
+      // Find if student has any class assignment with this program level
+      const hasClassInLevel = classesArray.some((cls) => {
+        if (cls.programLevel !== programLevelName) return false;
+
+        // Check if student is assigned to this class
+        const isAssigned = s.programEnrollments!.some(
+          (e) => e.classId === cls.id && e.status === 'ASSIGNED'
+        );
+
+        if (!isAssigned) return false;
 
         // If a specific program is selected, filter by that program
         if (selectedProgram) {
-          return s.programEnrollments.some((e) => e.programId === selectedProgram);
+          return cls.programId === selectedProgram;
         }
 
         return true;
-      } catch {
-        return false;
-      }
+      });
+
+      return hasClassInLevel;
     }).length;
+
+    return filteredCount;
   };
 
   const programDistribution = {
