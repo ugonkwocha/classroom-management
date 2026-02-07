@@ -1,16 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
+import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { calculateAge } from '@/lib/utils';
-
-const EnrollmentTrendsChart = dynamic(() => import('./EnrollmentTrendsChart').then(mod => ({ default: mod.EnrollmentTrendsChart })), {
-  ssr: false,
-  loading: () => <div className="p-8 text-center text-gray-500">Loading chart...</div>,
-});
 
 interface DashboardProps {
   onSelectStudent?: (studentId: string) => void;
@@ -360,7 +355,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
       {/* Enrollment Trends Chart */}
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
-        <EnrollmentTrendsChart students={students} programs={programs} />
+        <EnrollmentTrendsChartWrapper students={students} programs={programs} />
       </Card>
 
       {/* Program & Year Analytics */}
