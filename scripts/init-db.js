@@ -26,6 +26,16 @@ async function initializeDatabase() {
     console.warn('The app will retry database operations when needed');
   }
 
+  // Run seed script
+  try {
+    console.log('Running database seed...');
+    execSync('npx prisma db seed', { stdio: 'inherit' });
+    console.log('Database seed completed successfully');
+  } catch (error) {
+    console.warn('WARNING: Database seed failed, but continuing startup');
+    console.warn('The app may have missing default data');
+  }
+
   console.log('Database initialization phase complete.');
 }
 
