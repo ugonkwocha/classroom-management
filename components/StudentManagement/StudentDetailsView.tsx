@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Student, CourseHistory, ProgramEnrollment } from '@/types';
+import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
 import { useClasses, usePrograms, useCourses, useStudents } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
 import { CourseHistorySection } from './CourseHistorySection';
@@ -9,6 +9,7 @@ import { ProgramEnrollmentsSection } from './ProgramEnrollmentsSection';
 import { PaymentStatusSection } from './PaymentStatusSection';
 import { AssignmentModal } from './AssignmentModal';
 import { generateId, calculateAge } from '@/lib/utils';
+import { PRICE_OPTIONS, formatCurrency } from '@/lib/constants/pricing';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -57,7 +58,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
   const [enrollmentFlow, setEnrollmentFlow] = useState<{ programId: string; programName: string; batches: number } | null>(null);
-  const [selectedBatchesForPayment, setSelectedBatchesForPayment] = useState<{ batchNumber: number; paymentConfirmed: boolean }[]>([]);
+  const [selectedBatchesForPayment, setSelectedBatchesForPayment] = useState<{ batchNumber: number; paymentConfirmed: boolean; priceType: PriceType }[]>([]);
   const [enrollmentStep, setEnrollmentStep] = useState<'program' | 'batch-payment'>('program');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -686,7 +687,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                               // Initialize batch payment selection
                               const batchesForPayment = Array.from({ length: program.batches }, (_, i) => ({
                                 batchNumber: i + 1,
-                                paymentConfirmed: false
+                                paymentConfirmed: false,
+                                priceType: 'FULL_PRICE' as PriceType
                               }));
                               setSelectedBatchesForPayment(batchesForPayment);
                               setEnrollmentStep('batch-payment');
@@ -754,31 +756,65 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Confirm Payment Status for Each Batch</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  Check which batches the student has made payment for:
+                  Select the pricing option for each batch:
                 </p>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+              <div className="space-y-4">
                 {selectedBatchesForPayment.map((batch) => (
-                  <label key={batch.batchNumber} className="flex items-center gap-3 cursor-pointer hover:bg-yellow-100 p-2 rounded transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={batch.paymentConfirmed}
-                      onChange={() => {
-                        setSelectedBatchesForPayment(
-                          selectedBatchesForPayment.map((b) =>
-                            b.batchNumber === batch.batchNumber
-                              ? { ...b, paymentConfirmed: !b.paymentConfirmed }
-                              : b
-                          )
-                        );
-                      }}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <span className="text-sm text-yellow-800 font-medium">
-                      Batch {batch.batchNumber} - Payment {batch.paymentConfirmed ? '✓ Confirmed' : 'Pending'}
-                    </span>
-                  </label>
+                  <div key={batch.batchNumber} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="mb-3">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={batch.paymentConfirmed}
+                          onChange={() => {
+                            setSelectedBatchesForPayment(
+                              selectedBatchesForPayment.map((b) =>
+                                b.batchNumber === batch.batchNumber
+                                  ? { ...b, paymentConfirmed: !b.paymentConfirmed }
+                                  : b
+                              )
+                            );
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-sm text-yellow-800 font-medium">
+                          Batch {batch.batchNumber} - Payment {batch.paymentConfirmed ? '✓ Confirmed' : 'Pending'}
+                        </span>
+                      </label>
+                    </div>
+
+                    {batch.paymentConfirmed && (
+                      <div className="ml-7 space-y-2">
+                        <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
+                        {PRICE_OPTIONS.map((option) => (
+                          <label key={option.type} className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`batch-${batch.batchNumber}-price`}
+                              checked={batch.priceType === option.type}
+                              onChange={() => {
+                                setSelectedBatchesForPayment(
+                                  selectedBatchesForPayment.map((b) =>
+                                    b.batchNumber === batch.batchNumber
+                                      ? { ...b, priceType: option.type }
+                                      : b
+                                  )
+                                );
+                              }}
+                              className="w-4 h-4 mt-1 cursor-pointer"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{option.label}</p>
+                              <p className="text-xs text-gray-600">{option.description}</p>
+                              <p className="text-sm font-semibold text-purple-600">{formatCurrency(option.amount)}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
@@ -853,6 +889,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
                     // Add enrollments for batches with confirmed payment (ASSIGNED status - pending class assignment)
                     batchesWithPayment.forEach((batch) => {
+                      const priceOption = PRICE_OPTIONS.find((opt) => opt.type === batch.priceType);
                       newEnrollments.push({
                         id: generateId(),
                         programId: enrollmentFlow.programId,
@@ -860,6 +897,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                         enrollmentDate: new Date().toISOString(),
                         status: 'ASSIGNED',
                         paymentStatus: 'CONFIRMED',
+                        priceType: batch.priceType,
+                        priceAmount: priceOption?.amount || 60000,
                       });
                     });
 
