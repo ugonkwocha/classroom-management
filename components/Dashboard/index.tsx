@@ -358,14 +358,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         />
       </div>
 
-      {/* Enrollment Trends Chart - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
-          <EnrollmentTrendsChartWrapper students={students} programs={programs} />
-        </Card>
-      )}
-
       {/* Program & Year Analytics - Super Admin Only */}
       {isSuperAdmin && (
       <Card>
@@ -481,14 +473,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
       </Card>
       )}
 
-      {/* Year-over-Year Comparison - Super Admin Only */}
-      {isSuperAdmin && (
-      <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
-        <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
-      </Card>
-      )}
-
       {/* Program Comparison - Super Admin Only */}
       {isSuperAdmin && (
       <Card>
@@ -503,6 +487,22 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Program History Comparison</h2>
         <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
       </Card>
+      )}
+
+      {/* Year-over-Year Comparison - Super Admin Only */}
+      {isSuperAdmin && (
+      <Card>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
+        <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
+      </Card>
+      )}
+
+      {/* Enrollment Trends Chart - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
+          <EnrollmentTrendsChartWrapper students={students} programs={programs} />
+        </Card>
       )}
 
       {/* Program Distribution */}
