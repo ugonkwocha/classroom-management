@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { EnrollmentTrendsChart } from './EnrollmentTrendsChart';
+import { Suspense, lazy } from 'react';
 import type { Student, Program } from '@/types';
 
 interface EnrollmentTrendsChartWrapperProps {
@@ -9,19 +8,19 @@ interface EnrollmentTrendsChartWrapperProps {
   programs: Program[];
 }
 
+const EnrollmentTrendsChart = lazy(() =>
+  import('./EnrollmentTrendsChart').then((mod) => ({
+    default: mod.EnrollmentTrendsChart,
+  }))
+);
+
 export function EnrollmentTrendsChartWrapper({
   students,
   programs,
 }: EnrollmentTrendsChartWrapperProps) {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return <div className="p-8 text-center text-gray-500">Loading chart...</div>;
-  }
-
-  return <EnrollmentTrendsChart students={students} programs={programs} />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading chart...</div>}>
+      <EnrollmentTrendsChart students={students} programs={programs} />
+    </Suspense>
+  );
 }
