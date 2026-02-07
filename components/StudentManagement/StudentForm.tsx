@@ -265,7 +265,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                   value={selectedProgram}
                   onChange={(e) => {
                     setSelectedProgram(e.target.value);
-                    setSelectedBatch(1); // Reset batch to 1 when program changes
+                    setSelectedBatches([]); // Reset batches when program changes
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
