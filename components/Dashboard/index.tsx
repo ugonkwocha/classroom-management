@@ -6,6 +6,7 @@ import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
 import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { YearOverYearComparison } from './YearOverYearComparison';
+import { ProgramComparison } from './ProgramComparison';
 import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
@@ -476,6 +477,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
         <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
+      </Card>
+
+      {/* Program Comparison */}
+      <Card>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Program Comparison</h2>
+        <ProgramComparison students={students} programs={programs} classes={classesArray} />
       </Card>
 
       {/* Program Distribution */}
