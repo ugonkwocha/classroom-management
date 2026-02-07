@@ -36,8 +36,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
-  const [selectedBatch, setSelectedBatch] = useState<number>(1);
-  const [selectedPriceType, setSelectedPriceType] = useState<PriceType>('FULL_PRICE');
+  const [selectedBatches, setSelectedBatches] = useState<{ batchNumber: number; priceType: PriceType }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,12 +61,12 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     }
     if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
 
-    // Check enrollment and price type if enrolled in program
+    // Check enrollment and batches if enrolled in program
     if (enrollInProgram && !selectedProgram) {
       newErrors.selectedProgram = 'Please select a program';
     }
-    if (enrollInProgram && selectedProgram && !selectedPriceType) {
-      newErrors.selectedPriceType = 'Please select a pricing option';
+    if (enrollInProgram && selectedProgram && selectedBatches.length === 0) {
+      newErrors.selectedBatches = 'Please select at least one batch and its pricing';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -89,23 +88,26 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
     // Build program enrollments if student is enrolling in a program
     let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
-    if (enrollInProgram && selectedProgram && selectedPriceType) {
-      // Get the price amount for the selected price type
-      const priceOption = PRICE_OPTIONS.find((opt) => opt.type === selectedPriceType);
-      const priceAmount = priceOption?.amount || 60000;
+    if (enrollInProgram && selectedProgram && selectedBatches.length > 0) {
+      // Create an enrollment for each selected batch
+      selectedBatches.forEach((batch) => {
+        // Get the price amount for the selected price type
+        const priceOption = PRICE_OPTIONS.find((opt) => opt.type === batch.priceType);
+        const priceAmount = priceOption?.amount || 60000;
 
-      // Create enrollment with minimal data - will be created by the hook
-      const newEnrollment = {
-        id: generateId(),  // Generate a temporary ID for the form
-        programId: selectedProgram,
-        batchNumber: selectedBatch,
-        enrollmentDate: new Date().toISOString(),
-        status: 'ASSIGNED' as const,
-        paymentStatus: 'CONFIRMED' as const,
-        priceType: selectedPriceType,
-        priceAmount,
-      };
-      programEnrollments = [...programEnrollments, newEnrollment as any];
+        // Create enrollment with minimal data - will be created by the hook
+        const newEnrollment = {
+          id: generateId(),  // Generate a temporary ID for the form
+          programId: selectedProgram,
+          batchNumber: batch.batchNumber,
+          enrollmentDate: new Date().toISOString(),
+          status: 'ASSIGNED' as const,
+          paymentStatus: 'CONFIRMED' as const,
+          priceType: batch.priceType,
+          priceAmount,
+        };
+        programEnrollments = [...programEnrollments, newEnrollment as any];
+      });
     }
 
     await onSubmit({
@@ -280,55 +282,77 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
             {selectedProgram && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Batch</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Select Batches and Pricing</label>
                 {(() => {
                   const program = programs.find((p) => p.id === selectedProgram);
                   return (
-                    <div className="space-y-2">
-                      {Array.from({ length: program?.batches || 1 }, (_, i) => i + 1).map((batchNum) => (
-                        <label key={batchNum} className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="batch"
-                            value={batchNum}
-                            checked={selectedBatch === batchNum}
-                            onChange={(e) => setSelectedBatch(parseInt(e.target.value))}
-                            className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                          />
-                          <span className="text-sm text-gray-900">Batch {batchNum}</span>
-                        </label>
-                      ))}
+                    <div className="space-y-4">
+                      {Array.from({ length: program?.batches || 1 }, (_, i) => i + 1).map((batchNum) => {
+                        const isBatchSelected = selectedBatches.some((b) => b.batchNumber === batchNum);
+                        const batchPriceType = selectedBatches.find((b) => b.batchNumber === batchNum)?.priceType || 'FULL_PRICE';
+
+                        return (
+                          <div key={batchNum} className="border rounded-lg p-4 bg-white">
+                            <div className="mb-3">
+                              <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isBatchSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedBatches([
+                                        ...selectedBatches,
+                                        { batchNumber: batchNum, priceType: 'FULL_PRICE' },
+                                      ]);
+                                    } else {
+                                      setSelectedBatches(selectedBatches.filter((b) => b.batchNumber !== batchNum));
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                                />
+                                <span className="font-semibold text-gray-900">Batch {batchNum}</span>
+                              </label>
+                            </div>
+
+                            {isBatchSelected && (
+                              <div className="ml-7 space-y-2">
+                                <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
+                                {PRICE_OPTIONS.map((option) => (
+                                  <label key={option.type} className="flex items-start gap-3 p-2 border rounded-lg cursor-pointer hover:bg-purple-50" style={{borderColor: batchPriceType === option.type ? '#9333ea' : '#d1d5db', backgroundColor: batchPriceType === option.type ? '#f3e8ff' : '#ffffff'}}>
+                                    <input
+                                      type="radio"
+                                      name={`batch-${batchNum}-price`}
+                                      value={option.type}
+                                      checked={batchPriceType === option.type}
+                                      onChange={() => {
+                                        setSelectedBatches(
+                                          selectedBatches.map((b) =>
+                                            b.batchNumber === batchNum
+                                              ? { ...b, priceType: option.type }
+                                              : b
+                                          )
+                                        );
+                                      }}
+                                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
+                                    />
+                                    <div className="flex-1">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm font-semibold text-gray-900">{option.label}</span>
+                                        <span className="text-sm font-bold text-purple-600">{formatCurrency(option.amount)}</span>
+                                      </div>
+                                      <p className="text-xs text-gray-600 mt-0.5">{option.description}</p>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
-              </div>
-            )}
-
-            {selectedProgram && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Select Pricing Option</label>
-                <div className="space-y-2">
-                  {PRICE_OPTIONS.map((option) => (
-                    <label key={option.type} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50" style={{borderColor: selectedPriceType === option.type ? '#9333ea' : '#d1d5db', backgroundColor: selectedPriceType === option.type ? '#f3e8ff' : '#ffffff'}}>
-                      <input
-                        type="radio"
-                        name="priceType"
-                        value={option.type}
-                        checked={selectedPriceType === option.type}
-                        onChange={(e) => setSelectedPriceType(e.target.value as PriceType)}
-                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold text-gray-900">{option.label}</span>
-                          <span className="text-lg font-bold text-purple-600">{formatCurrency(option.amount)}</span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">{option.description}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                {errors.selectedPriceType && <p className="text-red-600 text-xs mt-2">{errors.selectedPriceType}</p>}
+                {errors.selectedBatches && <p className="text-red-600 text-xs mt-2">{errors.selectedBatches}</p>}
               </div>
             )}
           </div>
