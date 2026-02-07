@@ -89,6 +89,8 @@ export async function PUT(
         batchNumber: data.batchNumber,
         status: data.status,
         paymentStatus: data.paymentStatus,
+        priceType: data.priceType,
+        priceAmount: data.priceAmount,
       },
       include: {
         student: true,

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Student, CourseHistory, ProgramEnrollment } from '@/types';
+import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
 import { useCourses, usePrograms } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
+import { PRICE_OPTIONS, formatCurrency } from '@/lib/constants/pricing';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
@@ -36,7 +37,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatch, setSelectedBatch] = useState<number>(1);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [selectedPriceType, setSelectedPriceType] = useState<PriceType>('FULL_PRICE');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,12 +62,12 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     }
     if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
 
-    // Check enrollment and payment if enrolled in program
+    // Check enrollment and price type if enrolled in program
     if (enrollInProgram && !selectedProgram) {
       newErrors.selectedProgram = 'Please select a program';
     }
-    if (enrollInProgram && selectedProgram && !paymentConfirmed) {
-      newErrors.paymentConfirmed = 'Please confirm payment for the program';
+    if (enrollInProgram && selectedProgram && !selectedPriceType) {
+      newErrors.selectedPriceType = 'Please select a pricing option';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -88,7 +89,11 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
     // Build program enrollments if student is enrolling in a program
     let programEnrollments: ProgramEnrollment[] = initialData?.programEnrollments || [];
-    if (enrollInProgram && selectedProgram && paymentConfirmed) {
+    if (enrollInProgram && selectedProgram && selectedPriceType) {
+      // Get the price amount for the selected price type
+      const priceOption = PRICE_OPTIONS.find((opt) => opt.type === selectedPriceType);
+      const priceAmount = priceOption?.amount || 60000;
+
       // Create enrollment with minimal data - will be created by the hook
       const newEnrollment = {
         id: generateId(),  // Generate a temporary ID for the form
@@ -97,6 +102,8 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
         enrollmentDate: new Date().toISOString(),
         status: 'ASSIGNED' as const,
         paymentStatus: 'CONFIRMED' as const,
+        priceType: selectedPriceType,
+        priceAmount,
       };
       programEnrollments = [...programEnrollments, newEnrollment as any];
     }
@@ -300,19 +307,30 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
             )}
 
             {selectedProgram && (
-              <div className="bg-white p-3 rounded-lg border border-purple-200">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={paymentConfirmed}
-                    onChange={(e) => setPaymentConfirmed(e.target.checked)}
-                    className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-900">
-                    <span className="font-semibold">Confirm:</span> Payment has been made for this program
-                  </span>
-                </label>
-                {errors.paymentConfirmed && <p className="text-red-600 text-xs mt-2">{errors.paymentConfirmed}</p>}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Select Pricing Option</label>
+                <div className="space-y-2">
+                  {PRICE_OPTIONS.map((option) => (
+                    <label key={option.type} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50" style={{borderColor: selectedPriceType === option.type ? '#9333ea' : '#d1d5db', backgroundColor: selectedPriceType === option.type ? '#f3e8ff' : '#ffffff'}}>
+                      <input
+                        type="radio"
+                        name="priceType"
+                        value={option.type}
+                        checked={selectedPriceType === option.type}
+                        onChange={(e) => setSelectedPriceType(e.target.value as PriceType)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-900">{option.label}</span>
+                          <span className="text-lg font-bold text-purple-600">{formatCurrency(option.amount)}</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">{option.description}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {errors.selectedPriceType && <p className="text-red-600 text-xs mt-2">{errors.selectedPriceType}</p>}
               </div>
             )}
           </div>

@@ -9,6 +9,10 @@ import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { YearOverYearComparison } from './YearOverYearComparison';
 import { ProgramComparison } from './ProgramComparison';
 import { ProgramHistoryComparison } from './ProgramHistoryComparison';
+import { PricingManagement } from './PricingManagement';
+import { RevenueAnalytics } from './RevenueAnalytics';
+import { RevenueForecast } from './RevenueForecast';
+import { DiscountAdoptionAnalysis } from './DiscountAdoptionAnalysis';
 import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
@@ -324,6 +328,13 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      {/* Pricing Management - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <PricingManagement />
+        </Card>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
@@ -502,6 +513,30 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         <Card>
           <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
           <EnrollmentTrendsChartWrapper students={students} programs={programs} />
+        </Card>
+      )}
+
+      {/* Revenue Analytics - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Analytics</h2>
+          <RevenueAnalytics students={students} programs={programs} />
+        </Card>
+      )}
+
+      {/* Revenue Forecast - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Forecast</h2>
+          <RevenueForecast students={students} programs={programs} classes={classesArray} />
+        </Card>
+      )}
+
+      {/* Discount Adoption Analysis - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Discount Adoption Analysis</h2>
+          <DiscountAdoptionAnalysis students={students} programs={programs} />
         </Card>
       )}
 

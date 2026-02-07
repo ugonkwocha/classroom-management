@@ -3,6 +3,7 @@ export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
 export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
+export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
 
 export interface User {
   id: string;
@@ -60,6 +61,26 @@ export interface ProgramEnrollment {
   enrollmentDate: string;
   status: 'WAITLIST' | 'ASSIGNED' | 'COMPLETED' | 'DROPPED';
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'COMPLETED'; // Program-specific payment status
+  priceType?: PriceType; // Pricing option selected
+  priceAmount?: number; // Amount paid in Naira
+}
+
+// Pricing option for enrollment
+export interface PriceOption {
+  type: PriceType;
+  label: string;
+  amount: number;
+  description: string;
+}
+
+// Pricing configuration for super admin management
+export interface PricingConfig {
+  id: string;
+  priceType: PriceType;
+  amount: number;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Student {

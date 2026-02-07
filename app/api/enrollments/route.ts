@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
         batchNumber: data.batchNumber || 1,
         status: data.status,
         paymentStatus: data.paymentStatus || 'PENDING',
+        priceType: data.priceType || 'FULL_PRICE',
+        priceAmount: data.priceAmount || 60000,
       },
       include: {
         student: true,

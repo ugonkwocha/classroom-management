@@ -248,6 +248,8 @@ async function main() {
       classId: class1.id,
       status: 'ASSIGNED',
       paymentStatus: 'CONFIRMED',
+      priceType: 'FULL_PRICE',
+      priceAmount: 60000,
     },
   });
 
@@ -258,6 +260,8 @@ async function main() {
       classId: class1.id,
       status: 'ASSIGNED',
       paymentStatus: 'CONFIRMED',
+      priceType: 'SIBLING_DISCOUNT',
+      priceAmount: 56000,
     },
   });
 
@@ -269,6 +273,8 @@ async function main() {
       classId: null,
       status: 'WAITLIST',
       paymentStatus: 'PENDING',
+      priceType: 'FULL_PRICE',
+      priceAmount: 60000,
     },
   });
 
@@ -279,6 +285,8 @@ async function main() {
       classId: null,
       status: 'WAITLIST',
       paymentStatus: 'PENDING',
+      priceType: 'EARLY_BIRD',
+      priceAmount: 54000,
     },
   });
 
@@ -290,6 +298,8 @@ async function main() {
       classId: class2.id,
       status: 'ASSIGNED',
       paymentStatus: 'CONFIRMED',
+      priceType: 'FULL_PRICE',
+      priceAmount: 60000,
     },
   });
 
@@ -300,7 +310,29 @@ async function main() {
       classId: null,
       status: 'WAITLIST',
       paymentStatus: 'PENDING',
+      priceType: 'FULL_PRICE',
+      priceAmount: 60000,
     },
+  });
+
+  // Seed default pricing configuration
+  console.log('Setting up pricing configuration...');
+  await prisma.pricingConfig.upsert({
+    where: { priceType: 'FULL_PRICE' },
+    update: { amount: 60000 },
+    create: { priceType: 'FULL_PRICE', amount: 60000 },
+  });
+
+  await prisma.pricingConfig.upsert({
+    where: { priceType: 'SIBLING_DISCOUNT' },
+    update: { amount: 56000 },
+    create: { priceType: 'SIBLING_DISCOUNT', amount: 56000 },
+  });
+
+  await prisma.pricingConfig.upsert({
+    where: { priceType: 'EARLY_BIRD' },
+    update: { amount: 54000 },
+    create: { priceType: 'EARLY_BIRD', amount: 54000 },
   });
 
   // Create Course History
@@ -364,6 +396,7 @@ async function main() {
   - 5 Students
   - 6 Program Enrollments (2 assigned, 4 waitlist)
   - 3 Course History Records
+  - 3 Pricing Configurations (Full Price: ₦60,000 | Sibling: ₦56,000 | Early Bird: ₦54,000)
 
 📝 Test Credentials:
   Email: admin@9jacodekids.com

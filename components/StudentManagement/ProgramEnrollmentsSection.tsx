@@ -1,7 +1,11 @@
 'use client';
 
-import { ProgramEnrollment, Class, Program } from '@/types';
+import { useState } from 'react';
+import { ProgramEnrollment, Class, Program, PriceType } from '@/types';
 import { Card, Button } from '@/components/ui';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { PriceEditModal } from './PriceEditModal';
+import { getPriceLabel, formatCurrency } from '@/lib/constants/pricing';
 
 interface ProgramEnrollmentsSectionProps {
   enrollments: ProgramEnrollment[];
@@ -12,6 +16,7 @@ interface ProgramEnrollmentsSectionProps {
   onUnassignFromClass?: (enrollmentId: string, classId: string, studentId: string) => void;
   onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
   onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
+  onEditPrice?: (enrollmentId: string, priceType: PriceType, priceAmount: number) => Promise<void>;
   studentId?: string;
 }
 
@@ -24,8 +29,20 @@ export function ProgramEnrollmentsSection({
   onUnassignFromClass,
   onUnassignFromProgram,
   onMarkAsCompleted,
+  onEditPrice,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
+  const { user } = useAuth();
+  const canEditPrice = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const [priceModalState, setPriceModalState] = useState<{ isOpen: boolean; enrollmentId: string | null }>({
+    isOpen: false,
+    enrollmentId: null,
+  });
+
+  const selectedEnrollment = priceModalState.enrollmentId
+    ? enrollments.find((e) => e.id === priceModalState.enrollmentId)
+    : null;
+  const selectedProgram = selectedEnrollment ? programs.find((p) => p.id === selectedEnrollment.programId) : null;
   // Separate enrollments: those with class assignment, pending (ASSIGNED without classId), and those on waitlist
   const classEnrollments = enrollments.filter((e) => e.classId);
   const pendingEnrollments = enrollments.filter((e) => e.status === 'ASSIGNED' && !e.classId);
@@ -141,6 +158,21 @@ export function ProgramEnrollmentsSection({
                 </div>
               )}
 
+              {/* Pricing Information */}
+              {enrollment.priceType && (
+                <div className="mt-3 pt-3 border-t border-current border-opacity-20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-600 font-semibold">Price</p>
+                      <p className="text-sm text-gray-900">{getPriceLabel(enrollment.priceType)}</p>
+                    </div>
+                    <p className="text-lg font-bold text-purple-600">
+                      {formatCurrency(enrollment.priceAmount || 60000)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Payment Status */}
               {enrollment.paymentStatus && (
                 <div className="mt-3 pt-3 border-t border-current border-opacity-20">
@@ -168,6 +200,16 @@ export function ProgramEnrollmentsSection({
 
               {/* Actions */}
               <div className="mt-4 pt-4 border-t border-current border-opacity-20 space-y-2">
+                {canEditPrice && onEditPrice && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPriceModalState({ isOpen: true, enrollmentId: enrollment.id })}
+                    className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                  >
+                    Edit Price
+                  </Button>
+                )}
                 {onMarkAsCompleted && (
                   <Button
                     variant="outline"
@@ -246,6 +288,21 @@ export function ProgramEnrollmentsSection({
                       Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
                     </p>
                   </div>
+
+                  {/* Pricing Information */}
+                  {enrollment.priceType && (
+                    <div className="mb-4 pt-3 border-t border-purple-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-600 font-semibold">Price</p>
+                          <p className="text-sm text-gray-900">{getPriceLabel(enrollment.priceType)}</p>
+                        </div>
+                        <p className="text-lg font-bold text-purple-600">
+                          {formatCurrency(enrollment.priceAmount || 60000)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Payment Status */}
                   {enrollment.paymentStatus && (
@@ -380,6 +437,23 @@ export function ProgramEnrollmentsSection({
             })}
           </div>
         </div>
+      )}
+
+      {/* Price Edit Modal */}
+      {canEditPrice && (
+        <PriceEditModal
+          isOpen={priceModalState.isOpen}
+          onClose={() => setPriceModalState({ isOpen: false, enrollmentId: null })}
+          student={selectedEnrollment ? { id: studentId || '', ...({} as any) } : null}
+          enrollment={selectedEnrollment || null}
+          program={selectedProgram || null}
+          onSave={async (enrollmentId, priceType, priceAmount) => {
+            if (onEditPrice) {
+              await onEditPrice(enrollmentId, priceType, priceAmount);
+            }
+            setPriceModalState({ isOpen: false, enrollmentId: null });
+          }}
+        />
       )}
     </Card>
   );

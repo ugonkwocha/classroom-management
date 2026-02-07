@@ -56,6 +56,11 @@ export const PERMISSIONS = {
 
   // Waitlist (all can manage)
   MANAGE_WAITLIST: 'MANAGE_WAITLIST',
+
+  // Revenue and Pricing (Superadmin+ only)
+  VIEW_REVENUE: 'VIEW_REVENUE',
+  EDIT_PRICE: 'EDIT_PRICE',
+  MANAGE_PRICING: 'MANAGE_PRICING',
 } as const;
 
 type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -99,6 +104,10 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.DELETE_COURSE_HISTORY,
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.MANAGE_WAITLIST,
+    // Revenue and Pricing
+    PERMISSIONS.VIEW_REVENUE,
+    PERMISSIONS.EDIT_PRICE,
+    PERMISSIONS.MANAGE_PRICING,
   ],
 
   ADMIN: [
@@ -143,6 +152,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.VIEW_DASHBOARD,
     // Waitlist - yes
     PERMISSIONS.MANAGE_WAITLIST,
+    // Revenue and Pricing
+    PERMISSIONS.VIEW_REVENUE,
+    PERMISSIONS.EDIT_PRICE,
   ],
 
   STAFF: [
