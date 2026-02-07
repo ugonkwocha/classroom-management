@@ -17,6 +17,36 @@ interface TrendDataPoint {
   uniqueStudents: number;
 }
 
+// Helper function to convert month abbreviation to number
+const getMonthNumber = (month: string): string => {
+  const months: Record<string, string> = {
+    Jan: '01',
+    Feb: '02',
+    Mar: '03',
+    Apr: '04',
+    May: '05',
+    Jun: '06',
+    Jul: '07',
+    Aug: '08',
+    Sep: '09',
+    Oct: '10',
+    Nov: '11',
+    Dec: '12',
+  };
+  return months[month] || '01';
+};
+
+// Helper function to convert quarter to month
+const getQuarterMonth = (quarter: string): string => {
+  const quarterMap: Record<string, string> = {
+    Q1: '01',
+    Q2: '04',
+    Q3: '07',
+    Q4: '10',
+  };
+  return quarterMap[quarter] || '01';
+};
+
 export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
 
@@ -112,36 +142,6 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
 
     return data;
   }, [students, viewMode]);
-
-  // Helper function to convert month abbreviation to number
-  const getMonthNumber = (month: string): string => {
-    const months: Record<string, string> = {
-      Jan: '01',
-      Feb: '02',
-      Mar: '03',
-      Apr: '04',
-      May: '05',
-      Jun: '06',
-      Jul: '07',
-      Aug: '08',
-      Sep: '09',
-      Oct: '10',
-      Nov: '11',
-      Dec: '12',
-    };
-    return months[month] || '01';
-  };
-
-  // Helper function to convert quarter to month
-  const getQuarterMonth = (quarter: string): string => {
-    const quarterMap: Record<string, string> = {
-      Q1: '01',
-      Q2: '04',
-      Q3: '07',
-      Q4: '10',
-    };
-    return quarterMap[quarter] || '01';
-  };
 
   if (chartData.length === 0) {
     return (
