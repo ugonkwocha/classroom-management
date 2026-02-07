@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PRICE_OPTIONS, formatCurrency } from '@/lib/constants/pricing';
 import { PriceType } from '@/types';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface PricingEditState {
   [key: string]: {
@@ -22,7 +23,7 @@ export function PricingManagement() {
   useEffect(() => {
     const fetchPricing = async () => {
       try {
-        const response = await fetch('/api/pricing');
+        const response = await fetchWithAuth('/api/pricing');
         if (!response.ok) throw new Error('Failed to fetch pricing');
 
         const data = await response.json();
@@ -123,11 +124,8 @@ export function PricingManagement() {
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/pricing', {
+      const response = await fetchWithAuth('/api/pricing', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           priceType,
           amount: state.amount,
