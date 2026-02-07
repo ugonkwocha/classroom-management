@@ -7,6 +7,7 @@ import { StatCard } from './StatCard';
 import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { YearOverYearComparison } from './YearOverYearComparison';
 import { ProgramComparison } from './ProgramComparison';
+import { ProgramHistoryComparison } from './ProgramHistoryComparison';
 import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
@@ -483,6 +484,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Program Comparison</h2>
         <ProgramComparison students={students} programs={programs} classes={classesArray} />
+      </Card>
+
+      {/* Program History Comparison */}
+      <Card>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Program History Comparison</h2>
+        <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
       </Card>
 
       {/* Program Distribution */}
