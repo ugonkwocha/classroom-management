@@ -11,9 +11,10 @@ import { CoursesManagement } from '@/components/CoursesManagement';
 import { ProgramsManagement } from '@/components/ProgramsManagement';
 import { TeachersManagement } from '@/components/TeachersManagement';
 import { UserManagement } from '@/components/UserManagement';
+import { PricingPage } from '@/components/PricingManagement';
 import { Button } from '@/components/ui';
 
-type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'users';
+type Tab = 'dashboard' | 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'users' | 'pricing';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -34,7 +35,7 @@ function HomeContent() {
 
     // Handle tab from query parameter
     const tabParam = searchParams.get('tab') as Tab;
-    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'users'];
+    const validTabs: Tab[] = ['dashboard', 'students', 'courses', 'programs', 'classes', 'teachers', 'users', 'pricing'];
 
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
@@ -56,6 +57,7 @@ function HomeContent() {
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     ...(hasPermission(PERMISSIONS.READ_USERS) ? [{ id: 'users' as Tab, label: 'Users' }] : []),
+    ...(user?.role === 'SUPERADMIN' ? [{ id: 'pricing' as Tab, label: 'Pricing' }] : []),
   ];
 
   return (
@@ -146,6 +148,7 @@ function HomeContent() {
             {activeTab === 'classes' && <ClassManagement />}
             {activeTab === 'teachers' && <TeachersManagement />}
             {activeTab === 'users' && <UserManagement />}
+            {activeTab === 'pricing' && <PricingPage />}
           </>
         )}
       </div>

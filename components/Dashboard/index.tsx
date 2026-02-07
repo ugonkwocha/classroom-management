@@ -9,7 +9,6 @@ import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { YearOverYearComparison } from './YearOverYearComparison';
 import { ProgramComparison } from './ProgramComparison';
 import { ProgramHistoryComparison } from './ProgramHistoryComparison';
-import { PricingManagement } from './PricingManagement';
 import { RevenueAnalytics } from './RevenueAnalytics';
 import { RevenueForecast } from './RevenueForecast';
 import { DiscountAdoptionAnalysis } from './DiscountAdoptionAnalysis';
@@ -328,13 +327,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Pricing Management - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <PricingManagement />
-        </Card>
-      )}
-
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
