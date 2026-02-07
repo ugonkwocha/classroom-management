@@ -5,6 +5,7 @@ import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
 import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
+import { YearOverYearComparison } from './YearOverYearComparison';
 import { calculateAge } from '@/lib/utils';
 
 interface DashboardProps {
@@ -469,6 +470,12 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <p className="col-span-full text-center text-gray-500 py-8">No data available</p>
           )}
         </div>
+      </Card>
+
+      {/* Year-over-Year Comparison */}
+      <Card>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
+        <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
       </Card>
 
       {/* Program Distribution */}
