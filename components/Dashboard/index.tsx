@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStudents, useClasses, usePrograms } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Card, Modal } from '@/components/ui';
 import { StatCard } from './StatCard';
 import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
@@ -18,7 +19,9 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
   const { students, isLoaded: studentsLoaded } = useStudents();
   const { classes, isLoaded: classesLoaded } = useClasses();
   const { programs } = usePrograms();
+  const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<string>(''); // Filter by program
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
   const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({ type: null, programFilter: '' });
   const [analyticsViewMode, setAnalyticsViewMode] = useState<'program' | 'season' | 'year'>('program');
   const [analyticsYearFilter, setAnalyticsYearFilter] = useState<string>('all');
@@ -355,13 +358,16 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         />
       </div>
 
-      {/* Enrollment Trends Chart */}
-      <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
-        <EnrollmentTrendsChartWrapper students={students} programs={programs} />
-      </Card>
+      {/* Enrollment Trends Chart - Super Admin Only */}
+      {isSuperAdmin && (
+        <Card>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
+          <EnrollmentTrendsChartWrapper students={students} programs={programs} />
+        </Card>
+      )}
 
-      {/* Program & Year Analytics */}
+      {/* Program & Year Analytics - Super Admin Only */}
+      {isSuperAdmin && (
       <Card>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-900">Program & Year Analytics</h2>
@@ -473,24 +479,31 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
           )}
         </div>
       </Card>
+      )}
 
-      {/* Year-over-Year Comparison */}
+      {/* Year-over-Year Comparison - Super Admin Only */}
+      {isSuperAdmin && (
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
         <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
       </Card>
+      )}
 
-      {/* Program Comparison */}
+      {/* Program Comparison - Super Admin Only */}
+      {isSuperAdmin && (
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Program Comparison</h2>
         <ProgramComparison students={students} programs={programs} classes={classesArray} />
       </Card>
+      )}
 
-      {/* Program History Comparison */}
+      {/* Program History Comparison - Super Admin Only */}
+      {isSuperAdmin && (
       <Card>
         <h2 className="text-lg font-bold text-gray-900 mb-4">Program History Comparison</h2>
         <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
       </Card>
+      )}
 
       {/* Program Distribution */}
       <Card>
