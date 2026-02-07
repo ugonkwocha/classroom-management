@@ -1,18 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
 import { format, startOfMonth, startOfQuarter, parseISO } from 'date-fns';
 import type { Student, Program } from '@/types';
 
@@ -163,6 +151,49 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
     );
   }
 
+  // Calculate chart dimensions and scales
+  const chartWidth = 800;
+  const chartHeight = 300;
+  const padding = { top: 20, right: 20, bottom: 20, left: 50 };
+  const plotWidth = chartWidth - padding.left - padding.right;
+  const plotHeight = chartHeight - padding.top - padding.bottom;
+
+  // Find max value for scaling
+  const maxValue = Math.max(
+    ...chartData.map((d) => Math.max(d.enrollments, d.uniqueStudents))
+  );
+  const yScale = plotHeight / maxValue;
+  const xScale = plotWidth / (chartData.length - 1 || 1);
+
+  // Generate SVG path for enrollment line
+  const enrollmentPoints = chartData.map((d, i) => ({
+    x: padding.left + i * xScale,
+    y: padding.top + plotHeight - d.enrollments * yScale,
+  }));
+
+  const enrollmentPath = enrollmentPoints
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
+
+  // Generate SVG path for unique students line
+  const studentPoints = chartData.map((d, i) => ({
+    x: padding.left + i * xScale,
+    y: padding.top + plotHeight - d.uniqueStudents * yScale,
+  }));
+
+  const studentPath = studentPoints
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
+
+  // Generate area fill paths
+  const enrollmentAreaPath =
+    enrollmentPath +
+    ` L ${padding.left + (chartData.length - 1) * xScale} ${padding.top + plotHeight} L ${padding.left} ${padding.top + plotHeight} Z`;
+
+  const studentAreaPath =
+    studentPath +
+    ` L ${padding.left + (chartData.length - 1) * xScale} ${padding.top + plotHeight} L ${padding.left} ${padding.top + plotHeight} Z`;
+
   return (
     <div className="space-y-4">
       {/* Toggle Controls */}
@@ -179,66 +210,116 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
       </div>
 
       {/* Chart */}
-      <div className="h-80 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorEnrollments" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis
-              dataKey="period"
-              stroke="#6b7280"
-              style={{ fontSize: '0.875rem' }}
-              angle={chartData.length > 12 ? -45 : 0}
-              height={chartData.length > 12 ? 80 : 60}
-            />
-            <YAxis stroke="#6b7280" style={{ fontSize: '0.875rem' }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.5rem',
-              }}
-              formatter={(value) => value.toString()}
-              labelFormatter={(label) => `Period: ${label}`}
-            />
-            <Legend
-              verticalAlign="top"
-              height={36}
-              formatter={(value) => {
-                if (value === 'enrollments') return 'Total Enrollments';
-                if (value === 'uniqueStudents') return 'Unique Students';
-                return value;
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="enrollments"
-              stroke="#3b82f6"
-              fillOpacity={1}
-              fill="url(#colorEnrollments)"
-              name="enrollments"
-              strokeWidth={2}
-            />
-            <Area
-              type="monotone"
-              dataKey="uniqueStudents"
-              stroke="#a855f7"
-              fillOpacity={1}
-              fill="url(#colorStudents)"
-              name="uniqueStudents"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="w-full overflow-x-auto">
+        <svg width={chartWidth} height={chartHeight} className="min-w-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+          <defs>
+            <linearGradient id="enrollmentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="studentGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {Array.from({ length: 5 }).map((_, i) => {
+            const y = padding.top + (i * plotHeight) / 4;
+            return (
+              <line
+                key={`grid-${i}`}
+                x1={padding.left}
+                y1={y}
+                x2={chartWidth - padding.right}
+                y2={y}
+                stroke="#e5e7eb"
+                strokeDasharray="3 3"
+              />
+            );
+          })}
+
+          {/* Y-axis labels */}
+          {Array.from({ length: 5 }).map((_, i) => {
+            const value = Math.round((maxValue / 4) * (4 - i));
+            const y = padding.top + (i * plotHeight) / 4;
+            return (
+              <text
+                key={`y-label-${i}`}
+                x={padding.left - 10}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+                fill="#6b7280"
+              >
+                {value}
+              </text>
+            );
+          })}
+
+          {/* Y-axis */}
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + plotHeight} stroke="#6b7280" />
+
+          {/* X-axis */}
+          <line
+            x1={padding.left}
+            y1={padding.top + plotHeight}
+            x2={chartWidth - padding.right}
+            y2={padding.top + plotHeight}
+            stroke="#6b7280"
+          />
+
+          {/* Area fills */}
+          <path d={enrollmentAreaPath} fill="url(#enrollmentGradient)" />
+          <path d={studentAreaPath} fill="url(#studentGradient)" />
+
+          {/* Lines */}
+          <path d={enrollmentPath} stroke="#3b82f6" strokeWidth="2" fill="none" />
+          <path d={studentPath} stroke="#a855f7" strokeWidth="2" fill="none" />
+
+          {/* Data points and labels */}
+          {enrollmentPoints.map((p, i) => (
+            <g key={`enrollment-point-${i}`}>
+              <circle cx={p.x} cy={p.y} r="3" fill="#3b82f6" />
+            </g>
+          ))}
+
+          {studentPoints.map((p, i) => (
+            <g key={`student-point-${i}`}>
+              <circle cx={p.x} cy={p.y} r="3" fill="#a855f7" />
+            </g>
+          ))}
+
+          {/* X-axis labels */}
+          {chartData.map((d, i) => {
+            const x = padding.left + i * xScale;
+            const shouldShow = chartData.length <= 12 || i % Math.ceil(chartData.length / 12) === 0;
+            return shouldShow ? (
+              <text
+                key={`x-label-${i}`}
+                x={x}
+                y={padding.top + plotHeight + 20}
+                textAnchor="middle"
+                fontSize="12"
+                fill="#6b7280"
+              >
+                {d.period}
+              </text>
+            ) : null;
+          })}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-6 justify-center text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-500 rounded"></div>
+          <span className="text-gray-700">Total Enrollments</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-purple-500 rounded"></div>
+          <span className="text-gray-700">Unique Students</span>
+        </div>
       </div>
 
       {/* Summary Stats */}
