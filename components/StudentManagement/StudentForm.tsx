@@ -246,7 +246,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
               setEnrollInProgram(e.target.checked);
               if (!e.target.checked) {
                 setSelectedProgram('');
-                setSelectedBatch(1);
+                setSelectedBatches([]);
               }
             }}
             className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
