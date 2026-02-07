@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAuth } from '@/lib/auth';
+import { getSessionUser } from '@/lib/auth';
 
 /**
  * GET /api/pricing
@@ -9,7 +9,7 @@ import { verifyAuth } from '@/lib/auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request);
+    const auth = getSessionUser(request);
     if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request);
+    const auth = getSessionUser(request);
     if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -85,13 +85,13 @@ export async function PUT(request: NextRequest) {
       where: { priceType },
       update: {
         amount,
-        updatedBy: auth.id,
+        updatedBy: auth.userId,
         updatedAt: new Date(),
       },
       create: {
         priceType,
         amount,
-        updatedBy: auth.id,
+        updatedBy: auth.userId,
       },
     });
 
