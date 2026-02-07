@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
-import { useClasses, usePrograms, useCourses, useStudents } from '@/lib/hooks';
+import { useClasses, usePrograms, useCourses, useStudents, usePricing } from '@/lib/hooks';
 import { Card, Button, Modal } from '@/components/ui';
 import { CourseHistorySection } from './CourseHistorySection';
 import { ProgramEnrollmentsSection } from './ProgramEnrollmentsSection';
 import { PaymentStatusSection } from './PaymentStatusSection';
 import { AssignmentModal } from './AssignmentModal';
 import { generateId, calculateAge } from '@/lib/utils';
-import { PRICE_OPTIONS, formatCurrency } from '@/lib/constants/pricing';
+import { formatCurrency } from '@/lib/constants/pricing';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -55,6 +55,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const { programs } = usePrograms();
   const { courses } = useCourses();
   const { updateStudent, students, getStudent } = useStudents();
+  const { priceOptions } = usePricing();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
   const [enrollmentFlow, setEnrollmentFlow] = useState<{ programId: string; programName: string; batches: number } | null>(null);
@@ -788,7 +789,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     {batch.paymentConfirmed && (
                       <div className="ml-7 space-y-2">
                         <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
-                        {PRICE_OPTIONS.map((option) => (
+                        {priceOptions.map((option) => (
                           <label key={option.type} className="flex items-start gap-2 cursor-pointer">
                             <input
                               type="radio"
@@ -889,7 +890,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
                     // Add enrollments for batches with confirmed payment (ASSIGNED status - pending class assignment)
                     batchesWithPayment.forEach((batch) => {
-                      const priceOption = PRICE_OPTIONS.find((opt) => opt.type === batch.priceType);
+                      const priceOption = priceOptions.find((opt) => opt.type === batch.priceType);
                       newEnrollments.push({
                         id: generateId(),
                         programId: enrollmentFlow.programId,

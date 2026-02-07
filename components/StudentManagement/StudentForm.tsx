@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
-import { useCourses, usePrograms } from '@/lib/hooks';
+import { useCourses, usePrograms, usePricing } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
-import { PRICE_OPTIONS, formatCurrency } from '@/lib/constants/pricing';
+import { formatCurrency } from '@/lib/constants/pricing';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
@@ -18,6 +18,7 @@ interface StudentFormProps {
 export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false, apiErrors = [] }: StudentFormProps) {
   const { courses } = useCourses();
   const { programs } = usePrograms();
+  const { priceOptions } = usePricing();
 
   const [formData, setFormData] = useState({
     firstName: initialData?.firstName || '',
@@ -92,7 +93,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       // Create an enrollment for each selected batch
       selectedBatches.forEach((batch) => {
         // Get the price amount for the selected price type
-        const priceOption = PRICE_OPTIONS.find((opt) => opt.type === batch.priceType);
+        const priceOption = priceOptions.find((opt) => opt.type === batch.priceType);
         const priceAmount = priceOption?.amount || 60000;
 
         // Create enrollment with minimal data - will be created by the hook
@@ -317,7 +318,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                             {isBatchSelected && (
                               <div className="ml-7 space-y-2">
                                 <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
-                                {PRICE_OPTIONS.map((option) => (
+                                {priceOptions.map((option) => (
                                   <label key={option.type} className="flex items-start gap-3 p-2 border rounded-lg cursor-pointer hover:bg-purple-50" style={{borderColor: batchPriceType === option.type ? '#9333ea' : '#d1d5db', backgroundColor: batchPriceType === option.type ? '#f3e8ff' : '#ffffff'}}>
                                     <input
                                       type="radio"
