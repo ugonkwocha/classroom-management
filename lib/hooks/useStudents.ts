@@ -101,6 +101,8 @@ export function useStudents() {
               batchNumber: enrollment.batchNumber,
               status: enrollment.status,
               paymentStatus: enrollment.paymentStatus,
+              priceType: enrollment.priceType || 'FULL_PRICE',
+              priceAmount: enrollment.priceAmount || 60000,
             };
             console.log(`[addStudent] Enrollment ${i + 1}/${programEnrollments.length} - Sending payload:`, enrollmentPayload);
             const enrollRes = await fetchWithAuth('/api/enrollments', {
@@ -357,6 +359,8 @@ export function useStudents() {
                 batchNumber: enrollment.batchNumber,
                 status: enrollment.status,
                 paymentStatus: enrollment.paymentStatus,
+                priceType: enrollment.priceType || 'FULL_PRICE',
+                priceAmount: enrollment.priceAmount || 60000,
               }),
             });
 
