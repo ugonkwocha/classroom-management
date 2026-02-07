@@ -335,7 +335,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         </Card>
       )}
 
-      {/* Stats Grid */}
+      {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           label="Total Students"
@@ -484,62 +484,6 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
       </Card>
       )}
 
-      {/* Program Comparison - Super Admin Only */}
-      {isSuperAdmin && (
-      <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Program Comparison</h2>
-        <ProgramComparison students={students} programs={programs} classes={classesArray} />
-      </Card>
-      )}
-
-      {/* Program History Comparison - Super Admin Only */}
-      {isSuperAdmin && (
-      <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Program History Comparison</h2>
-        <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
-      </Card>
-      )}
-
-      {/* Year-over-Year Comparison - Super Admin Only */}
-      {isSuperAdmin && (
-      <Card>
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
-        <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
-      </Card>
-      )}
-
-      {/* Enrollment Trends Chart - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
-          <EnrollmentTrendsChartWrapper students={students} programs={programs} />
-        </Card>
-      )}
-
-      {/* Revenue Analytics - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Analytics</h2>
-          <RevenueAnalytics students={students} programs={programs} />
-        </Card>
-      )}
-
-      {/* Revenue Forecast - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Forecast</h2>
-          <RevenueForecast students={students} programs={programs} classes={classesArray} />
-        </Card>
-      )}
-
-      {/* Discount Adoption Analysis - Super Admin Only */}
-      {isSuperAdmin && (
-        <Card>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Discount Adoption Analysis</h2>
-          <DiscountAdoptionAnalysis students={students} programs={programs} />
-        </Card>
-      )}
-
       {/* Program Distribution */}
       <Card>
         <div className="flex items-center justify-between mb-4">
@@ -587,7 +531,59 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         </div>
       </Card>
 
-      {/* Quick Stats */}
+      {/* Financial Metrics Section */}
+      {isSuperAdmin && (
+        <>
+          {/* Revenue Analytics */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Analytics</h2>
+            <RevenueAnalytics students={students} programs={programs} />
+          </Card>
+
+          {/* Revenue Forecast */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Revenue Forecast</h2>
+            <RevenueForecast students={students} programs={programs} classes={classesArray} />
+          </Card>
+
+          {/* Discount Adoption Analysis */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Discount Adoption Analysis</h2>
+            <DiscountAdoptionAnalysis students={students} programs={programs} />
+          </Card>
+        </>
+      )}
+
+      {/* Deeper Insights Section - Comparison Charts */}
+      {isSuperAdmin && (
+        <>
+          {/* Program Comparison */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Program Comparison</h2>
+            <ProgramComparison students={students} programs={programs} classes={classesArray} />
+          </Card>
+
+          {/* Program History Comparison */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Program History Comparison</h2>
+            <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
+          </Card>
+
+          {/* Year-over-Year Comparison */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Year-over-Year Comparison</h2>
+            <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
+          </Card>
+
+          {/* Enrollment Trends Chart */}
+          <Card>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollment Trends</h2>
+            <EnrollmentTrendsChartWrapper students={students} programs={programs} />
+          </Card>
+        </>
+      )}
+
+      {/* Quick Stats - Action Items */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           onClick={() => setDetailsModal({ type: 'unassigned', programFilter: '' })}
