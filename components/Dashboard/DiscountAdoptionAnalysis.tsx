@@ -141,16 +141,16 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
     <div className="space-y-6">
       {/* Overall Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-          <p className="text-xs text-#db3236 font-semibold mb-1">Total Enrollments</p>
-          <p className="text-2xl font-bold text-[#881f1f]">{analysisData.totalEnrollments}</p>
-          <p className="text-xs text-#db3236 mt-2">confirmed payments</p>
+        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <p className="text-xs text-purple-600 font-semibold mb-1">Total Enrollments</p>
+          <p className="text-2xl font-bold text-purple-900">{analysisData.totalEnrollments}</p>
+          <p className="text-xs text-purple-600 mt-2">confirmed payments</p>
         </div>
 
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-xs text-#4885ed font-semibold mb-1">Using Discount</p>
+          <p className="text-xs text-blue-600 font-semibold mb-1">Using Discount</p>
           <p className="text-2xl font-bold text-blue-900">{analysisData.totalDiscountedEnrollments}</p>
-          <p className="text-xs text-#4885ed mt-2">
+          <p className="text-xs text-blue-600 mt-2">
             {analysisData.discountAdoptionRate}% adoption rate
           </p>
         </div>
@@ -172,7 +172,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
 
       {/* Most Popular Discount */}
       {analysisData.totalDiscountedEnrollments > 0 && (
-        <div className="p-4 bg-gradient-to-r from-red-50 to-blue-50 rounded-lg border border-red-200">
+        <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Most Popular Discount</p>
@@ -181,7 +181,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
               </p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-#db3236">
+              <p className="text-2xl font-bold text-purple-600">
                 {analysisData.mostPopular.count}
               </p>
               <p className="text-xs text-gray-600">enrollments</p>
@@ -225,7 +225,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
                       <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className={`h-full ${
-                            isDiscount ? 'bg-#4885ed' : 'bg-gray-400'
+                            isDiscount ? 'bg-blue-600' : 'bg-gray-400'
                           } rounded-full`}
                           style={{ width: `${percentage}%` }}
                         />
@@ -237,7 +237,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
                   {isDiscount && (
                     <div>
                       <p className="text-xs text-gray-600">Total Discount</p>
-                      <p className="text-lg font-bold text-#4885ed">
+                      <p className="text-lg font-bold text-blue-600">
                         {formatCurrency(data.discount)}
                       </p>
                     </div>
@@ -262,7 +262,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
                     <p className="text-sm text-gray-600 mt-1">{prog.totalEnrollments} enrollments</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-#4885ed">{prog.discountRate}%</p>
+                    <p className="text-2xl font-bold text-blue-600">{prog.discountRate}%</p>
                     <p className="text-xs text-gray-600">discount rate</p>
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
                 {prog.discountedEnrollments > 0 && (
                   <div className="pt-3 border-t border-gray-200">
                     <p className="text-xs text-gray-600">
-                      Total discount given: <span className="font-bold text-#4885ed">
+                      Total discount given: <span className="font-bold text-blue-600">
                         {formatCurrency(prog.totalDiscount)}
                       </span>
                     </p>

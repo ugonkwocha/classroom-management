@@ -17,10 +17,10 @@ export function Button({
 
   const variants = {
     primary:
-      'bg-gradient-to-r from-[#db3236] to-[#db3236] text-white hover:from-[#c12b30] hover:to-[#c12b30] active:scale-95',
-    secondary: 'bg-[#f4c20d] text-gray-900 hover:bg-[#e6b008] active:scale-95',
-    outline: 'border-2 border-[#db3236] text-[#db3236] hover:bg-red-50 active:scale-95',
-    danger: 'bg-[#db3236] text-white hover:bg-[#c12b30] active:scale-95',
+      'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 active:scale-95',
+    secondary: 'bg-teal-500 text-white hover:bg-teal-600 active:scale-95',
+    outline: 'border-2 border-purple-600 text-purple-600 hover:bg-purple-50 active:scale-95',
+    danger: 'bg-red-500 text-white hover:bg-red-600 active:scale-95',
   };
 
   const sizes = {

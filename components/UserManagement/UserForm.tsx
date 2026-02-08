@@ -79,7 +79,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#db3236 focus:border-transparent outline-none"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
         />
       </div>
 
@@ -94,7 +94,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             value={formData.firstName}
             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#db3236 focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
           />
         </div>
 
@@ -108,7 +108,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             value={formData.lastName}
             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#db3236 focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required={!initialData}
             placeholder="At least 8 characters"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#db3236 focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
           />
           <p className="text-xs text-gray-500 mt-1">Password will be set during user creation</p>
         </div>
@@ -139,7 +139,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
           id="role"
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#db3236 focus:border-transparent outline-none"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
         >
           {roles.map((role) => (
             <option key={role} value={role}>
@@ -158,7 +158,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             type="checkbox"
             checked={formData.isActive}
             onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-            className="w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-#db3236"
+            className="w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-purple-500"
           />
           <span className="text-sm font-medium text-gray-700">Active</span>
         </label>
@@ -177,7 +177,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-gradient-to-r from-#db3236 to-#c12b30 text-white"
+          className="bg-gradient-to-r from-purple-600 to-purple-700 text-white"
         >
           {isLoading ? 'Saving...' : initialData ? 'Update User' : 'Create User'}
         </Button>

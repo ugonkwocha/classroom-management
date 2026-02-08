@@ -238,7 +238,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       </div>
 
       {/* Program Enrollment Section */}
-      <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -250,7 +250,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                 setSelectedBatches([]);
               }
             }}
-            className="w-5 h-5 text-[#db3236] rounded focus:ring-2 focus:ring-[#db3236]"
+            className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
           />
           <span className="font-semibold text-gray-900">Enroll in an upcoming program?</span>
         </label>
@@ -268,7 +268,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                     setSelectedProgram(e.target.value);
                     setSelectedBatches([]); // Reset batches when program changes
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">-- Select a program --</option>
                   {programs.map((program) => (
@@ -309,7 +309,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                                       setSelectedBatches(selectedBatches.filter((b) => b.batchNumber !== batchNum));
                                     }
                                   }}
-                                  className="w-4 h-4 text-[#db3236] rounded focus:ring-2 focus:ring-[#db3236]"
+                                  className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
                                 />
                                 <span className="font-semibold text-gray-900">Batch {batchNum}</span>
                               </label>
@@ -319,7 +319,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                               <div className="ml-7 space-y-2">
                                 <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
                                 {priceOptions.map((option) => (
-                                  <label key={option.type} className="flex items-start gap-3 p-2 border rounded-lg cursor-pointer hover:bg-red-50" style={{borderColor: batchPriceType === option.type ? '#db3236' : '#d1d5db', backgroundColor: batchPriceType === option.type ? '#fee2e2' : '#ffffff'}}>
+                                  <label key={option.type} className="flex items-start gap-3 p-2 border rounded-lg cursor-pointer hover:bg-purple-50" style={{borderColor: batchPriceType === option.type ? '#9333ea' : '#d1d5db', backgroundColor: batchPriceType === option.type ? '#f3e8ff' : '#ffffff'}}>
                                     <input
                                       type="radio"
                                       name={`batch-${batchNum}-price`}
@@ -334,12 +334,12 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                                           )
                                         );
                                       }}
-                                      className="w-4 h-4 text-[#db3236] rounded focus:ring-2 focus:ring-[#db3236] mt-0.5"
+                                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
                                     />
                                     <div className="flex-1">
                                       <div className="flex justify-between items-center">
                                         <span className="text-sm font-semibold text-gray-900">{option.label}</span>
-                                        <span className="text-sm font-bold text-[#db3236]">{formatCurrency(option.amount)}</span>
+                                        <span className="text-sm font-bold text-purple-600">{formatCurrency(option.amount)}</span>
                                       </div>
                                       <p className="text-xs text-gray-600 mt-0.5">{option.description}</p>
                                     </div>
@@ -367,7 +367,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
             type="checkbox"
             checked={formData.isReturningStudent}
             onChange={(e) => setFormData({ ...formData, isReturningStudent: e.target.checked })}
-            className="w-5 h-5 text-[#4885ed] rounded focus:ring-2 focus:ring-[#4885ed]"
+            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
           />
           <span className="font-semibold text-gray-900">Is this a returning student?</span>
         </label>
@@ -395,7 +395,7 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                           );
                         }
                       }}
-                      className="w-4 h-4 text-[#4885ed] rounded"
+                      className="w-4 h-4 text-blue-600 rounded"
                     />
                     <span className="text-sm text-gray-700">{course.name}</span>
                   </label>

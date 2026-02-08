@@ -127,7 +127,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">All Years</option>
             {uniqueYears.map((year) => (
@@ -143,7 +143,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
           <select
             value={selectedSeason}
             onChange={(e) => setSelectedSeason(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">All Seasons</option>
             {uniqueSeasons.map((season) => (
@@ -159,7 +159,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
           <select
             value={selectedProgram}
             onChange={(e) => setSelectedProgram(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">All Programs</option>
             {filteredPrograms.map((prog) => (
@@ -173,16 +173,16 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-          <p className="text-xs text-#db3236 font-semibold mb-1">Total Revenue</p>
-          <p className="text-2xl font-bold text-[#881f1f]">{formatCurrency(revenueData.totalRevenue)}</p>
-          <p className="text-xs text-#db3236 mt-2">{revenueData.enrollmentCount} enrollments</p>
+        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <p className="text-xs text-purple-600 font-semibold mb-1">Total Revenue</p>
+          <p className="text-2xl font-bold text-purple-900">{formatCurrency(revenueData.totalRevenue)}</p>
+          <p className="text-xs text-purple-600 mt-2">{revenueData.enrollmentCount} enrollments</p>
         </div>
 
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-xs text-#4885ed font-semibold mb-1">Unique Students</p>
+          <p className="text-xs text-blue-600 font-semibold mb-1">Unique Students</p>
           <p className="text-2xl font-bold text-blue-900">{revenueData.uniqueStudents}</p>
-          <p className="text-xs text-#4885ed mt-2">with confirmed payment</p>
+          <p className="text-xs text-blue-600 mt-2">with confirmed payment</p>
         </div>
 
         <div className="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -224,7 +224,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
 
                 <div>
                   <p className="text-xs text-gray-600">Revenue</p>
-                  <p className="text-lg font-bold text-#db3236">{formatCurrency(data.revenue)}</p>
+                  <p className="text-lg font-bold text-purple-600">{formatCurrency(data.revenue)}</p>
                 </div>
 
                 <div className="pt-2 border-t border-gray-300">
@@ -234,7 +234,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
                   </div>
                   <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-#db3236 rounded-full"
+                      className="h-full bg-purple-600 rounded-full"
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
@@ -257,7 +257,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
                     <p className="font-semibold text-gray-900">{prog.programName}</p>
                     <p className="text-sm text-gray-600 mt-1">{prog.count} enrollments</p>
                   </div>
-                  <p className="text-2xl font-bold text-#db3236">{formatCurrency(prog.revenue)}</p>
+                  <p className="text-2xl font-bold text-purple-600">{formatCurrency(prog.revenue)}</p>
                 </div>
 
                 {/* Price type distribution for this program */}

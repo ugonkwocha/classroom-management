@@ -167,7 +167,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
                   addSlot();
                 }
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-#db3236"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <Button type="button" variant="secondary" size="sm" onClick={addSlot}>
               Add Slot

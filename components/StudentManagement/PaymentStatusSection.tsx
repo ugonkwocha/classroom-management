@@ -36,7 +36,7 @@ export function PaymentStatusSection({
       case 'COMPLETED':
         return 'text-green-600';
       case 'CONFIRMED':
-        return 'text-#4885ed';
+        return 'text-blue-600';
       case 'PENDING':
       default:
         return 'text-amber-600';

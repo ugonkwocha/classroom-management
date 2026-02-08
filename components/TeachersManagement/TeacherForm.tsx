@@ -157,7 +157,7 @@ export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false
                   type="checkbox"
                   checked={formData.qualifiedCourses.includes(course.id)}
                   onChange={() => toggleCourse(course.id)}
-                  className="w-4 h-4 text-#db3236 rounded"
+                  className="w-4 h-4 text-purple-600 rounded"
                 />
                 <div>
                   <p className="font-medium text-gray-900">{course.name}</p>

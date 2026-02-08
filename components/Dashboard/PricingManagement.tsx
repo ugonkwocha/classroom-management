@@ -222,14 +222,14 @@ export function PricingManagement() {
                       max="1000000"
                       value={state.amount}
                       onChange={(e) => handleAmountChange(option.type as PriceType, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleSave(option.type as PriceType)}
                       disabled={isSaving}
-                      className="flex-1 px-3 py-2 bg-#db3236 text-white text-sm font-medium rounded-lg hover:bg-#c12b30 disabled:bg-gray-400"
+                      className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
                     >
                       {isSaving ? 'Saving...' : 'Save'}
                     </button>
@@ -244,12 +244,12 @@ export function PricingManagement() {
                 </div>
               ) : (
                 <div>
-                  <p className="text-2xl font-bold text-#db3236">
+                  <p className="text-2xl font-bold text-purple-600">
                     {formatCurrency(state.amount)}
                   </p>
                   <button
                     onClick={() => handleEdit(option.type as PriceType)}
-                    className="mt-3 w-full px-3 py-2 bg-red-100 text-#c12b30 text-sm font-medium rounded-lg hover:bg-red-200"
+                    className="mt-3 w-full px-3 py-2 bg-purple-100 text-purple-700 text-sm font-medium rounded-lg hover:bg-purple-200"
                   >
                     Edit Price
                   </button>

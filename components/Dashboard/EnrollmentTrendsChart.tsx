@@ -202,7 +202,7 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
         <select
           value={viewMode}
           onChange={(e) => setViewMode(e.target.value as ViewMode)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
         >
           <option value="month">Month</option>
           <option value="quarter">Quarter</option>
@@ -313,11 +313,11 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
       {/* Legend */}
       <div className="flex gap-6 justify-center text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-#4885ed rounded"></div>
+          <div className="w-4 h-4 bg-blue-500 rounded"></div>
           <span className="text-gray-700">Total Enrollments</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-#db3236 rounded"></div>
+          <div className="w-4 h-4 bg-purple-500 rounded"></div>
           <span className="text-gray-700">Unique Students</span>
         </div>
       </div>
@@ -326,13 +326,13 @@ export function EnrollmentTrendsChart({ students, programs }: EnrollmentTrendsCh
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
         <div>
           <p className="text-xs text-gray-600 font-medium">Total Enrollments</p>
-          <p className="text-2xl font-bold text-#4885ed">
+          <p className="text-2xl font-bold text-blue-600">
             {chartData.reduce((sum, d) => sum + d.enrollments, 0)}
           </p>
         </div>
         <div>
           <p className="text-xs text-gray-600 font-medium">Total Unique Students</p>
-          <p className="text-2xl font-bold text-#db3236">
+          <p className="text-2xl font-bold text-purple-600">
             {chartData.reduce((sum, d) => sum + d.uniqueStudents, 0)}
           </p>
         </div>

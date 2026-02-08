@@ -105,19 +105,19 @@ export function RevenueForecast({ students, programs, classes }: RevenueForecast
           </div>
 
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-xs text-#4885ed font-semibold mb-1">Potential Revenue</p>
+            <p className="text-xs text-blue-600 font-semibold mb-1">Potential Revenue</p>
             <p className="text-2xl font-bold text-blue-900">
               {formatCurrency(summary.totalPotential)}
             </p>
-            <p className="text-xs text-#4885ed mt-2">from remaining slots</p>
+            <p className="text-xs text-blue-600 mt-2">from remaining slots</p>
           </div>
 
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-xs text-#db3236 font-semibold mb-1">Forecasted Total</p>
-            <p className="text-2xl font-bold text-[#881f1f]">
+          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <p className="text-xs text-purple-600 font-semibold mb-1">Forecasted Total</p>
+            <p className="text-2xl font-bold text-purple-900">
               {formatCurrency(summary.totalForecasted)}
             </p>
-            <p className="text-xs text-#db3236 mt-2">confirmed + potential</p>
+            <p className="text-xs text-purple-600 mt-2">confirmed + potential</p>
           </div>
 
           <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
@@ -156,7 +156,7 @@ export function RevenueForecast({ students, programs, classes }: RevenueForecast
                       Starts: {forecast.startDate.toLocaleDateString()}
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-#db3236">
+                  <p className="text-2xl font-bold text-purple-600">
                     {formatCurrency(forecast.forecastedTotal)}
                   </p>
                 </div>
@@ -188,7 +188,7 @@ export function RevenueForecast({ students, programs, classes }: RevenueForecast
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Potential</p>
-                    <p className="font-bold text-#4885ed">{formatCurrency(forecast.potentialRevenue)}</p>
+                    <p className="font-bold text-blue-600">{formatCurrency(forecast.potentialRevenue)}</p>
                   </div>
                 </div>
               </div>

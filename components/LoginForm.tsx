@@ -31,7 +31,7 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-[#db3236] to-[#4885ed] bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Academy Enrollment
         </h1>
         <p className="text-gray-600 text-sm mt-2">Sign in to your account</p>
@@ -48,7 +48,7 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#db3236] focus:border-transparent outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
             placeholder="your@email.com"
           />
         </div>
@@ -63,7 +63,7 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#db3236] focus:border-transparent outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
             placeholder="••••••••"
           />
         </div>
@@ -77,7 +77,7 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={isLoading || !email || !password}
-          className="w-full bg-gradient-to-r from-[#db3236] to-[#db3236] text-white font-medium py-2 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium py-2 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Signing in...' : 'Sign In'}
         </Button>

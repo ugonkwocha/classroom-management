@@ -95,7 +95,7 @@ export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false 
                 type="checkbox"
                 checked={formData.programLevels.includes(level)}
                 onChange={() => toggleProgramLevel(level)}
-                className="w-4 h-4 text-#db3236 rounded"
+                className="w-4 h-4 text-purple-600 rounded"
               />
               <div>
                 <p className="font-medium text-gray-900">{level}</p>

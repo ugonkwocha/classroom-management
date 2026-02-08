@@ -16,7 +16,7 @@ export function Select({ label, error, options, className, ...props }: SelectPro
       )}
       <select
         className={clsx(
-          'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#db3236] focus:border-transparent transition-all bg-white',
+          'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white',
           error && 'border-red-500 focus:ring-red-500',
           className
         )}

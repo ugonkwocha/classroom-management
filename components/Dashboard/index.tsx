@@ -370,7 +370,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <select
               value={analyticsViewMode}
               onChange={(e) => setAnalyticsViewMode(e.target.value as 'program' | 'season' | 'year')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="program">By Program</option>
               <option value="season">By Season</option>
@@ -380,7 +380,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
               <select
                 value={analyticsYearFilter}
                 onChange={(e) => setAnalyticsYearFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">All Years</option>
                 {uniqueYears.map((year) => (
@@ -395,7 +395,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
 
         {/* Summary Card */}
         {analyticsData.length > 0 && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-blue-50 rounded-lg border-2 border-red-200">
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200">
             <p className="text-sm font-semibold text-gray-600 mb-3">
               {analyticsViewMode === 'program'
                 ? analyticsYearFilter === 'all'
@@ -410,11 +410,11 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-gray-600">Unique Students</p>
-                <p className="text-2xl font-bold text-[#db3236]">{analyticsSummary.uniqueStudents}</p>
+                <p className="text-2xl font-bold text-purple-600">{analyticsSummary.uniqueStudents}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-600">Enrollment Slots</p>
-                <p className="text-2xl font-bold text-[#4885ed]">{analyticsSummary.enrollmentSlots}</p>
+                <p className="text-2xl font-bold text-blue-600">{analyticsSummary.enrollmentSlots}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-600">Total Capacity</p>
@@ -484,7 +484,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <select
               value={selectedProgram}
               onChange={(e) => setSelectedProgram(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">All Programs</option>
               {programs.map((program) => (
@@ -505,16 +505,16 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         </div>
         <div className="grid grid-cols-4 gap-4">
           {Object.entries(programDistribution).map(([program, count]) => (
-            <div key={program} className="p-4 bg-red-50 rounded-lg">
+            <div key={program} className="p-4 bg-purple-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">{program}</p>
-              <p className="text-2xl font-bold text-[#db3236]">{count}</p>
+              <p className="text-2xl font-bold text-purple-600">{count}</p>
               <p className="text-xs text-gray-500 mt-2">
                 {Math.round((count / filteredStudentsCount) * 100) || 0}% of students
               </p>
             </div>
           ))}
           <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-            <p className="text-sm text-[#4885ed] font-semibold mb-1">Total Enrolled</p>
+            <p className="text-sm text-blue-600 font-semibold mb-1">Total Enrolled</p>
             <p className="text-2xl font-bold text-blue-900">{filteredStudentsCount}</p>
             <p className="text-xs text-gray-500 mt-2">
               {selectedProgram ? 'for selected program' : 'across all programs'}
@@ -583,7 +583,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
         >
           <Card>
             <h3 className="font-bold text-gray-900 mb-3">Unassigned Students</h3>
-            <p className="text-3xl font-bold text-[#db3236]">
+            <p className="text-3xl font-bold text-purple-600">
               {students.filter((s) => {
                 if (!s.programEnrollments || s.programEnrollments.length === 0) return false;
                 // Student is unassigned if they have at least one enrollment without a classId
@@ -593,7 +593,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <p className="text-sm text-gray-600 mt-2">
               Enrolled in program, awaiting class assignment
             </p>
-            <p className="text-xs text-[#db3236] mt-3 font-semibold">Click to view details</p>
+            <p className="text-xs text-purple-500 mt-3 font-semibold">Click to view details</p>
           </Card>
         </button>
 
@@ -631,7 +631,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <select
               value={detailsModal.programFilter}
               onChange={(e) => setDetailsModal({ ...detailsModal, programFilter: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">All Programs</option>
               {programs.map((program) => (
@@ -664,7 +664,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
                     setDetailsModal({ type: null, programFilter: '' });
                     onSelectStudent?.(student.id);
                   }}
-                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-[#db3236] transition-colors cursor-pointer text-left"
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-colors cursor-pointer text-left"
                 >
                   <p className="font-semibold text-gray-900">{student.firstName} {student.lastName}</p>
                   <p className="text-xs text-gray-600 mt-1">
@@ -704,7 +704,7 @@ export function Dashboard({ onSelectStudent }: DashboardProps) {
             <select
               value={detailsModal.programFilter}
               onChange={(e) => setDetailsModal({ ...detailsModal, programFilter: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#db3236]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">All Programs</option>
               {programs.map((program) => (

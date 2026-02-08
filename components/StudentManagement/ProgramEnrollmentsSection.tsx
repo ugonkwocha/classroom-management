@@ -82,7 +82,7 @@ export function ProgramEnrollmentsSection({
             <p className="text-gray-600 text-xs">Waitlist</p>
           </div>
           <div className="text-center">
-            <p className="font-bold text-#4885ed">{completedCount}</p>
+            <p className="font-bold text-blue-600">{completedCount}</p>
             <p className="text-gray-600 text-xs">Completed</p>
           </div>
         </div>
@@ -166,7 +166,7 @@ export function ProgramEnrollmentsSection({
                       <p className="text-xs text-gray-600 font-semibold">Price</p>
                       <p className="text-sm text-gray-900">{getPriceLabel(enrollment.priceType)}</p>
                     </div>
-                    <p className="text-lg font-bold text-#db3236">
+                    <p className="text-lg font-bold text-purple-600">
                       {formatCurrency(enrollment.priceAmount || 60000)}
                     </p>
                   </div>
@@ -205,7 +205,7 @@ export function ProgramEnrollmentsSection({
                     variant="outline"
                     size="sm"
                     onClick={() => setPriceModalState({ isOpen: true, enrollmentId: enrollment.id })}
-                    className="w-full text-#db3236 hover:text-#c12b30 hover:bg-red-50"
+                    className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                   >
                     Edit Price
                   </Button>
@@ -267,7 +267,7 @@ export function ProgramEnrollmentsSection({
           <div className="space-y-3">
             {pendingEnrollments.map((enrollment) => {
               return (
-                <div key={enrollment.id} className="p-4 rounded-lg border bg-red-50 border-red-200">
+                <div key={enrollment.id} className="p-4 rounded-lg border bg-purple-50 border-purple-200">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <p className="font-semibold text-gray-900">
@@ -277,13 +277,13 @@ export function ProgramEnrollmentsSection({
                         Batch {enrollment.batchNumber}
                       </p>
                     </div>
-                    <span className="px-2 py-1 rounded text-xs font-semibold bg-red-200 text-[#9b2c2c]">
+                    <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-200 text-purple-800">
                       Pending Assignment
                     </span>
                   </div>
 
                   {/* Enrollment Date */}
-                  <div className="mb-4 pt-3 border-t border-red-200">
+                  <div className="mb-4 pt-3 border-t border-purple-200">
                     <p className="text-xs text-gray-600">
                       Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString()}
                     </p>
@@ -291,13 +291,13 @@ export function ProgramEnrollmentsSection({
 
                   {/* Pricing Information */}
                   {enrollment.priceType && (
-                    <div className="mb-4 pt-3 border-t border-red-200">
+                    <div className="mb-4 pt-3 border-t border-purple-200">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs text-gray-600 font-semibold">Price</p>
                           <p className="text-sm text-gray-900">{getPriceLabel(enrollment.priceType)}</p>
                         </div>
-                        <p className="text-lg font-bold text-#db3236">
+                        <p className="text-lg font-bold text-purple-600">
                           {formatCurrency(enrollment.priceAmount || 60000)}
                         </p>
                       </div>
@@ -306,7 +306,7 @@ export function ProgramEnrollmentsSection({
 
                   {/* Payment Status */}
                   {enrollment.paymentStatus && (
-                    <div className="mb-4 pt-3 border-t border-red-200">
+                    <div className="mb-4 pt-3 border-t border-purple-200">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -323,7 +323,7 @@ export function ProgramEnrollmentsSection({
                   )}
 
                   {/* Info Message */}
-                  <div className="mt-4 pt-4 border-t border-red-200">
+                  <div className="mt-4 pt-4 border-t border-purple-200">
                     <p className="text-sm text-gray-600">
                       Use the <span className="font-semibold">&quot;Assign to Class&quot;</span> button above to assign this student to an available class.
                     </p>
@@ -331,7 +331,7 @@ export function ProgramEnrollmentsSection({
 
                   {/* Unassign Option */}
                   {onUnassignFromProgram && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
+                    <div className="mt-3 pt-3 border-t border-purple-200">
                       <Button
                         variant="outline"
                         size="sm"

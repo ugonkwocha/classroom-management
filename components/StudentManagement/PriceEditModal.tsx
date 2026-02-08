@@ -80,7 +80,7 @@ export function PriceEditModal({
               <p className="text-xs text-gray-600">Current Price</p>
               <div>
                 <p className="text-xs text-gray-700">{currentPriceLabel}</p>
-                <p className="text-lg font-bold text-#db3236">{formatCurrency(currentAmount)}</p>
+                <p className="text-lg font-bold text-purple-600">{formatCurrency(currentAmount)}</p>
               </div>
             </div>
             {newAmount !== currentAmount && (
@@ -88,7 +88,7 @@ export function PriceEditModal({
                 <p className="text-xs text-gray-600">New Price</p>
                 <div>
                   <p className="text-xs text-gray-700">{getPriceLabel(selectedPriceType)}</p>
-                  <p className="text-lg font-bold text-#4885ed">{formatCurrency(newAmount)}</p>
+                  <p className="text-lg font-bold text-blue-600">{formatCurrency(newAmount)}</p>
                 </div>
               </div>
             )}
@@ -111,7 +111,7 @@ export function PriceEditModal({
             {PRICE_OPTIONS.map((option) => (
               <label
                 key={option.type}
-                className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-red-50"
+                className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50"
                 style={{
                   borderColor: selectedPriceType === option.type ? '#9333ea' : '#d1d5db',
                   backgroundColor: selectedPriceType === option.type ? '#f3e8ff' : '#ffffff',
@@ -123,13 +123,13 @@ export function PriceEditModal({
                   value={option.type}
                   checked={selectedPriceType === option.type}
                   onChange={(e) => setSelectedPriceType(e.target.value as PriceType)}
-                  className="w-4 h-4 text-#db3236 rounded focus:ring-2 focus:ring-#db3236 mt-0.5"
+                  className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
                   disabled={isLoading}
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold text-gray-900">{option.label}</span>
-                    <span className="text-lg font-bold text-#db3236">
+                    <span className="text-lg font-bold text-purple-600">
                       {formatCurrency(option.amount)}
                     </span>
                   </div>
@@ -145,7 +145,7 @@ export function PriceEditModal({
           <button
             onClick={handleSave}
             disabled={isLoading || selectedPriceType === enrollment.priceType}
-            className="flex-1 px-4 py-2 bg-#db3236 text-white font-medium rounded-lg hover:bg-#c12b30 disabled:bg-gray-400 text-sm"
+            className="flex-1 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:bg-gray-400 text-sm"
           >
             {isLoading ? 'Updating...' : 'Update Price'}
           </button>

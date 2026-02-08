@@ -227,12 +227,12 @@ export function ClassManagement() {
             placeholder="Search classes..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-#db3236"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
           {canCreate && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-gradient-to-r from-[#db3236] to-[#c12b30] text-white font-semibold rounded-lg hover:from-[#c12b30] hover:to-[#b8261f]"
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
             >
               + Create Class
             </button>
@@ -245,7 +245,7 @@ export function ClassManagement() {
               type="checkbox"
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-#db3236 focus:ring-#db3236"
+              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
             <span className="text-sm font-medium text-gray-700">Show Archived Classes</span>
           </label>
@@ -343,23 +343,23 @@ export function ClassManagement() {
               <h5 className="font-semibold text-blue-900 mb-2">What will happen:</h5>
               <ul className="space-y-2 text-sm text-blue-800">
                 <li className="flex items-start gap-2">
-                  <span className="text-#4885ed font-bold">1.</span>
+                  <span className="text-blue-600 font-bold">1.</span>
                   <span>All {students.filter((s) => s.programEnrollments?.some((e) => e.classId === archiveConfirmationClass.id)).length} student(s) currently in this class will be unassigned</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-#4885ed font-bold">2.</span>
+                  <span className="text-blue-600 font-bold">2.</span>
                   <span>The course will be marked as <span className="font-semibold">COMPLETED</span> in their course history</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-#4885ed font-bold">3.</span>
+                  <span className="text-blue-600 font-bold">3.</span>
                   <span>Their enrollment status will be marked as <span className="font-semibold">COMPLETED</span></span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-#4885ed font-bold">4.</span>
+                  <span className="text-blue-600 font-bold">4.</span>
                   <span>The class will be hidden from the class assignment menu</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-#4885ed font-bold">5.</span>
+                  <span className="text-blue-600 font-bold">5.</span>
                   <span>You can unarchive this class later if needed</span>
                 </li>
               </ul>
