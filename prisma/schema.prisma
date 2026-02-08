@@ -152,11 +152,13 @@ model Student {
   lastName          String
   email             String?   @unique
   phone             String?   @unique
+  phoneCountryCode  String?   // Country code for student phone (e.g., 'NG', 'US')
   dateOfBirth       DateTime?
   isReturningStudent Boolean  @default(false)
   paymentStatus     PaymentStatus @default(PENDING)
   parentEmail       String?   @unique
   parentPhone       String?   @unique
+  parentPhoneCountryCode String? // Country code for parent phone
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
