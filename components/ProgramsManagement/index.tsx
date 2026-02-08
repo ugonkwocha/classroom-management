@@ -93,7 +93,7 @@ export function ProgramsManagement() {
 
       <Card className="bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-800">
-          ℹ️ Programs define the structure of your courses (batches and time slots). Default programs for Transcend AI Academy are pre-loaded.
+          ℹ️ Programs define the structure of your courses (batches and time slots). Default programs for 9jacodekids Academy are pre-loaded.
         </p>
       </Card>
 
