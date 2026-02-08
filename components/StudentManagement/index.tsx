@@ -53,6 +53,13 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
         console.log('[StudentManagement] Sending programEnrollments:', studentData.programEnrollments?.length || 0);
         await updateStudent(editingStudent.id, studentData);
         setEditingStudent(undefined);
+        // Refresh the viewing student with updated data if details modal is open
+        if (isDetailsModalOpen && viewingStudent?.id === editingStudent.id) {
+          const updatedStudent = students.find((s) => s.id === editingStudent.id);
+          if (updatedStudent) {
+            setViewingStudent(updatedStudent);
+          }
+        }
       } else {
         console.log('[StudentManagement] CREATING new student');
         console.log('Calling addStudent with programEnrollments:', studentData.programEnrollments);
