@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
-import { Input, Select, Button } from '@/components/ui';
+import { Input, Select, Button, PhoneInput } from '@/components/ui';
 import { useCourses, usePrograms, usePricing } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
+import { validatePhoneNumber } from '@/lib/constants/countries';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
@@ -35,6 +36,9 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     initialData?.courseHistory.map((h) => h.courseId) || []
   );
 
+  const [studentPhoneCountry, setStudentPhoneCountry] = useState<string>('NG'); // Default to Nigeria
+  const [parentPhoneCountry, setParentPhoneCountry] = useState<string>('NG'); // Default to Nigeria
+
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatches, setSelectedBatches] = useState<{ batchNumber: number; priceType: PriceType }[]>([]);
@@ -53,7 +57,13 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       newErrors.email = 'Invalid email format';
     }
 
-    // Student phone is now optional
+    // Student phone is optional, but must be valid if provided
+    if (formData.phone.trim()) {
+      const phoneValidation = validatePhoneNumber(formData.phone, studentPhoneCountry);
+      if (!phoneValidation.valid) {
+        newErrors.phone = phoneValidation.message;
+      }
+    }
 
     // Parent contact is now required
     if (!formData.parentEmail.trim()) newErrors.parentEmail = 'Parent email is required';
@@ -61,6 +71,14 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
       newErrors.parentEmail = 'Invalid parent email format';
     }
     if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
+
+    // Parent phone validation
+    if (formData.parentPhone.trim()) {
+      const parentPhoneValidation = validatePhoneNumber(formData.parentPhone, parentPhoneCountry);
+      if (!parentPhoneValidation.valid) {
+        newErrors.parentPhone = parentPhoneValidation.message;
+      }
+    }
 
     // Check enrollment and batches if enrolled in program
     if (enrollInProgram && !selectedProgram) {
@@ -207,12 +225,14 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
           placeholder="student@example.com"
         />
 
-        <Input
+        <PhoneInput
           label="Student Phone (Optional)"
-          type="tel"
           value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          placeholder="+1 (555) 123-4567"
+          countryCode={studentPhoneCountry}
+          onCountryCodeChange={setStudentPhoneCountry}
+          onChange={(e) => setFormData({ ...formData, phone: e })}
+          error={errors.phone}
+          placeholder="8012 3456 78"
           className="mt-3"
         />
 
@@ -226,13 +246,15 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
           className="mt-3"
         />
 
-        <Input
+        <PhoneInput
           label="Parent Phone"
-          type="tel"
           value={formData.parentPhone}
-          onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+          countryCode={parentPhoneCountry}
+          onCountryCodeChange={setParentPhoneCountry}
+          onChange={(e) => setFormData({ ...formData, parentPhone: e })}
           error={errors.parentPhone}
-          placeholder="+1 (555) 987-6543"
+          placeholder="8012 3456 78"
+          required={true}
           className="mt-3"
         />
       </div>

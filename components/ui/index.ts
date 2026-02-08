@@ -4,3 +4,4 @@ export { Input } from './Input';
 export { Badge } from './Badge';
 export { Modal } from './Modal';
 export { Select } from './Select';
+export { PhoneInput } from './PhoneInput';
