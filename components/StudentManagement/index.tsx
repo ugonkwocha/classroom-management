@@ -170,6 +170,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
         isOpen={isFormModalOpen}
         onClose={handleCloseFormModal}
         title={editingStudent ? 'Edit Student' : 'Add New Student'}
+        size="lg"
       >
         <StudentForm
           onSubmit={handleSubmit}
