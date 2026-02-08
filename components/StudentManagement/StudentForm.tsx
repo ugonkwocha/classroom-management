@@ -36,8 +36,12 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
     initialData?.courseHistory.map((h) => h.courseId) || []
   );
 
-  const [studentPhoneCountry, setStudentPhoneCountry] = useState<string>('NG'); // Default to Nigeria
-  const [parentPhoneCountry, setParentPhoneCountry] = useState<string>('NG'); // Default to Nigeria
+  const [studentPhoneCountry, setStudentPhoneCountry] = useState<string>(
+    initialData?.phoneCountryCode || 'NG'
+  ); // Default to Nigeria
+  const [parentPhoneCountry, setParentPhoneCountry] = useState<string>(
+    initialData?.parentPhoneCountryCode || 'NG'
+  ); // Default to Nigeria
 
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
