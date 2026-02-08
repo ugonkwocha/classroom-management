@@ -10,6 +10,7 @@ import { PaymentStatusSection } from './PaymentStatusSection';
 import { AssignmentModal } from './AssignmentModal';
 import { generateId, calculateAge } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
+import { formatPhoneNumberForDisplay } from '@/lib/constants/countries';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -556,7 +557,11 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Phone</p>
-            <p className="text-sm text-gray-900 break-words">{student.phone || 'No phone'}</p>
+            <p className="text-sm text-gray-900 break-words">
+              {student.phone
+                ? formatPhoneNumberForDisplay(student.phone, student.phoneCountryCode || 'NG')
+                : 'No phone'}
+            </p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 font-semibold">Student Type</p>
@@ -584,7 +589,11 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
             <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
             <div className="space-y-1 text-sm">
               {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
-              {student.parentPhone && <p className="text-gray-700">Phone: {student.parentPhone}</p>}
+              {student.parentPhone && (
+                <p className="text-gray-700">
+                  Phone: {formatPhoneNumberForDisplay(student.parentPhone, student.parentPhoneCountryCode || 'NG')}
+                </p>
+              )}
             </div>
           </div>
         )}

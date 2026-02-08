@@ -89,8 +89,10 @@ export interface Student {
   lastName: string;
   email: string;
   phone: string;
+  phoneCountryCode?: string; // Country code for student phone (e.g., 'NG', 'US')
   parentEmail?: string;
   parentPhone?: string;
+  parentPhoneCountryCode?: string; // Country code for parent phone
   dateOfBirth?: string;
   isReturningStudent: boolean;
   courseHistory: CourseHistory[]; // Past courses taken

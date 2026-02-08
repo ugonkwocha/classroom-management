@@ -251,27 +251,55 @@ export function validatePhoneNumber(phoneNumber: string, countryCode: string): {
 }
 
 /**
- * Format phone number with country code
+ * Format phone number according to country's format pattern
+ * Handles real-time formatting as user types
  */
 export function formatPhoneNumber(phoneNumber: string, countryCode: string): string {
   const country = getCountry(countryCode);
   if (!country) return phoneNumber;
 
+  // Remove all non-digits
   const cleaned = phoneNumber.replace(/\D/g, '');
+  if (!cleaned) return '';
 
-  // Remove leading 0 if present (for countries that use it)
-  let normalized = cleaned;
-  if (normalized.startsWith('0')) {
-    normalized = normalized.substring(1);
+  const format = country.format;
+  let formatted = '';
+  let digitIndex = 0;
+
+  // Apply format pattern
+  for (let i = 0; i < format.length && digitIndex < cleaned.length; i++) {
+    if (format[i] === 'X') {
+      formatted += cleaned[digitIndex];
+      digitIndex++;
+    } else {
+      formatted += format[i];
+    }
   }
 
-  // Ensure it starts with country code (without +)
-  const dialCode = country.code.replace('+', '');
-  if (!normalized.startsWith(dialCode)) {
-    normalized = dialCode + normalized;
+  return formatted;
+}
+
+/**
+ * Format phone number for display (with country code prefix)
+ * Used in student details view
+ */
+export function formatPhoneNumberForDisplay(phoneNumber: string, countryCode: string): string {
+  const country = getCountry(countryCode);
+  if (!country) return phoneNumber;
+
+  // Clean input
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  if (!cleaned) return '';
+
+  // Format using the format pattern
+  const formatted = formatPhoneNumber(cleaned, countryCode);
+
+  // If format doesn't start with +, prepend country code
+  if (!formatted.startsWith('+')) {
+    return country.code + ' ' + formatted;
   }
 
-  return '+' + normalized;
+  return formatted;
 }
 
 /**
