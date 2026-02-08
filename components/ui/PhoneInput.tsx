@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getSortedCountries, validatePhoneNumber, formatPhoneNumber } from '@/lib/constants/countries';
+import { getSortedCountries, validatePhoneNumber } from '@/lib/constants/countries';
 
 interface PhoneInputProps {
   label: string;
@@ -35,10 +35,9 @@ export function PhoneInput({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
-    // Format the input as user types
-    const formatted = formatPhoneNumber(input, countryCode);
-    onChange(formatted);
+    // Allow user to type freely without real-time formatting
+    // Validation will happen on blur
+    onChange(e.target.value);
   };
 
   const validation = value && touched ? validatePhoneNumber(value, countryCode) : null;
