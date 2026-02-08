@@ -287,16 +287,36 @@ export function formatPhoneNumberForDisplay(phoneNumber: string, countryCode: st
   const country = getCountry(countryCode);
   if (!country) return phoneNumber;
 
-  // Clean input
-  const cleaned = phoneNumber.replace(/\D/g, '');
+  // Clean input - remove all non-digits
+  let cleaned = phoneNumber.replace(/\D/g, '');
   if (!cleaned) return '';
 
-  // Format using the format pattern
-  const formatted = formatPhoneNumber(cleaned, countryCode);
+  // Handle leading 0 for countries that use it (like Nigeria)
+  // If it starts with 0 and country code exists, remove the 0
+  if (cleaned.startsWith('0') && countryCode === 'NG') {
+    cleaned = cleaned.substring(1);
+  }
 
-  // If format doesn't start with +, prepend country code
-  if (!formatted.startsWith('+')) {
-    return country.code + ' ' + formatted;
+  // Ensure we have the right number of digits for formatting
+  // Take only the last 10 digits (in case someone pasted extra digits)
+  if (cleaned.length > 10) {
+    cleaned = cleaned.slice(-10);
+  }
+
+  // Build the formatted number with country code
+  const dialCode = country.code.replace('+', '');
+  const format = country.format.replace('+' + dialCode, '').trim();
+
+  let formatted = country.code + ' ';
+  let digitIndex = 0;
+
+  for (let i = 0; i < format.length && digitIndex < cleaned.length; i++) {
+    if (format[i] === 'X') {
+      formatted += cleaned[digitIndex];
+      digitIndex++;
+    } else if (format[i] !== 'X') {
+      formatted += format[i];
+    }
   }
 
   return formatted;
