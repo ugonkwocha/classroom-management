@@ -168,10 +168,12 @@ export async function PUT(
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
+        phoneCountryCode: data.phoneCountryCode,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
         isReturningStudent: data.isReturningStudent,
         parentEmail: data.parentEmail,
         parentPhone: data.parentPhone,
+        parentPhoneCountryCode: data.parentPhoneCountryCode,
         paymentStatus: data.paymentStatus,
       },
       include: {

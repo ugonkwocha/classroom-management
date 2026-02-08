@@ -142,10 +142,12 @@ export async function POST(request: NextRequest) {
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
+        phoneCountryCode: data.phoneCountryCode,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
         isReturningStudent: data.isReturningStudent || false,
         parentEmail: data.parentEmail,
         parentPhone: data.parentPhone,
+        parentPhoneCountryCode: data.parentPhoneCountryCode,
       },
       include: {
         enrollments: {
