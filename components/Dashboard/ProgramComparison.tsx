@@ -136,7 +136,7 @@ export function ProgramComparison({
           <select
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
           >
             <option value="all">All Years</option>
             {availableYears.map((year) => (
@@ -149,7 +149,7 @@ export function ProgramComparison({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
           >
             <option value="all">All Types</option>
             <option value="WEEKEND_CLUB">Weekend Club</option>
@@ -238,7 +238,7 @@ export function ProgramComparison({
 
             // Determine program type color
             const typeColor = programData.programType === 'WEEKEND_CLUB'
-              ? 'bg-purple-100 text-purple-700'
+              ? 'bg-red-100 text-#c12b30'
               : 'bg-orange-100 text-orange-700';
             const typeLabel = programData.programType === 'WEEKEND_CLUB'
               ? 'Weekend Club'
@@ -262,7 +262,7 @@ export function ProgramComparison({
                       {programData.season} {programData.year}
                     </span>
                     {isBaseline && (
-                      <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-200 text-blue-700">
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-200 text-#3a6dd9">
                         Baseline
                       </span>
                     )}
@@ -275,7 +275,7 @@ export function ProgramComparison({
                   <div>
                     <p className="text-xs text-gray-600 font-medium">Unique Students</p>
                     <div className="flex items-baseline justify-between">
-                      <p className="text-2xl font-bold text-purple-600">{programData.uniqueStudents}</p>
+                      <p className="text-2xl font-bold text-#db3236">{programData.uniqueStudents}</p>
                       {comparison && (
                         <div className="flex items-center gap-1">
                           {comparison.uniqueStudents.isBetter ? (
@@ -300,7 +300,7 @@ export function ProgramComparison({
                   <div>
                     <p className="text-xs text-gray-600 font-medium">Enrollment Slots</p>
                     <div className="flex items-baseline justify-between">
-                      <p className="text-2xl font-bold text-blue-600">{programData.enrollmentSlots}</p>
+                      <p className="text-2xl font-bold text-#4885ed">{programData.enrollmentSlots}</p>
                       {comparison && (
                         <div className="flex items-center gap-1">
                           {comparison.enrollmentSlots.isBetter ? (

@@ -37,7 +37,7 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
 
   return (
     <div className="space-y-4">
-      <div className={`p-4 rounded-lg border ${classData.isArchived ? 'bg-gray-50 border-gray-200' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
+      <div className={`p-4 rounded-lg border ${classData.isArchived ? 'bg-gray-50 border-gray-200' : 'bg-gradient-to-r from-red-50 to-blue-50 border-red-200'}`}>
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-bold text-gray-900">{classData.name}</h3>
           {classData.isArchived && (
@@ -63,7 +63,7 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
             enrollment?.paymentStatus === 'COMPLETED'
               ? 'text-green-600'
               : enrollment?.paymentStatus === 'CONFIRMED'
-              ? 'text-blue-600'
+              ? 'text-#4885ed'
               : 'text-amber-600';
 
           const statusLabel =

@@ -131,12 +131,12 @@ export function TeachersManagement() {
           placeholder="Search teachers..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-#db3236"
         />
         {canCreate && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+            className="px-4 py-2 bg-gradient-to-r from-[#db3236] to-[#c12b30] text-white font-semibold rounded-lg hover:from-[#c12b30] hover:to-[#b8261f]"
           >
             + Add Teacher
           </button>
@@ -165,7 +165,7 @@ export function TeachersManagement() {
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors ${
               activeTab === tab.key
-                ? 'border-b-2 border-purple-600 text-purple-600'
+                ? 'border-b-2 border-#db3236 text-#db3236'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >

@@ -38,7 +38,7 @@ export function CourseHistorySection({ courseHistory, getCourseName }: CourseHis
             <p className="text-gray-600 text-xs">Completed</p>
           </div>
           <div className="text-center">
-            <p className="font-bold text-blue-600">{inProgressCount}</p>
+            <p className="font-bold text-#4885ed">{inProgressCount}</p>
             <p className="text-gray-600 text-xs">In Progress</p>
           </div>
         </div>

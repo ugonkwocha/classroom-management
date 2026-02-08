@@ -67,7 +67,7 @@ function HomeContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-[#db3236] to-[#4885ed] bg-clip-text text-transparent">
                 Academy Enrollment
               </h1>
               <p className="text-gray-600 text-sm mt-1">9jacodekids Academy - Class Management System</p>
@@ -113,7 +113,7 @@ function HomeContent() {
                 }}
                 className={`px-6 py-2 font-medium text-sm whitespace-nowrap rounded-lg transition-all ${
                   activeTab === tab.id
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-[#db3236] to-[#db3236] text-white shadow-md'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
@@ -129,7 +129,7 @@ function HomeContent() {
         {!isHydrated ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#db3236] mb-4"></div>
               <p className="text-gray-600">Loading application...</p>
             </div>
           </div>
@@ -174,7 +174,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#db3236] to-[#4885ed] bg-clip-text text-transparent">
                   Academy Enrollment
                 </h1>
                 <p className="text-gray-600 text-sm mt-1">9jacodekids Academy - Class Management System</p>
@@ -184,7 +184,7 @@ export default function Home() {
         </header>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#db3236] mb-4"></div>
             <p className="text-gray-600">Loading application...</p>
           </div>
         </div>

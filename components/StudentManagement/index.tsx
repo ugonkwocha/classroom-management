@@ -139,7 +139,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           placeholder="Search by name or email..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-#db3236"
         />
         {canCreate && (
           <button
@@ -147,7 +147,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
               setEditingStudent(undefined);
               setIsFormModalOpen(true);
             }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
+            className="px-4 py-2 bg-gradient-to-r from-[#db3236] to-[#c12b30] text-white font-semibold rounded-lg hover:from-[#c12b30] hover:to-[#b8261f]"
           >
             + Add Student
           </button>

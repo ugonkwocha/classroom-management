@@ -32,7 +32,7 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
     >
       <div className="flex items-start justify-between mb-3">
         <div className="cursor-pointer flex-1" onClick={() => onViewStudents(classData)}>
-          <h3 className="font-semibold text-gray-900 hover:text-purple-600 transition-colors">{classData.name}</h3>
+          <h3 className="font-semibold text-gray-900 hover:text-#db3236 transition-colors">{classData.name}</h3>
           <p className="text-sm text-gray-500 mt-1">
             Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
           </p>
@@ -95,7 +95,7 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
               variant="outline"
               size="sm"
               onClick={() => onUnarchive(classData.id)}
-              className="flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              className="flex-1 text-#4885ed hover:text-#3a6dd9 hover:bg-blue-50"
             >
               Unarchive
             </Button>

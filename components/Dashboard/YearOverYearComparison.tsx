@@ -126,7 +126,7 @@ export function YearOverYearComparison({
               onClick={() => toggleYear(year)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectedYears.includes(year)
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-#db3236 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -180,7 +180,7 @@ export function YearOverYearComparison({
                 {/* Year Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900">{yearData.year}</h3>
-                  {isBaseline && <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded">Baseline</span>}
+                  {isBaseline && <span className="text-xs font-semibold text-#3a6dd9 bg-blue-100 px-2 py-1 rounded">Baseline</span>}
                 </div>
 
                 {/* Metrics Grid */}
@@ -189,7 +189,7 @@ export function YearOverYearComparison({
                   <div>
                     <p className="text-xs text-gray-600 font-medium">Unique Students</p>
                     <div className="flex items-baseline justify-between">
-                      <p className="text-2xl font-bold text-purple-600">{yearData.uniqueStudents}</p>
+                      <p className="text-2xl font-bold text-#db3236">{yearData.uniqueStudents}</p>
                       {growth && (
                         <div className="flex items-center gap-1">
                           {growth.uniqueStudents.isPositive ? (
@@ -211,7 +211,7 @@ export function YearOverYearComparison({
                   <div>
                     <p className="text-xs text-gray-600 font-medium">Enrollment Slots</p>
                     <div className="flex items-baseline justify-between">
-                      <p className="text-2xl font-bold text-blue-600">{yearData.enrollmentSlots}</p>
+                      <p className="text-2xl font-bold text-#4885ed">{yearData.enrollmentSlots}</p>
                       {growth && (
                         <div className="flex items-center gap-1">
                           {growth.enrollmentSlots.isPositive ? (

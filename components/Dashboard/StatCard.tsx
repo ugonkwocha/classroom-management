@@ -11,10 +11,10 @@ interface StatCardProps {
 
 export function StatCard({ label, value, subtext, variant = 'primary' }: StatCardProps) {
   const variants = {
-    primary: 'from-purple-500 to-purple-600',
+    primary: 'from-[#db3236] to-[#db3236]',
     success: 'from-green-500 to-green-600',
     warning: 'from-amber-500 to-amber-600',
-    danger: 'from-red-500 to-red-600',
+    danger: 'from-[#db3236] to-[#db3236]',
   };
 
   return (

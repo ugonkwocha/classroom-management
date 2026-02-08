@@ -517,7 +517,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   return (
     <div className="space-y-6">
       {/* Student Header */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-200">
+      <div className="bg-gradient-to-r from-red-50 to-blue-50 p-6 rounded-lg border border-red-200">
         <div className="flex justify-between items-start gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -580,7 +580,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
         {/* Parent Contact Section */}
         {(student.parentEmail || student.parentPhone) && (
-          <div className="mt-4 pt-4 border-t border-purple-200">
+          <div className="mt-4 pt-4 border-t border-red-200">
             <p className="text-xs font-semibold text-gray-600 mb-2">Parent/Guardian Contact</p>
             <div className="space-y-1 text-sm">
               {student.parentEmail && <p className="text-gray-700">Email: {student.parentEmail}</p>}
@@ -699,7 +699,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                           className={`w-full p-3 text-left border rounded-lg transition-colors ${
                             isDisabled
                               ? 'border-gray-300 bg-gray-50 opacity-50 cursor-not-allowed'
-                              : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                              : 'border-gray-300 hover:bg-red-50 hover:border-#db3236'
                           }`}
                         >
                           <div className="flex justify-between items-start">
@@ -748,7 +748,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
             </>
           ) : (
             <>
-              <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="bg-red-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold">Selected Program:</span> {enrollmentFlow.programName}
                 </p>
@@ -809,7 +809,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{option.label}</p>
                               <p className="text-xs text-gray-600">{option.description}</p>
-                              <p className="text-sm font-semibold text-purple-600">{formatCurrency(option.amount)}</p>
+                              <p className="text-sm font-semibold text-#db3236">{formatCurrency(option.amount)}</p>
                             </div>
                           </label>
                         ))}

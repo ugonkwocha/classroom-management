@@ -223,7 +223,7 @@ export function AssignmentModal({
               setMode('assign');
               setStep('program');
             }}
-            className="w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+            className="w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:border-#db3236 hover:bg-red-50 transition-colors"
           >
             <div className="flex items-start gap-3">
               <div className="text-2xl">📚</div>
@@ -267,7 +267,7 @@ export function AssignmentModal({
                 <button
                   key={program.id}
                   onClick={() => handleProgramSelect(program.id)}
-                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-500 transition-colors"
+                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-red-50 hover:border-#db3236 transition-colors"
                 >
                   <p className="font-semibold text-gray-900">
                     {program.name} - {program.season} {program.year}
@@ -282,7 +282,7 @@ export function AssignmentModal({
         </div>
       ) : step === 'batch' ? (
         <div className="space-y-4">
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">
               <span className="font-semibold">Selected Program:</span>{' '}
               {selectedProgramData?.name}
@@ -298,8 +298,8 @@ export function AssignmentModal({
                   onClick={() => handleBatchSelect(batchNum)}
                   className={`w-full p-3 text-left border rounded-lg transition-colors ${
                     selectedBatch === batchNum
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                      ? 'border-#db3236 bg-red-50'
+                      : 'border-gray-300 hover:bg-red-50 hover:border-#db3236'
                   }`}
                 >
                   <p className="font-semibold text-gray-900">Batch {batchNum}</p>
@@ -310,7 +310,7 @@ export function AssignmentModal({
         </div>
       ) : step === 'payment' ? (
         <div className="space-y-4">
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">
               <span className="font-semibold">Selected Program:</span>{' '}
               {programs.find((p) => p.id === selectedProgram)?.name}
@@ -356,7 +356,7 @@ export function AssignmentModal({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">
               <span className="font-semibold">Selected Program:</span>{' '}
               {programs.find((p) => p.id === selectedProgram)?.name}
@@ -388,12 +388,12 @@ export function AssignmentModal({
                     disabled={isFull || isAlreadyAssigned}
                     className={`w-full p-3 text-left border rounded-lg transition-colors ${
                       selectedClass === cls.id
-                        ? 'border-purple-500 bg-purple-50'
+                        ? 'border-#db3236 bg-red-50'
                         : isFull
                         ? 'border-red-300 bg-red-50 opacity-50 cursor-not-allowed'
                         : isAlreadyAssigned
                         ? 'border-yellow-300 bg-yellow-50 opacity-50 cursor-not-allowed'
-                        : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                        : 'border-gray-300 hover:bg-red-50 hover:border-#db3236'
                     }`}
                   >
                     <div className="flex justify-between items-start">

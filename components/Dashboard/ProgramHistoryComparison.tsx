@@ -130,7 +130,7 @@ export function ProgramHistoryComparison({
         <select
           value={selectedProgramId}
           onChange={(e) => setSelectedProgramId(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-#db3236"
         >
           <option value="">-- Choose a program --</option>
           {uniquePrograms.map((program) => {
@@ -212,7 +212,7 @@ export function ProgramHistoryComparison({
                   <div className="mb-4">
                     <h3 className="text-base font-bold text-gray-900">{yearData.year}</h3>
                     {isBaseline && (
-                      <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-200 text-blue-700 mt-2 inline-block">
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-200 text-#3a6dd9 mt-2 inline-block">
                         Baseline Year
                       </span>
                     )}
@@ -224,7 +224,7 @@ export function ProgramHistoryComparison({
                     <div>
                       <p className="text-xs text-gray-600 font-medium">Unique Students</p>
                       <div className="flex items-baseline justify-between">
-                        <p className="text-2xl font-bold text-purple-600">
+                        <p className="text-2xl font-bold text-#db3236">
                           {yearData.uniqueStudents}
                         </p>
                         {growth && (
@@ -251,7 +251,7 @@ export function ProgramHistoryComparison({
                     <div>
                       <p className="text-xs text-gray-600 font-medium">Enrollment Slots</p>
                       <div className="flex items-baseline justify-between">
-                        <p className="text-2xl font-bold text-blue-600">
+                        <p className="text-2xl font-bold text-#4885ed">
                           {yearData.enrollmentSlots}
                         </p>
                         {growth && (
