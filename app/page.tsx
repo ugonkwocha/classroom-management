@@ -158,7 +158,7 @@ function HomeContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-sm text-gray-600">
             <p>© 2024 9jacodekids Academy. All rights reserved.</p>
-            <p className="mt-2">Using local storage for data persistence</p>
+            <p className="mt-2">Powered by PostgreSQL and Prisma</p>
           </div>
         </div>
       </footer>

@@ -1,6 +1,6 @@
 {
   "name": "Academy Enrollment System",
-  "description": "Class management and student enrollment system for Transcend AI Academy",
+  "description": "Student enrollment and class management system for 9jacodekids Academy",
   "version": "0.1.0",
   "buildPack": "dockerfile",
   "ports": [3000],
@@ -35,10 +35,29 @@
       "description": "Node environment",
       "required": true,
       "default": "production"
+    },
+    "JWT_SECRET": {
+      "description": "JWT signing secret. Use a unique value for each environment.",
+      "required": true,
+      "default": ""
+    },
+    "DB_INIT_MODE": {
+      "description": "Database initialization mode. Use migrate for staging and production.",
+      "required": true,
+      "default": "migrate"
+    },
+    "RUN_DATABASE_SEED": {
+      "description": "Whether to seed database on startup. Keep false for staging and production unless explicitly needed.",
+      "required": true,
+      "default": "false"
+    },
+    "ALLOW_START_WITH_DB_INIT_FAILURE": {
+      "description": "Whether the app should start if database initialization fails. Keep false for staging and production.",
+      "required": true,
+      "default": "false"
     }
   },
   "startup": {
-    "preCommand": "npx prisma migrate deploy",
     "command": "npm start"
   },
   "persistence": {

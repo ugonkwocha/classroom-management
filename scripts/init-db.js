@@ -3,37 +3,55 @@
 const { execSync } = require('child_process');
 
 async function initializeDatabase() {
-  console.log('Starting Prisma migrations...');
+  console.log('Starting database initialization...');
 
-  // Get DATABASE_URL from environment
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
     console.warn('WARNING: DATABASE_URL environment variable is not set');
-    console.log('Skipping migrations and starting Next.js server');
+    console.log('Skipping database initialization and starting Next.js server');
     return;
   }
 
-  console.log('Database URL is configured, syncing schema...');
+  const initMode = process.env.DB_INIT_MODE || 'migrate';
+  const shouldSeed = process.env.RUN_DATABASE_SEED === 'true';
+  const allowStartupOnFailure = process.env.ALLOW_START_WITH_DB_INIT_FAILURE === 'true';
 
-  // Sync schema - this will push the schema to the database
   try {
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-    console.log('Database schema synced successfully');
+    if (initMode === 'skip') {
+      console.log('DB_INIT_MODE=skip, skipping schema initialization.');
+    } else if (initMode === 'push') {
+      console.log('Running Prisma db push...');
+      execSync('npx prisma db push', { stdio: 'inherit' });
+      console.log('Database schema pushed successfully');
+    } else {
+      console.log('Running Prisma migrations...');
+      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      console.log('Database migrations applied successfully');
+    }
   } catch (error) {
-    // If schema sync fails, still allow server to start
-    // (database might not be reachable yet, but will be retried on requests)
-    console.warn('WARNING: Database sync attempt failed, but continuing startup');
-    console.warn('The app will retry database operations when needed');
+    console.error('Database initialization failed.');
+    if (!allowStartupOnFailure) {
+      process.exit(1);
+    }
+
+    console.warn('ALLOW_START_WITH_DB_INIT_FAILURE=true, continuing startup despite database initialization failure.');
   }
 
-  // Run seed script
-  try {
-    console.log('Running database seed...');
-    execSync('npx prisma db seed', { stdio: 'inherit' });
-    console.log('Database seed completed successfully');
-  } catch (error) {
-    console.warn('WARNING: Database seed failed, but continuing startup');
-    console.warn('The app may have missing default data');
+  if (shouldSeed) {
+    try {
+      console.log('RUN_DATABASE_SEED=true, running database seed...');
+      execSync('npx prisma db seed', { stdio: 'inherit' });
+      console.log('Database seed completed successfully');
+    } catch (error) {
+      console.error('Database seed failed.');
+      if (!allowStartupOnFailure) {
+        process.exit(1);
+      }
+
+      console.warn('ALLOW_START_WITH_DB_INIT_FAILURE=true, continuing startup despite seed failure.');
+    }
+  } else {
+    console.log('RUN_DATABASE_SEED is not true, skipping database seed.');
   }
 
   console.log('Database initialization phase complete.');

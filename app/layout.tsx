@@ -3,8 +3,8 @@ import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Academy Enrollment System',
-  description: 'Class management system for Transcend AI Academy',
+  title: '9jacodekids Academy Enrollment System',
+  description: 'Student enrollment and class management system for 9jacodekids Academy',
 };
 
 export default function RootLayout({

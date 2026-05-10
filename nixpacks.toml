@@ -15,7 +15,7 @@ openssl = "*"
 # Install dependencies phase
 name = "install"
 commands = [
-  "npm ci --only=production"
+  "npm ci"
 ]
 
 [[build.phases]]

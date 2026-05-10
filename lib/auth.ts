@@ -2,9 +2,18 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, UserRole } from '@/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRY = '7d';
 const BCRYPT_ROUNDS = 10;
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be set in production');
+  }
+
+  return secret || 'development-only-secret';
+}
 
 // Password hashing and verification
 export async function hashPassword(password: string): Promise<string> {
@@ -23,7 +32,7 @@ export function generateToken(user: Pick<User, 'id' | 'email' | 'role'>): string
     role: user.role,
   };
 
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJwtSecret(), {
     expiresIn: JWT_EXPIRY,
   });
 }
@@ -38,7 +47,7 @@ export interface TokenPayload {
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const payload = jwt.verify(token, getJwtSecret()) as TokenPayload;
     return payload;
   } catch (error) {
     return null;

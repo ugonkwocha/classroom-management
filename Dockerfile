@@ -8,10 +8,13 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
+
+# Ensure optional asset directory exists for the runtime copy step
+RUN mkdir -p public
 
 # Copy prisma schema and generate prisma client
 COPY prisma ./prisma/
@@ -19,6 +22,9 @@ RUN npx prisma generate
 
 # Build Next.js application
 RUN npm run build
+
+# Keep the runtime image smaller after build tooling has done its work
+RUN npm prune --omit=dev && npm cache clean --force
 
 # Stage 2: Production runtime
 FROM node:18-alpine
