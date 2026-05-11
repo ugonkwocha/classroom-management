@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
 import { Card, Modal, Button } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { ClassForm } from './ClassForm';
 import { ClassCard } from './ClassCard';
 import { ClassNameMigration } from './ClassNameMigration';
@@ -39,14 +40,45 @@ export function ClassManagement() {
     return matchesFilter && matchesArchiveStatus;
   });
 
-  const handleSubmit = (classData: Omit<Class, 'id' | 'createdAt'>) => {
-    if (editingClass) {
-      updateClass(editingClass.id, classData);
-      setEditingClass(undefined);
-    } else {
-      addClass(classData);
+  const sendTeacherAssignmentEmail = async (classId: string) => {
+    try {
+      const response = await fetchWithAuth('/api/emails/send-teacher-assignment', {
+        method: 'POST',
+        body: JSON.stringify({ classId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        console.warn('[Email] Failed to send teacher assignment email:', data.error || response.statusText);
+      }
+    } catch (error) {
+      console.error('[Email] Error sending teacher assignment email:', error);
     }
-    setIsModalOpen(false);
+  };
+
+  const handleSubmit = async (classData: Omit<Class, 'id' | 'createdAt'>) => {
+    try {
+      const shouldEmailTeacher =
+        !!classData.teacherId &&
+        (!editingClass ||
+          editingClass.teacherId !== classData.teacherId ||
+          (editingClass.meetLink || '') !== (classData.meetLink || ''));
+
+      const savedClass = editingClass
+        ? await updateClass(editingClass.id, classData)
+        : await addClass(classData);
+
+      if (shouldEmailTeacher && savedClass?.id) {
+        await sendTeacherAssignmentEmail(savedClass.id);
+      }
+
+      setEditingClass(undefined);
+      setIsModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save class';
+      console.error('Error saving class:', error);
+      alert(message);
+    }
   };
 
   const handleEdit = (classData: Class) => {

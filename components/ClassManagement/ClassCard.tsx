@@ -67,7 +67,21 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
         <div className="flex flex-wrap gap-2">
           <Badge variant="primary">{classData.programLevel}</Badge>
           <Badge variant="info">{classData.schedule}</Badge>
+          <Badge variant={classData.meetLink ? 'success' : 'warning'}>
+            {classData.meetLink ? 'Meet Ready' : 'No Meet Link'}
+          </Badge>
         </div>
+
+        {classData.meetLink && (
+          <a
+            href={classData.meetLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-sm text-purple-700 hover:text-purple-900 truncate"
+          >
+            {classData.meetLink}
+          </a>
+        )}
 
         <div className="flex gap-2 pt-3 border-t border-gray-200">
           <Button

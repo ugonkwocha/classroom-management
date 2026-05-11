@@ -26,6 +26,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
     batch: String(initialData?.batch || 1),
     slot: initialData?.slot || '',
     teacherId: initialData?.teacherId || '',
+    meetLink: initialData?.meetLink || '',
     capacity: initialData?.capacity || 6,
   });
 
@@ -115,6 +116,16 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
     if (formData.capacity < 1) newErrors.capacity = 'Capacity must be at least 1';
     if (formData.capacity > 50) newErrors.capacity = 'Capacity cannot exceed 50 students';
     if (!Number.isInteger(formData.capacity)) newErrors.capacity = 'Capacity must be a whole number';
+    if (formData.meetLink.trim()) {
+      try {
+        const url = new URL(formData.meetLink.trim());
+        if (url.protocol !== 'https:' || url.hostname !== 'meet.google.com') {
+          newErrors.meetLink = 'Enter a valid Google Meet link';
+        }
+      } catch {
+        newErrors.meetLink = 'Enter a valid Google Meet link';
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -172,6 +183,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       slot: formData.slot,
       schedule: formData.slot,
       teacherId: formData.teacherId || undefined,
+      meetLink: formData.meetLink.trim() || undefined,
       students: initialData?.students || [],
       capacity: Math.floor(formData.capacity),
       isArchived: initialData?.isArchived ?? false,
@@ -184,6 +196,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       batch: '1',
       slot: '',
       teacherId: '',
+      meetLink: '',
       capacity: 6,
     });
     setErrors({});
@@ -306,10 +319,20 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
         error={errors.capacity}
       />
 
+      <Input
+        label="Google Meet Link (Optional)"
+        type="url"
+        placeholder="https://meet.google.com/abc-defg-hij"
+        value={formData.meetLink}
+        onChange={(e) => setFormData({ ...formData, meetLink: e.target.value })}
+        error={errors.meetLink}
+      />
+
       <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
         <p>💡 Class name is auto-generated from: Course + Month Year + Batch + Time Slot</p>
         <p className="mt-1">Example: &quot;Scratch 101 - Jan 2026 - Batch 1 - Sat 10am-12pm-A&quot;</p>
         <p className="mt-1">Set the maximum capacity (1-50). Default is 6 students per class</p>
+        <p className="mt-1">Paste the Google Meet link here after creating it from the academy Gmail account.</p>
       </div>
 
       <div className="flex gap-3">

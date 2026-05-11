@@ -54,6 +54,19 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
             <p className="text-gray-900">{program ? `${program.name} - ${program.season} ${program.year}` : 'Unknown'}</p>
           </div>
         </div>
+        {classData.meetLink && (
+          <div className="mt-3 pt-3 border-t border-purple-200">
+            <p className="text-xs text-gray-600 font-semibold">Google Meet Link</p>
+            <a
+              href={classData.meetLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-purple-700 hover:text-purple-900 break-all"
+            >
+              {classData.meetLink}
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

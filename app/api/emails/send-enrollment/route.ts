@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { sendClassAssignmentEmail, prepareClassAssignmentRecipients } from '@/lib/email';
+import { sendClassAssignmentEmail } from '@/lib/email';
 import prisma from '@/lib/prisma';
 
 interface SendEnrollmentEmailRequest {
@@ -50,16 +50,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare recipients
-    const recipients = prepareClassAssignmentRecipients(
-      classData.teacher?.firstName && classData.teacher?.lastName
-        ? `${classData.teacher.firstName} ${classData.teacher.lastName}`
-        : undefined,
-      classData.teacher?.email,
-      `${student.firstName} ${student.lastName}`,
-      student.email || undefined,
-      student.parentEmail || undefined
-    );
+    const parentRecipient = student.parentEmail?.trim()
+      ? [{ email: student.parentEmail, name: 'Parent/Guardian' }]
+      : [];
 
     // Format enrollment date
     const enrollmentDate = new Date().toLocaleDateString('en-US', {
@@ -68,44 +61,9 @@ export async function POST(request: NextRequest) {
       day: 'numeric',
     });
 
-    // Send emails to teacher if assigned
-    if (recipients.teachers.length > 0) {
+    if (parentRecipient.length > 0) {
       await sendClassAssignmentEmail({
-        recipients: recipients.teachers,
-        className: classData.name,
-        courseName: classData.course.name,
-        programName: classData.program.name,
-        batch: classData.batch,
-        slot: classData.slot,
-        schedule: classData.schedule,
-        instructorName: classData.teacher?.firstName,
-        meetLink: classData.meetLink || undefined,
-        enrollmentDate,
-        recipientType: 'teacher',
-      });
-    }
-
-    // Send emails to student if email available
-    if (recipients.students.length > 0) {
-      await sendClassAssignmentEmail({
-        recipients: recipients.students,
-        className: classData.name,
-        courseName: classData.course.name,
-        programName: classData.program.name,
-        batch: classData.batch,
-        slot: classData.slot,
-        schedule: classData.schedule,
-        instructorName: classData.teacher?.firstName,
-        meetLink: classData.meetLink || undefined,
-        enrollmentDate,
-        recipientType: 'student',
-      });
-    }
-
-    // Send emails to parent if email available
-    if (recipients.parents.length > 0) {
-      await sendClassAssignmentEmail({
-        recipients: recipients.parents,
+        recipients: parentRecipient,
         className: classData.name,
         courseName: classData.course.name,
         programName: classData.program.name,
@@ -122,9 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       emailsSent: {
-        teachers: recipients.teachers.length,
-        students: recipients.students.length,
-        parents: recipients.parents.length,
+        parents: parentRecipient.length,
       },
     });
   } catch (error) {

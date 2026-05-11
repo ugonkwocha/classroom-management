@@ -127,6 +127,7 @@ export interface Class {
   students: string[];
   capacity: number;
   teacherId?: string; // Optional: teachers can be assigned later
+  meetLink?: string | null;
   isArchived: boolean; // Archive instead of delete (default: false)
   createdAt: string;
 }
