@@ -7,8 +7,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci && npm cache clean --force
+# Install all dependencies needed for the Next.js build, even if Coolify
+# exposes NODE_ENV=production during Docker build.
+RUN npm ci --include=dev && npm cache clean --force
 
 # Copy source code
 COPY . .
