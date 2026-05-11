@@ -39,8 +39,8 @@ async function initializeDatabase() {
 
   if (shouldSeed) {
     try {
-      console.log('RUN_DATABASE_SEED=true, running database seed...');
-      execSync('npx prisma db seed', { stdio: 'inherit' });
+      console.log('RUN_DATABASE_SEED=true, ensuring default admin user exists...');
+      execSync('node scripts/seed-admin.js', { stdio: 'inherit' });
       console.log('Database seed completed successfully');
     } catch (error) {
       console.error('Database seed failed.');

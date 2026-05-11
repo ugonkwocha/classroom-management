@@ -43,6 +43,8 @@ JWT_SECRET=<unique-staging-secret>
 DB_INIT_MODE=migrate
 RUN_DATABASE_SEED=false
 ALLOW_START_WITH_DB_INIT_FAILURE=false
+SEED_ADMIN_EMAIL=admin@9jacodekids.com
+SEED_ADMIN_PASSWORD=<temporary-staging-admin-password>
 AWS_ACCESS_KEY_ID=<staging-or-shared-ses-key>
 AWS_SECRET_ACCESS_KEY=<staging-or-shared-ses-secret>
 AWS_REGION=us-east-2
@@ -85,7 +87,7 @@ AWS_SES_FROM_EMAIL=admin@9jacodekids.com
 - Do not point staging and production at the same database.
 - Do not run `prisma db push --accept-data-loss` against either Coolify database.
 - Use Prisma migrations for both environments.
-- Keep `RUN_DATABASE_SEED=false` unless you intentionally want seed data in that environment.
+- Keep `RUN_DATABASE_SEED=false` unless you intentionally want to create or reset the default superadmin in that environment.
 
 ## Deployment Verification
 

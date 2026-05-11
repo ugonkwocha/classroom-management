@@ -77,7 +77,7 @@ node scripts/init-db.js && next start
 By default this applies Prisma migrations with `prisma migrate deploy` and does not seed data. Use these environment variables to control startup:
 
 - `DB_INIT_MODE=migrate` for staging and production
-- `RUN_DATABASE_SEED=false` for staging and production unless seed data is intentionally required
+- `RUN_DATABASE_SEED=false` for staging and production unless the default admin account needs to be created or reset
 - `ALLOW_START_WITH_DB_INIT_FAILURE=false` so failed migrations fail the deployment
 
 ## Required Environment Variables
@@ -90,6 +90,16 @@ DB_INIT_MODE="migrate"
 RUN_DATABASE_SEED="false"
 ALLOW_START_WITH_DB_INIT_FAILURE="false"
 ```
+
+To create or reset the default superadmin during staging setup, temporarily set:
+
+```env
+RUN_DATABASE_SEED="true"
+SEED_ADMIN_EMAIL="admin@9jacodekids.com"
+SEED_ADMIN_PASSWORD="choose-a-temporary-password"
+```
+
+After the account is created, set `RUN_DATABASE_SEED` back to `false` and redeploy.
 
 Email notifications also require:
 
