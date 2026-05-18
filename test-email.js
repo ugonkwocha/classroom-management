@@ -63,7 +63,7 @@ async function testEmailCredentials() {
       },
       Message: {
         Subject: {
-          Data: 'Academy Enrollment - Email Test',
+          Data: '9jacodekids Academy - Email Test',
           Charset: 'UTF-8',
         },
         Body: {
@@ -72,7 +72,7 @@ async function testEmailCredentials() {
               <html>
                 <body style="font-family: Arial, sans-serif; color: #333;">
                   <h1>Email System Test</h1>
-                  <p>This is a test email from the Academy Enrollment system.</p>
+                  <p>This is a test email from the 9jacodekids Academy enrollment system.</p>
                   <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
                   <p style="color: #666; margin-top: 20px; font-size: 12px;">
                     If you received this email, your AWS SES configuration is working correctly!

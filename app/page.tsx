@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
@@ -67,9 +68,14 @@ function HomeContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Academy Enrollment
-              </h1>
+              <Image
+                src="/brand/9jacodekids-main-logo.png"
+                alt="9jacodekids"
+                width={240}
+                height={58}
+                priority
+                className="h-12 w-auto"
+              />
               <p className="text-gray-600 text-sm mt-1">9jacodekids Academy - Class Management System</p>
             </div>
             {user && (
@@ -174,9 +180,14 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Academy Enrollment
-                </h1>
+                <Image
+                  src="/brand/9jacodekids-main-logo.png"
+                  alt="9jacodekids"
+                  width={240}
+                  height={58}
+                  priority
+                  className="h-12 w-auto"
+                />
                 <p className="text-gray-600 text-sm mt-1">9jacodekids Academy - Class Management System</p>
               </div>
             </div>

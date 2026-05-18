@@ -1,4 +1,4 @@
-# Multi-stage build for Academy Enrollment System
+# Multi-stage build for 9jacodekids Academy Enrollment System
 # Stage 1: Build stage
 FROM node:18-alpine AS builder
 

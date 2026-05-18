@@ -110,13 +110,13 @@ function generateClassAssignmentEmailHTML(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Class Assignment - Academy Enrollment</title>
+      <title>Class Assignment - 9jacodekids Academy</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <!-- Header -->
-        <div style="background: linear-gradient(to right, #7c3aed, #4c1d95); padding: 30px; border-radius: 8px; color: white; margin-bottom: 30px; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Academy Enrollment</h1>
+        <div style="background: linear-gradient(to right, #557cc1, #e14335); padding: 30px; border-radius: 8px; color: white; margin-bottom: 30px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">9jacodekids Academy</h1>
           <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.9;">Class Assignment Notification</p>
         </div>
 
@@ -163,7 +163,7 @@ function generateClassAssignmentEmailHTML(
 
           <!-- Contact Info -->
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-            <p style="margin: 0;">This is an automated message from Academy Enrollment System</p>
+            <p style="margin: 0;">This is an automated message from 9jacodekids Academy Enrollment System</p>
             <p style="margin: 8px 0 0 0;">If you have questions, please contact the academy administration</p>
           </div>
         </div>

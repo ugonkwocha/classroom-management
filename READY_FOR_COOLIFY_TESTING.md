@@ -100,7 +100,7 @@ AWS_SES_FROM_EMAIL=admin@9jacodekids.com
 2. Go to Students → Emma Wilson
 3. Click "Assign to Class" → Python Basics Batch 1
 4. Wait 30 seconds
-5. Check emails at: info@9jacodekids.com, sales@9jacodekids.com, alice@transcendai.com
+5. Check emails at: info@9jacodekids.com, sales@9jacodekids.com, alice@9jacodekids.com
 
 ### Step 4: Monitor Results
 - Check AWS SES dashboard for metrics
@@ -123,8 +123,8 @@ AWS_SES_FROM_EMAIL=admin@9jacodekids.com
 ### Teachers (2 with Verified Emails)
 | Name | Email |
 |------|-------|
-| Alice Johnson | alice@transcendai.com |
-| Bob Smith | bob@transcendai.com |
+| Alice Johnson | alice@9jacodekids.com |
+| Bob Smith | bob@9jacodekids.com |
 
 ### Classes (3 Ready for Testing)
 | Class | Course | Program | Teacher | Batch |

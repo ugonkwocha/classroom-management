@@ -113,7 +113,7 @@ node test-email.js
 **Student**: Emma Wilson
 **Class**: Python Basics - Batch 1
 **Expected Recipients**:
-- Teacher: alice@transcendai.com (Alice Johnson)
+- Teacher: alice@9jacodekids.com (Alice Johnson)
 - Student: info@9jacodekids.com (Emma's email)
 - Parent: sales@9jacodekids.com (Emma's parent)
 
@@ -136,7 +136,7 @@ node test-email.js
 2. Check these email addresses for messages:
    - info@9jacodekids.com (Student Emma)
    - sales@9jacodekids.com (Parent)
-   - alice@transcendai.com (Teacher Alice)
+   - alice@9jacodekids.com (Teacher Alice)
 3. Verify emails contain:
    - Correct student name: "Emma Wilson"
    - Correct class: "Python Basics - Batch 1"
@@ -156,7 +156,7 @@ node test-email.js
 **Student**: Liam Anderson
 **Class**: Game Design - Morning
 **Expected Recipients**:
-- Teacher: bob@transcendai.com (Bob Smith)
+- Teacher: bob@9jacodekids.com (Bob Smith)
 - Student: hello@9jacodekids.com
 - Parent: admin@skillsrave.com
 
@@ -172,7 +172,7 @@ node test-email.js
 **Student**: Noah Brown
 **Class**: Web Development - Afternoon
 **Expected Recipients**:
-- Teacher: alice@transcendai.com
+- Teacher: alice@9jacodekids.com
 - Student: sales@9jacodekids.com
 - Parent: ⚠️ hello@9jacodekids.com (should skip gracefully)
 
@@ -312,7 +312,7 @@ SELECT id, firstName, lastName, email, parentEmail FROM "Student" WHERE firstNam
 - **Class**: Python Basics - Batch 1
 - **Result**: ✅ / ❌ / ⚠️
 - **Emails Received**:
-  - [ ] Teacher (alice@transcendai.com)
+  - [ ] Teacher (alice@9jacodekids.com)
   - [ ] Student (info@9jacodekids.com)
   - [ ] Parent (sales@9jacodekids.com)
 - **Notes**: _______________
@@ -322,7 +322,7 @@ SELECT id, firstName, lastName, email, parentEmail FROM "Student" WHERE firstNam
 - **Class**: Game Design - Morning
 - **Result**: ✅ / ❌ / ⚠️
 - **Emails Received**:
-  - [ ] Teacher (bob@transcendai.com)
+  - [ ] Teacher (bob@9jacodekids.com)
   - [ ] Student (hello@9jacodekids.com)
   - [ ] Parent (admin@skillsrave.com)
 - **Notes**: _______________
@@ -332,7 +332,7 @@ SELECT id, firstName, lastName, email, parentEmail FROM "Student" WHERE firstNam
 - **Class**: Web Development - Afternoon
 - **Result**: ✅ / ❌ / ⚠️
 - **Emails Received**:
-  - [ ] Teacher (alice@transcendai.com)
+  - [ ] Teacher (alice@9jacodekids.com)
   - [ ] Student (sales@9jacodekids.com)
   - [ ] No errors in logs
 - **Notes**: _______________
@@ -435,8 +435,8 @@ Admin Password: Admin@123
 ### Test Teachers
 | Name | Email |
 |------|-------|
-| Alice Johnson | alice@transcendai.com |
-| Bob Smith | bob@transcendai.com |
+| Alice Johnson | alice@9jacodekids.com |
+| Bob Smith | bob@9jacodekids.com |
 
 ### Test Classes
 | Class | Course | Program | Teacher | Batch |

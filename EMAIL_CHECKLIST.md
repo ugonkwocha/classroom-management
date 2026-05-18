@@ -57,7 +57,7 @@
 - [ ] Wait 30 seconds and check email inboxes:
   - [ ] info@9jacodekids.com (Emma's student email)
   - [ ] sales@9jacodekids.com (Emma's parent email)
-  - [ ] alice@transcendai.com (Teacher Alice)
+  - [ ] alice@9jacodekids.com (Teacher Alice)
 
 #### Phase 2: Email Content Verification
 - [ ] Emails contain correct student name

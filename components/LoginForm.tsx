@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui';
@@ -31,7 +32,15 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        <Image
+          src="/brand/9jacodekids-main-logo.png"
+          alt="9jacodekids"
+          width={250}
+          height={61}
+          priority
+          className="h-14 w-auto mx-auto"
+        />
+        <h1 className="text-xl font-bold text-gray-900 mt-4">
           Academy Enrollment
         </h1>
         <p className="text-gray-600 text-sm mt-2">Sign in to your account</p>

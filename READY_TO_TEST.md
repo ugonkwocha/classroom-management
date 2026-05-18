@@ -34,7 +34,7 @@ The app will run on http://localhost:3000
 Wait 30 seconds, then check these email addresses:
 - **Emma (Student)**: info@9jacodekids.com
 - **Emma (Parent)**: sales@9jacodekids.com
-- **Alice (Teacher)**: alice@transcendai.com
+- **Alice (Teacher)**: alice@9jacodekids.com
 
 You should see emails for:
 - Teacher email (Alice Johnson)
@@ -57,8 +57,8 @@ You should see emails for:
 ### Teachers
 | Name | Email |
 |------|-------|
-| Alice Johnson | alice@transcendai.com |
-| Bob Smith | bob@transcendai.com |
+| Alice Johnson | alice@9jacodekids.com |
+| Bob Smith | bob@9jacodekids.com |
 
 ### Classes
 | Class Name | Course | Program | Teacher | Batch |

@@ -40,7 +40,7 @@ async function main() {
   // Create Teachers (skip if they exist)
   console.log('Creating teachers...');
   let teacher1 = await prisma.teacher.findUnique({
-    where: { email: 'alice@transcendai.com' },
+    where: { email: 'alice@9jacodekids.com' },
   });
 
   if (!teacher1) {
@@ -48,7 +48,7 @@ async function main() {
       data: {
         firstName: 'Alice',
         lastName: 'Johnson',
-        email: 'alice@transcendai.com',
+        email: 'alice@9jacodekids.com',
         phone: '+1-234-567-8900',
         status: 'ACTIVE',
         qualifiedCourses: ['Python Basics', 'Web Development'],
@@ -57,7 +57,7 @@ async function main() {
   }
 
   let teacher2 = await prisma.teacher.findUnique({
-    where: { email: 'bob@transcendai.com' },
+    where: { email: 'bob@9jacodekids.com' },
   });
 
   if (!teacher2) {
@@ -65,7 +65,7 @@ async function main() {
       data: {
         firstName: 'Bob',
         lastName: 'Smith',
-        email: 'bob@transcendai.com',
+        email: 'bob@9jacodekids.com',
         phone: '+1-234-567-8901',
         status: 'ACTIVE',
         qualifiedCourses: ['Game Design', 'Robotics'],

@@ -243,8 +243,8 @@ The complete email notification system has been implemented, tested, documented,
 ### Teachers
 | Name | Email |
 |------|-------|
-| Alice Johnson | alice@transcendai.com |
-| Bob Smith | bob@transcendai.com |
+| Alice Johnson | alice@9jacodekids.com |
+| Bob Smith | bob@9jacodekids.com |
 
 ### Classes Ready to Test
 | Name | Course | Program | Teacher | Batch |
@@ -331,7 +331,7 @@ Students → Emma Wilson → Assign to Class → [Follow steps]
 # 4. Check for emails in verified addresses
 - info@9jacodekids.com
 - sales@9jacodekids.com
-- alice@transcendai.com
+- alice@9jacodekids.com
 
 # 5. Follow EMAIL_TESTING_PLAN.md for complete testing
 ```

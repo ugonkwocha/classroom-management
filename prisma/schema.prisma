@@ -1,4 +1,4 @@
-// Academy Enrollment Management System - Prisma Schema
+// 9jacodekids Academy Enrollment Management System - Prisma Schema
 // Optimized for PostgreSQL with indexing for 1000s of students
 
 generator client {

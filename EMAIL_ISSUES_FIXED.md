@@ -105,7 +105,7 @@ In Coolify:
 Wait 30 seconds, then check:
 - info@9jacodekids.com (Emma's student email)
 - sales@9jacodekids.com (Emma's parent email)
-- alice@transcendai.com (Teacher Alice)
+- alice@9jacodekids.com (Teacher Alice)
 
 Also check Spam/Junk folders.
 ```
@@ -124,7 +124,7 @@ Also check Spam/Junk folders.
 
 ### ✅ Logs Say "Email Sent Successfully"
 ```
-[Email] ✅ Email sent to alice@transcendai.com (teacher). MessageId: 000001...
+[Email] ✅ Email sent to alice@9jacodekids.com (teacher). MessageId: 000001...
 [Email] ✅ Email sent to info@9jacodekids.com (student). MessageId: 000002...
 [Email] ✅ Email sent to sales@9jacodekids.com (parent). MessageId: 000003...
 [Email] Email sending complete. Sent: 3/3
@@ -135,7 +135,7 @@ Also check Spam/Junk folders.
 
 ### ✅ Logs Say "MessageRejected"
 ```
-[Email] ❌ Failed to send email to alice@transcendai.com: {
+[Email] ❌ Failed to send email to alice@9jacodekids.com: {
   error: 'Email address not verified',
   code: 'MessageRejected'
 }

@@ -208,7 +208,7 @@ Phone: +1-234-567-0001
 ### Sample Test Teacher
 ```
 Name: Alice Johnson
-Email: alice@transcendai.com
+Email: alice@9jacodekids.com
 Qualified Courses: Python Basics
 ```
 
@@ -229,7 +229,7 @@ Batch: 1
 ### Server Logs to Watch
 ```
 [Email] Enrollment emails sent: { teachers: 1, students: 1, parents: 0 }
-[Email] Class assignment email sent to alice@transcendai.com (teacher)
+[Email] Class assignment email sent to alice@9jacodekids.com (teacher)
 [Email] Class assignment email sent to emma.wilson@email.com (student)
 ```
 
