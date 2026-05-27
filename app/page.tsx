@@ -12,6 +12,7 @@ import {
   FiClipboard,
   FiDollarSign,
   FiGrid,
+  FiHome,
   FiLayers,
   FiLogOut,
   FiMenu,
@@ -32,10 +33,12 @@ import { ProgramsManagement } from '@/components/ProgramsManagement';
 import { TeachersManagement } from '@/components/TeachersManagement';
 import { UserManagement } from '@/components/UserManagement';
 import { PricingPage } from '@/components/PricingManagement';
+import { FamiliesManagement } from '@/components/FamiliesManagement';
 
 type Tab =
   | 'dashboard'
   | 'students'
+  | 'families'
   | 'enrollments'
   | 'courses'
   | 'programs'
@@ -56,6 +59,7 @@ type NavItem = {
 const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   dashboard: { title: 'Dashboard', subtitle: 'Overview of your academy' },
   students: { title: 'Students', subtitle: 'Manage learners and parent records' },
+  families: { title: 'Families', subtitle: 'Manage households, guardians, and sibling groups' },
   enrollments: { title: 'Enrollments', subtitle: 'Track student enrollment activity' },
   courses: { title: 'Courses', subtitle: 'Manage course catalog and levels' },
   programs: { title: 'Programs', subtitle: 'Organize seasons, batches, and cohorts' },
@@ -93,6 +97,7 @@ function HomeContent() {
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
     { id: 'students', label: 'Students', icon: FiUsers },
+    { id: 'families', label: 'Families', icon: FiHome },
     { id: 'enrollments', label: 'Enrollments', icon: FiClipboard, disabled: true },
     { id: 'courses', label: 'Courses', icon: FiBookOpen },
     { id: 'programs', label: 'Programs', icon: FiLayers },
@@ -116,6 +121,7 @@ function HomeContent() {
     const validTabs: Tab[] = [
       'dashboard',
       'students',
+      'families',
       'enrollments',
       'courses',
       'programs',
@@ -330,6 +336,7 @@ function HomeContent() {
                 />
               )}
               {activeTab === 'students' && <StudentManagement selectedStudentId={selectedStudentId} />}
+              {activeTab === 'families' && <FamiliesManagement />}
               {activeTab === 'enrollments' && (
                 <ComingSoonPanel
                   title="Enrollment Workspace"

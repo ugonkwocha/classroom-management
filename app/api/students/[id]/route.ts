@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import {
+  ensureFamilyForStudentInput,
+  getPrimaryGuardian,
+  primaryGuardianLegacyData,
+  studentFamilyInclude,
+} from '@/lib/family-server';
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +37,7 @@ export async function GET(
     const student = await prisma.student.findUnique({
       where: { id: params.id },
       include: {
+        ...studentFamilyInclude,
         enrollments: {
           include: {
             class: true,
@@ -142,30 +149,49 @@ export async function PUT(
       );
     }
 
-    const student = await prisma.student.update({
-      where: { id: params.id },
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        phoneCountryCode: data.phoneCountryCode,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-        isReturningStudent: data.isReturningStudent,
-        parentEmail: data.parentEmail,
-        parentPhone: data.parentPhone,
-        parentPhoneCountryCode: data.parentPhoneCountryCode,
-        paymentStatus: data.paymentStatus,
-      },
-      include: {
-        enrollments: {
-          include: {
-            class: true,
-            program: true,
-          },
+    const student = await prisma.$transaction(async (tx) => {
+      const shouldUpdateFamily = data.familyId || data.createFamily;
+      const family = shouldUpdateFamily
+        ? await ensureFamilyForStudentInput(data, tx as any)
+        : currentStudent.familyId
+          ? await tx.family.findUnique({
+              where: { id: currentStudent.familyId },
+              include: { guardians: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] } },
+            })
+          : null;
+      const primaryGuardian = getPrimaryGuardian(family);
+
+      return tx.student.update({
+        where: { id: params.id },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          phoneCountryCode: data.phoneCountryCode,
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+          isReturningStudent: data.isReturningStudent,
+          familyId: family?.id || currentStudent.familyId,
+          ...(primaryGuardian
+            ? primaryGuardianLegacyData(primaryGuardian)
+            : {
+                parentEmail: data.parentEmail,
+                parentPhone: data.parentPhone,
+                parentPhoneCountryCode: data.parentPhoneCountryCode,
+              }),
+          paymentStatus: data.paymentStatus,
         },
-        courseHistory: true,
-      },
+        include: {
+          ...studentFamilyInclude,
+          enrollments: {
+            include: {
+              class: true,
+              program: true,
+            },
+          },
+          courseHistory: true,
+        },
+      });
     });
 
     return NextResponse.json(student);

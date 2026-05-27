@@ -48,6 +48,7 @@ RUN apk add --no-cache postgresql-client
 # Copy init script
 COPY scripts/init-db.js ./scripts/init-db.js
 COPY scripts/seed-admin.js ./scripts/seed-admin.js
+COPY scripts/backfill-families.js ./scripts/backfill-families.js
 
 # Expose port
 EXPOSE 3000

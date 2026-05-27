@@ -4,6 +4,7 @@ export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
 export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
+export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
 
 export interface User {
   id: string;
@@ -83,6 +84,34 @@ export interface PricingConfig {
   updatedAt: string;
 }
 
+export interface ParentGuardian {
+  id: string;
+  familyId: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  emailNormalized?: string | null;
+  phone?: string | null;
+  phoneNormalized?: string | null;
+  phoneCountryCode?: string | null;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+  isActive: boolean;
+  needsReview: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Family {
+  id: string;
+  displayName: string;
+  isArchived: boolean;
+  guardians: ParentGuardian[];
+  students?: Student[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Student {
   id: string;
   firstName: string;
@@ -93,6 +122,8 @@ export interface Student {
   parentEmail?: string;
   parentPhone?: string;
   parentPhoneCountryCode?: string; // Country code for parent phone
+  familyId?: string | null;
+  family?: Family | null;
   dateOfBirth?: string;
   isReturningStudent: boolean;
   courseHistory: CourseHistory[]; // Past courses taken

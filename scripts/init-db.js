@@ -54,6 +54,21 @@ async function initializeDatabase() {
     console.log('RUN_DATABASE_SEED is not true, skipping database seed.');
   }
 
+  if (initMode !== 'skip') {
+    try {
+      console.log('Ensuring family records exist for legacy students...');
+      execSync('node scripts/backfill-families.js', { stdio: 'inherit' });
+      console.log('Family backfill completed successfully');
+    } catch (error) {
+      console.error('Family backfill failed.');
+      if (!allowStartupOnFailure) {
+        process.exit(1);
+      }
+
+      console.warn('ALLOW_START_WITH_DB_INIT_FAILURE=true, continuing startup despite family backfill failure.');
+    }
+  }
+
   console.log('Database initialization phase complete.');
 }
 

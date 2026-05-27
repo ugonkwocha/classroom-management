@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
 import { Input, Button, PhoneInput } from '@/components/ui';
-import { useCourses, usePrograms, usePricing } from '@/lib/hooks';
+import { useCourses, useFamilies, usePrograms, usePricing } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
 import { validatePhoneNumber } from '@/lib/constants/countries';
+import { formatGuardianName, normalizeEmail, normalizePhone } from '@/lib/family-utils';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
@@ -17,8 +18,6 @@ interface StudentFormProps {
   existingStudents?: Student[];
 }
 
-const normalizeEmail = (value?: string | null) => value?.trim().toLowerCase() || '';
-const normalizePhone = (value?: string | null) => value?.replace(/\D/g, '') || '';
 const getFullName = (student: Student) => `${student.firstName} ${student.lastName}`.trim();
 
 export function StudentForm({
@@ -32,12 +31,18 @@ export function StudentForm({
   const { courses } = useCourses();
   const { programs } = usePrograms();
   const { priceOptions } = usePricing();
+  const { families } = useFamilies();
+  const initialPrimaryGuardian = initialData?.family?.guardians?.find((guardian) => guardian.isPrimary)
+    || initialData?.family?.guardians?.[0];
 
   const [formData, setFormData] = useState({
     firstName: initialData?.firstName || '',
     lastName: initialData?.lastName || '',
     email: initialData?.email || '',
     phone: initialData?.phone || '',
+    parentFirstName: initialPrimaryGuardian?.firstName || '',
+    parentLastName: initialPrimaryGuardian?.lastName || '',
+    parentRelationship: initialPrimaryGuardian?.relationship || 'PARENT',
     parentEmail: initialData?.parentEmail || '',
     parentPhone: initialData?.parentPhone || '',
     dateOfBirth: initialData?.dateOfBirth || '',
@@ -59,6 +64,8 @@ export function StudentForm({
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatches, setSelectedBatches] = useState<{ batchNumber: number; priceType: PriceType }[]>([]);
   const [applySiblingDiscount, setApplySiblingDiscount] = useState(false);
+  const [selectedFamilyId, setSelectedFamilyId] = useState(initialData?.familyId || '');
+  const [createNewFamily, setCreateNewFamily] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const siblingMatches = useMemo(() => {
@@ -91,10 +98,34 @@ export function StudentForm({
   ]);
 
   const hasSiblingMatch = siblingMatches.length > 0;
+  const familyMatches = useMemo(() => {
+    const parentEmail = normalizeEmail(formData.parentEmail);
+    const parentPhone = normalizePhone(formData.parentPhone);
+    const parentCountry = parentPhoneCountry || 'NG';
+
+    if (!parentEmail && !parentPhone) return [];
+
+    return families.filter((family) =>
+      family.guardians.some((guardian) => {
+        const emailMatches = Boolean(parentEmail && normalizeEmail(guardian.email) === parentEmail);
+        const phoneMatches = Boolean(
+          parentPhone &&
+            normalizePhone(guardian.phone) === parentPhone &&
+            (guardian.phoneCountryCode || 'NG') === parentCountry
+        );
+
+        return emailMatches || phoneMatches;
+      })
+    );
+  }, [families, formData.parentEmail, formData.parentPhone, parentPhoneCountry]);
+  const selectedFamily = families.find((family) => family.id === selectedFamilyId);
+  const shouldSuggestSiblingDiscount = Boolean(
+    selectedFamily?.students?.length || familyMatches.length > 0 || hasSiblingMatch
+  );
   const hasSiblingDiscountOption = priceOptions.some((option) => option.type === 'SIBLING_DISCOUNT');
 
   useEffect(() => {
-    if (!hasSiblingMatch && applySiblingDiscount) {
+    if (!shouldSuggestSiblingDiscount && applySiblingDiscount) {
       setApplySiblingDiscount(false);
       setSelectedBatches((batches) =>
         batches.map((batch) => ({
@@ -103,7 +134,7 @@ export function StudentForm({
         }))
       );
     }
-  }, [applySiblingDiscount, hasSiblingMatch]);
+  }, [applySiblingDiscount, shouldSuggestSiblingDiscount]);
 
   const handleSiblingDiscountToggle = (enabled: boolean) => {
     setApplySiblingDiscount(enabled);
@@ -146,6 +177,14 @@ export function StudentForm({
       newErrors.parentEmail = 'Invalid parent email format';
     }
     if (!formData.parentPhone.trim()) newErrors.parentPhone = 'Parent phone is required';
+    if (createNewFamily || !selectedFamilyId) {
+      if (!formData.parentFirstName.trim()) newErrors.parentFirstName = 'Parent/guardian first name is required';
+      if (!formData.parentLastName.trim()) newErrors.parentLastName = 'Parent/guardian last name is required';
+    }
+
+    if (familyMatches.length > 0 && !selectedFamilyId && !createNewFamily) {
+      newErrors.family = 'Choose the matching family or select create a new family';
+    }
 
     // Parent phone validation
     if (formData.parentPhone.trim()) {
@@ -213,6 +252,11 @@ export function StudentForm({
       parentEmail: formData.parentEmail || undefined,
       parentPhone: formData.parentPhone || undefined,
       parentPhoneCountryCode: parentPhoneCountry || undefined,
+      parentFirstName: formData.parentFirstName || undefined,
+      parentLastName: formData.parentLastName || undefined,
+      parentRelationship: formData.parentRelationship || 'PARENT',
+      familyId: selectedFamilyId || undefined,
+      createFamily: !selectedFamilyId,
       dateOfBirth: formData.dateOfBirth || undefined,
       isReturningStudent: formData.isReturningStudent,
       courseHistory,
@@ -314,6 +358,37 @@ export function StudentForm({
         />
 
         <Input
+          label="Parent/Guardian First Name"
+          value={formData.parentFirstName}
+          onChange={(e) => setFormData({ ...formData, parentFirstName: e.target.value })}
+          error={errors.parentFirstName}
+          placeholder="e.g., Gloria"
+          className="mt-3"
+        />
+
+        <Input
+          label="Parent/Guardian Last Name"
+          value={formData.parentLastName}
+          onChange={(e) => setFormData({ ...formData, parentLastName: e.target.value })}
+          error={errors.parentLastName}
+          placeholder="e.g., Nwkocha"
+          className="mt-3"
+        />
+
+        <label className="mb-2 mt-3 block text-sm font-bold text-slate-700">Relationship</label>
+        <select
+          value={formData.parentRelationship}
+          onChange={(e) => setFormData({ ...formData, parentRelationship: e.target.value as typeof formData.parentRelationship })}
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+        >
+          <option value="PARENT">Parent</option>
+          <option value="MOTHER">Mother</option>
+          <option value="FATHER">Father</option>
+          <option value="GUARDIAN">Guardian</option>
+          <option value="OTHER">Other</option>
+        </select>
+
+        <Input
           label="Parent Email"
           type="email"
           value={formData.parentEmail}
@@ -335,7 +410,69 @@ export function StudentForm({
           className="mt-3"
         />
 
-        {hasSiblingMatch && (
+        {familyMatches.length > 0 && (
+          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-blue-950">Matching family found</p>
+                <p className="mt-1 text-xs text-blue-800">
+                  Choose a family below to link this student, or create a new family if this is a different household.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-blue-700">
+                {familyMatches.length} match{familyMatches.length === 1 ? '' : 'es'}
+              </span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {familyMatches.map((family) => {
+                const primary = family.guardians.find((guardian) => guardian.isPrimary) || family.guardians[0];
+                return (
+                  <label
+                    key={family.id}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${
+                      selectedFamilyId === family.id
+                        ? 'border-blue-500 bg-white'
+                        : 'border-blue-100 bg-white/70'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="family-choice"
+                      checked={selectedFamilyId === family.id}
+                      onChange={() => {
+                        setSelectedFamilyId(family.id);
+                        setCreateNewFamily(false);
+                      }}
+                      className="mt-1 h-4 w-4 text-blue-600"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-blue-950">{family.displayName}</span>
+                      <span className="mt-1 block text-xs text-blue-800">
+                        {primary ? formatGuardianName(primary.firstName, primary.lastName) : 'No guardian'} · {family.students?.length || 0} student{family.students?.length === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-blue-100 bg-white/70 p-3">
+                <input
+                  type="radio"
+                  name="family-choice"
+                  checked={createNewFamily && !selectedFamilyId}
+                  onChange={() => {
+                    setSelectedFamilyId('');
+                    setCreateNewFamily(true);
+                  }}
+                  className="h-4 w-4 text-blue-600"
+                />
+                <span className="text-sm font-bold text-blue-950">Create a new family instead</span>
+              </label>
+            </div>
+            {errors.family && <p className="mt-2 text-xs font-medium text-rose-600">{errors.family}</p>}
+          </div>
+        )}
+
+        {hasSiblingMatch && familyMatches.length === 0 && (
           <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -382,7 +519,7 @@ export function StudentForm({
 
         {enrollInProgram && (
           <div className="mt-4 space-y-4">
-            {hasSiblingMatch && hasSiblingDiscountOption && (
+            {shouldSuggestSiblingDiscount && hasSiblingDiscountOption && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
@@ -452,7 +589,7 @@ export function StudentForm({
                                         {
                                           batchNumber: batchNum,
                                           priceType:
-                                            applySiblingDiscount && hasSiblingMatch
+                                            applySiblingDiscount && shouldSuggestSiblingDiscount
                                               ? 'SIBLING_DISCOUNT'
                                               : 'FULL_PRICE',
                                         },

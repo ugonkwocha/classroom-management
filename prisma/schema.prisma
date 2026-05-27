@@ -114,6 +114,56 @@ enum Season {
   OCTOBER
 }
 
+// ==================== Families ====================
+model Family {
+  id                String   @id @default(cuid())
+  displayName       String
+  isArchived        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  guardians         ParentGuardian[]
+  students          Student[]
+
+  @@index([displayName])
+  @@index([isArchived])
+}
+
+model ParentGuardian {
+  id                String   @id @default(cuid())
+  familyId          String
+  firstName         String
+  lastName          String
+  email             String?
+  emailNormalized   String?
+  phone             String?
+  phoneNormalized   String?
+  phoneCountryCode  String?
+  relationship      GuardianRelationship @default(PARENT)
+  isPrimary         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  needsReview       Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  family            Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([emailNormalized])
+  @@index([phoneNormalized, phoneCountryCode])
+  @@index([isPrimary])
+  @@index([isActive])
+  @@index([needsReview])
+}
+
+enum GuardianRelationship {
+  PARENT
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
+}
+
 // ==================== Classes ====================
 model Class {
   id                String   @id @default(cuid())
@@ -156,6 +206,7 @@ model Student {
   dateOfBirth       DateTime?
   isReturningStudent Boolean  @default(false)
   paymentStatus     PaymentStatus @default(PENDING)
+  familyId          String?
   parentEmail       String?
   parentPhone       String?
   parentPhoneCountryCode String? // Country code for parent phone
@@ -163,9 +214,11 @@ model Student {
   updatedAt         DateTime @updatedAt
 
   // Relations
+  family            Family?  @relation(fields: [familyId], references: [id], onDelete: SetNull)
   enrollments       ProgramEnrollment[]
   courseHistory     CourseHistory[]
 
+  @@index([familyId])
   @@index([email])
   @@index([phone])
   @@index([parentEmail])

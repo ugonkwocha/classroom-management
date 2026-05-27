@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import {
+  ensureFamilyForStudentInput,
+  getPrimaryGuardian,
+  primaryGuardianLegacyData,
+  studentFamilyInclude,
+} from '@/lib/family-server';
 
 export async function GET(request: NextRequest) {
   const sessionUser = getSessionUser(request);
@@ -27,6 +33,7 @@ export async function GET(request: NextRequest) {
   try {
     const students = await prisma.student.findMany({
       include: {
+        ...studentFamilyInclude,
         enrollments: {
           include: {
             class: true,
@@ -119,28 +126,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const student = await prisma.student.create({
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        phoneCountryCode: data.phoneCountryCode,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-        isReturningStudent: data.isReturningStudent || false,
-        parentEmail: data.parentEmail,
-        parentPhone: data.parentPhone,
-        parentPhoneCountryCode: data.parentPhoneCountryCode,
-      },
-      include: {
-        enrollments: {
-          include: {
-            class: true,
-            program: true,
-          },
+    const student = await prisma.$transaction(async (tx) => {
+      const family = await ensureFamilyForStudentInput(data, tx as any);
+      const primaryGuardian = getPrimaryGuardian(family);
+
+      return tx.student.create({
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          phoneCountryCode: data.phoneCountryCode,
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+          isReturningStudent: data.isReturningStudent || false,
+          familyId: family.id,
+          ...primaryGuardianLegacyData(primaryGuardian),
         },
-        courseHistory: true,
-      },
+        include: {
+          ...studentFamilyInclude,
+          enrollments: {
+            include: {
+              class: true,
+              program: true,
+            },
+          },
+          courseHistory: true,
+        },
+      });
     });
 
     return NextResponse.json(student, { status: 201 });
