@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       day: 'numeric',
     });
 
-    await sendClassAssignmentEmail({
+    const emailResults = await sendClassAssignmentEmail({
       recipients: [
         {
           email: classData.teacher.email,
@@ -80,9 +80,13 @@ export async function POST(request: NextRequest) {
       recipientType: 'teacher',
     });
 
+    const successfulTeacherEmails = emailResults.filter((result) => result.success).length;
+    const failedTeacherEmails = emailResults.filter((result) => !result.success).length;
+
     return NextResponse.json({
       success: true,
-      emailsSent: { teachers: 1 },
+      emailsSent: { teachers: successfulTeacherEmails },
+      emailsFailed: { teachers: failedTeacherEmails },
     });
   } catch (error) {
     console.error('Error sending teacher assignment email:', error);

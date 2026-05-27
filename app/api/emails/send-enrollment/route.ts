@@ -61,8 +61,10 @@ export async function POST(request: NextRequest) {
       day: 'numeric',
     });
 
+    let parentEmailResults: Awaited<ReturnType<typeof sendClassAssignmentEmail>> = [];
+
     if (parentRecipient.length > 0) {
-      await sendClassAssignmentEmail({
+      parentEmailResults = await sendClassAssignmentEmail({
         recipients: parentRecipient,
         className: classData.name,
         courseName: classData.course.name,
@@ -70,17 +72,25 @@ export async function POST(request: NextRequest) {
         batch: classData.batch,
         slot: classData.slot,
         schedule: classData.schedule,
-        instructorName: classData.teacher?.firstName,
+        instructorName: classData.teacher
+          ? `${classData.teacher.firstName} ${classData.teacher.lastName}`
+          : undefined,
         meetLink: classData.meetLink || undefined,
         enrollmentDate,
         recipientType: 'parent',
       });
     }
 
+    const successfulParentEmails = parentEmailResults.filter((result) => result.success).length;
+    const failedParentEmails = parentEmailResults.filter((result) => !result.success).length;
+
     return NextResponse.json({
       success: true,
       emailsSent: {
-        parents: parentRecipient.length,
+        parents: successfulParentEmails,
+      },
+      emailsFailed: {
+        parents: failedParentEmails,
       },
     });
   } catch (error) {
