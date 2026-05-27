@@ -18,6 +18,7 @@ import {
   FiMenu,
   FiSearch,
   FiSettings,
+  FiTarget,
   FiUser,
   FiUserCheck,
   FiUsers,
@@ -30,6 +31,7 @@ import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
 import { CoursesManagement } from '@/components/CoursesManagement';
 import { ProgramsManagement } from '@/components/ProgramsManagement';
+import { ProgramLevelsManagement } from '@/components/ProgramLevelsManagement';
 import { TeachersManagement } from '@/components/TeachersManagement';
 import { UserManagement } from '@/components/UserManagement';
 import { PricingPage } from '@/components/PricingManagement';
@@ -42,6 +44,7 @@ type Tab =
   | 'families'
   | 'enrollments'
   | 'courses'
+  | 'program-levels'
   | 'programs'
   | 'classes'
   | 'teachers'
@@ -62,7 +65,8 @@ const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   students: { title: 'Students', subtitle: 'Manage learners and parent records' },
   families: { title: 'Families', subtitle: 'Manage households, guardians, and sibling groups' },
   enrollments: { title: 'Enrollments', subtitle: 'Track student enrollment activity' },
-  courses: { title: 'Courses', subtitle: 'Manage course catalog and levels' },
+  courses: { title: 'Courses', subtitle: 'Manage course catalog' },
+  'program-levels': { title: 'Program Levels', subtitle: 'Manage level availability across courses' },
   programs: { title: 'Programs', subtitle: 'Organize seasons, batches, and cohorts' },
   classes: { title: 'Classes', subtitle: 'Manage sessions, tutors, and meeting links' },
   teachers: { title: 'Teachers', subtitle: 'Manage tutors and assignments' },
@@ -101,6 +105,9 @@ function HomeContent() {
     { id: 'families', label: 'Families', icon: FiHome },
     { id: 'enrollments', label: 'Enrollments', icon: FiClipboard },
     { id: 'courses', label: 'Courses', icon: FiBookOpen },
+    ...(hasPermission(PERMISSIONS.UPDATE_COURSE)
+      ? [{ id: 'program-levels' as Tab, label: 'Program Levels', icon: FiTarget }]
+      : []),
     { id: 'programs', label: 'Programs', icon: FiLayers },
     { id: 'classes', label: 'Classes', icon: FiCalendar },
     { id: 'teachers', label: 'Teachers', icon: FiUserCheck },
@@ -125,6 +132,7 @@ function HomeContent() {
       'families',
       'enrollments',
       'courses',
+      'program-levels',
       'programs',
       'classes',
       'teachers',
@@ -340,6 +348,7 @@ function HomeContent() {
               {activeTab === 'families' && <FamiliesManagement />}
               {activeTab === 'enrollments' && <EnrollmentManagement />}
               {activeTab === 'courses' && <CoursesManagement />}
+              {activeTab === 'program-levels' && <ProgramLevelsManagement />}
               {activeTab === 'programs' && <ProgramsManagement />}
               {activeTab === 'classes' && <ClassManagement />}
               {activeTab === 'teachers' && <TeachersManagement />}
