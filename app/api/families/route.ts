@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')?.trim();
     const normalizedEmail = normalizeEmail(search);
     const normalizedPhone = normalizePhone(search);
+    const shouldSearchContact = Boolean(search && (search.length >= 3 || search.includes('@') || normalizedPhone.length >= 3));
+    const shouldSearchPhone = normalizedPhone.length >= 3;
 
     const families = await prisma.family.findMany({
       where: {
@@ -35,8 +37,10 @@ export async function GET(request: NextRequest) {
                 { displayName: { contains: search, mode: 'insensitive' } },
                 { guardians: { some: { firstName: { contains: search, mode: 'insensitive' } } } },
                 { guardians: { some: { lastName: { contains: search, mode: 'insensitive' } } } },
-                { guardians: { some: { emailNormalized: { contains: normalizedEmail } } } },
-                ...(normalizedPhone
+                ...(shouldSearchContact && normalizedEmail
+                  ? [{ guardians: { some: { emailNormalized: { contains: normalizedEmail } } } }]
+                  : []),
+                ...(shouldSearchPhone
                   ? [{ guardians: { some: { phoneNormalized: { contains: normalizedPhone } } } }]
                   : []),
                 { students: { some: { firstName: { contains: search, mode: 'insensitive' } } } },
