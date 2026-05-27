@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Family } from '@/types';
-import { useFamilies } from '@/lib/hooks';
+import { Family, Student } from '@/types';
+import { useFamilies, useStudents } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { formatGuardianName } from '@/lib/family-utils';
 import { Button, Input, Modal, PhoneInput, Select } from '@/components/ui';
+import { StudentForm } from '@/components/StudentManagement/StudentForm';
 import {
   FiAlertCircle,
   FiGitMerge,
@@ -16,6 +17,7 @@ import {
   FiMove,
   FiPhone,
   FiPlus,
+  FiSave,
   FiSearch,
   FiTrash2,
   FiUsers,
@@ -39,8 +41,11 @@ export function FamiliesManagement() {
   const [search, setSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [moveSelections, setMoveSelections] = useState<Record<string, string>>({});
   const [mergeSourceId, setMergeSourceId] = useState('');
+  const [studentFormErrors, setStudentFormErrors] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     displayName: '',
     firstName: '',
@@ -50,8 +55,28 @@ export function FamiliesManagement() {
     phoneCountryCode: 'NG',
     relationship: 'PARENT',
   });
+  const [editFormData, setEditFormData] = useState({
+    displayName: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    phoneCountryCode: 'NG',
+    relationship: 'PARENT',
+  });
 
-  const { families, isLoaded, createFamily, deleteFamily, deleteEmptyFamilies, mergeFamily, moveStudentToFamily, mutate } = useFamilies(search);
+  const {
+    families,
+    isLoaded,
+    createFamily,
+    updateFamily,
+    deleteFamily,
+    deleteEmptyFamilies,
+    mergeFamily,
+    moveStudentToFamily,
+    mutate,
+  } = useFamilies(search);
+  const { students, addStudent } = useStudents();
   const { hasPermission } = useAuth();
 
   const canCreate = hasPermission(PERMISSIONS.CREATE_FAMILY);
@@ -80,7 +105,7 @@ export function FamiliesManagement() {
   const handleCreateFamily = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      await createFamily({
+      const createdFamily = await createFamily({
         displayName: formData.displayName || `${formData.lastName} Family`,
         guardians: [
           {
@@ -96,6 +121,7 @@ export function FamiliesManagement() {
           },
         ],
       });
+      setSelectedFamily(createdFamily);
       setFormData({
         displayName: '',
         firstName: '',
@@ -108,6 +134,74 @@ export function FamiliesManagement() {
       setIsCreateOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to create family');
+    }
+  };
+
+  const openEditFamily = (family: Family) => {
+    const primary = getPrimaryGuardian(family);
+    setEditFormData({
+      displayName: family.displayName,
+      firstName: primary?.firstName || '',
+      lastName: primary?.lastName || '',
+      email: primary?.email || '',
+      phone: primary?.phone || '',
+      phoneCountryCode: primary?.phoneCountryCode || 'NG',
+      relationship: primary?.relationship || 'PARENT',
+    });
+    setSelectedFamily(family);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateFamily = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedFamily) return;
+
+    try {
+      const updated = await updateFamily(selectedFamily.id, {
+        displayName: editFormData.displayName,
+        guardians: [
+          {
+            firstName: editFormData.firstName,
+            lastName: editFormData.lastName,
+            email: editFormData.email || null,
+            phone: editFormData.phone || null,
+            phoneCountryCode: editFormData.phoneCountryCode,
+            relationship: editFormData.relationship,
+            isPrimary: true,
+            isActive: true,
+            needsReview: false,
+          },
+        ],
+      });
+      setSelectedFamily(updated);
+      setIsEditOpen(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to update family');
+    }
+  };
+
+  const handleAddStudentToFamily = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
+    try {
+      setStudentFormErrors([]);
+      await addStudent(studentData);
+      await mutate();
+      setIsAddStudentOpen(false);
+      setSelectedFamily(null);
+    } catch (error) {
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.details && Array.isArray(errorData.details)) {
+            setStudentFormErrors(errorData.details);
+            return;
+          }
+        } catch {
+          // Fall through to alert.
+        }
+        setStudentFormErrors([error.message]);
+        return;
+      }
+      setStudentFormErrors(['Failed to add student']);
     }
   };
 
@@ -278,6 +372,11 @@ export function FamiliesManagement() {
                         <Button type="button" variant="outline" size="sm" onClick={() => setSelectedFamily(family)}>
                           View
                         </Button>
+                        {canEdit && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => openEditFamily(family)}>
+                            Edit
+                          </Button>
+                        )}
                         {canDelete && (
                           <Button type="button" variant="danger" size="sm" onClick={() => handleDelete(family)}>
                             Delete
@@ -344,6 +443,32 @@ export function FamiliesManagement() {
       <Modal isOpen={!!selectedFamily} onClose={() => setSelectedFamily(null)} title={selectedFamily?.displayName || 'Family'} size="xl">
         {selectedFamily && (
           <div className="space-y-6">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-950">Family actions</p>
+                <p className="mt-1 text-sm text-slate-500">Update guardian details or add a child directly to this family.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {canEdit && (
+                  <Button type="button" variant="outline" onClick={() => openEditFamily(selectedFamily)}>
+                    Edit Family
+                  </Button>
+                )}
+                {canCreate && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setStudentFormErrors([]);
+                      setIsAddStudentOpen(true);
+                    }}
+                  >
+                    <FiPlus className="h-4 w-4" />
+                    Add Student
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <section>
               <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">Guardians</h3>
               <div className="grid gap-3 md:grid-cols-2">
@@ -432,6 +557,74 @@ export function FamiliesManagement() {
               </section>
             )}
           </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Edit Family" size="lg">
+        <form onSubmit={handleUpdateFamily} className="space-y-4">
+          <Input
+            label="Family Display Name"
+            required
+            value={editFormData.displayName}
+            onChange={(event) => setEditFormData({ ...editFormData, displayName: event.target.value })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Primary Guardian First Name"
+              required
+              value={editFormData.firstName}
+              onChange={(event) => setEditFormData({ ...editFormData, firstName: event.target.value })}
+            />
+            <Input
+              label="Primary Guardian Last Name"
+              required
+              value={editFormData.lastName}
+              onChange={(event) => setEditFormData({ ...editFormData, lastName: event.target.value })}
+            />
+          </div>
+          <Input
+            label="Primary Guardian Email"
+            type="email"
+            value={editFormData.email}
+            onChange={(event) => setEditFormData({ ...editFormData, email: event.target.value })}
+          />
+          <PhoneInput
+            label="Primary Guardian Phone"
+            value={editFormData.phone}
+            countryCode={editFormData.phoneCountryCode}
+            onCountryCodeChange={(phoneCountryCode) => setEditFormData({ ...editFormData, phoneCountryCode })}
+            onChange={(phone) => setEditFormData({ ...editFormData, phone })}
+          />
+          <Select
+            label="Relationship"
+            value={editFormData.relationship}
+            onChange={(event) => setEditFormData({ ...editFormData, relationship: event.target.value })}
+            options={relationshipOptions}
+          />
+          <div className="flex gap-3 border-t border-slate-200 pt-4">
+            <Button type="submit" className="flex-1">
+              <FiSave className="h-4 w-4" />
+              Save Changes
+            </Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAddStudentOpen}
+        onClose={() => setIsAddStudentOpen(false)}
+        title={selectedFamily ? `Add Student to ${selectedFamily.displayName}` : 'Add Student'}
+        size="lg"
+      >
+        {selectedFamily && (
+          <StudentForm
+            onSubmit={handleAddStudentToFamily}
+            onCancel={() => setIsAddStudentOpen(false)}
+            existingStudents={students}
+            apiErrors={studentFormErrors}
+            lockedFamilyId={selectedFamily.id}
+          />
         )}
       </Modal>
     </div>

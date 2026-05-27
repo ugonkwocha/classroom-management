@@ -16,6 +16,7 @@ interface StudentFormProps {
   isLoading?: boolean;
   apiErrors?: string[];
   existingStudents?: Student[];
+  lockedFamilyId?: string;
 }
 
 const getFullName = (student: Student) => `${student.firstName} ${student.lastName}`.trim();
@@ -27,6 +28,7 @@ export function StudentForm({
   isLoading = false,
   apiErrors = [],
   existingStudents = [],
+  lockedFamilyId,
 }: StudentFormProps) {
   const { courses } = useCourses();
   const { programs } = usePrograms();
@@ -64,7 +66,7 @@ export function StudentForm({
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatches, setSelectedBatches] = useState<{ batchNumber: number; priceType: PriceType }[]>([]);
   const [applySiblingDiscount, setApplySiblingDiscount] = useState(false);
-  const [selectedFamilyId, setSelectedFamilyId] = useState(initialData?.familyId || '');
+  const [selectedFamilyId, setSelectedFamilyId] = useState(lockedFamilyId || initialData?.familyId || '');
   const [createNewFamily, setCreateNewFamily] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -119,6 +121,21 @@ export function StudentForm({
     );
   }, [families, formData.parentEmail, formData.parentPhone, parentPhoneCountry]);
   const selectedFamily = families.find((family) => family.id === selectedFamilyId);
+  useEffect(() => {
+    if (!selectedFamily) return;
+    const primary = selectedFamily.guardians.find((guardian) => guardian.isPrimary) || selectedFamily.guardians[0];
+    if (!primary) return;
+
+    setFormData((current) => ({
+      ...current,
+      parentFirstName: primary.firstName || current.parentFirstName,
+      parentLastName: primary.lastName || current.parentLastName,
+      parentRelationship: primary.relationship || current.parentRelationship,
+      parentEmail: primary.email || current.parentEmail,
+      parentPhone: primary.phone || current.parentPhone,
+    }));
+    setParentPhoneCountry(primary.phoneCountryCode || 'NG');
+  }, [selectedFamily]);
   const shouldSuggestSiblingDiscount = Boolean(
     selectedFamily?.students?.length || familyMatches.length > 0 || hasSiblingMatch
   );
@@ -410,7 +427,14 @@ export function StudentForm({
           className="mt-3"
         />
 
-        {familyMatches.length > 0 && (
+        {selectedFamily && lockedFamilyId && (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-sm font-semibold text-emerald-950">Adding student to {selectedFamily.displayName}</p>
+            <p className="mt-1 text-xs text-emerald-800">This student will be linked to this family after saving.</p>
+          </div>
+        )}
+
+        {familyMatches.length > 0 && !lockedFamilyId && (
           <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
