@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useStudents } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Student } from '@/types';
-import { Card, Modal } from '@/components/ui';
+import { Modal } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
 import { StudentForm } from './StudentForm';
 import { StudentList } from './StudentList';
 import { StudentDetailsView } from './StudentDetailsView';
+import { FiPlus, FiSearch, FiUserCheck, FiUserPlus, FiUsers } from 'react-icons/fi';
 
 interface StudentManagementProps {
   selectedStudentId?: string;
@@ -41,8 +42,15 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
 
   const filteredStudents = students.filter((student) =>
     `${student.firstName} ${student.lastName}`.toLowerCase().includes(filter.toLowerCase()) ||
-    (student.email?.toLowerCase() || '').includes(filter.toLowerCase())
+    (student.email?.toLowerCase() || '').includes(filter.toLowerCase()) ||
+    (student.parentEmail?.toLowerCase() || '').includes(filter.toLowerCase())
   );
+
+  const assignedStudents = students.filter((student) =>
+    (student.programEnrollments || student.enrollments || []).some((enrollment) => enrollment.classId)
+  ).length;
+  const returningStudents = students.filter((student) => student.isReturningStudent).length;
+  const pendingPayments = students.filter((student) => student.paymentStatus === 'PENDING').length;
 
   const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
     try {
@@ -135,33 +143,82 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
   };
 
   if (!isLoaded) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+          <p className="text-sm text-slate-600">Loading students...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-3">
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-        {canCreate && (
-          <button
-            onClick={() => {
-              setEditingStudent(undefined);
-              setIsFormModalOpen(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-          >
-            + Add Student
-          </button>
-        )}
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <FiUsers className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Total Students</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{students.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <FiUserCheck className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Assigned Students</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{assignedStudents}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600">
+            <FiUserPlus className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Returning</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{returningStudents}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <FiUserCheck className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Pending Payment</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{pendingPayments}</p>
+        </div>
       </div>
 
-      <Card>
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-950">Student Directory</h2>
+            <p className="mt-1 text-sm text-slate-500">{filteredStudents.length} students shown</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex min-w-0 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm sm:w-80">
+              <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search name, email, parent..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingStudent(undefined);
+                  setIsFormModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+              >
+                <FiPlus className="h-4 w-4" />
+                Add Student
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="p-5">
         <StudentList
           students={filteredStudents}
           onView={handleView}
@@ -170,7 +227,8 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           canEdit={canEdit}
           canDelete={canDelete}
         />
-      </Card>
+        </div>
+      </section>
 
       {/* Form Modal for Create/Edit */}
       <Modal

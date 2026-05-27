@@ -4,14 +4,24 @@ import { useState } from 'react';
 import { useClasses, useStudents, useTeachers, usePrograms } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
-import { Card, Modal, Button } from '@/components/ui';
+import { Modal, Button } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { ClassForm } from './ClassForm';
-import { ClassCard } from './ClassCard';
 import { ClassNameMigration } from './ClassNameMigration';
 import { ClassStudentsModal } from './ClassStudentsModal';
-import { canAssignStudentToClass } from '@/lib/assignment';
+import {
+  FiArchive,
+  FiCalendar,
+  FiEdit3,
+  FiEye,
+  FiLink,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+  FiUserCheck,
+  FiUsers,
+} from 'react-icons/fi';
 
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
@@ -33,12 +43,44 @@ export function ClassManagement() {
   const canDelete = hasPermission(PERMISSIONS.DELETE_CLASS);
 
   const filteredClasses = classes.filter((cls) => {
+    const program = programs.find((p) => p.id === cls.programId);
+    const teacher = teachers.find((t) => t.id === cls.teacherId);
     const matchesFilter =
       cls.name.toLowerCase().includes(filter.toLowerCase()) ||
-      cls.programLevel.toLowerCase().includes(filter.toLowerCase());
+      cls.programLevel.toLowerCase().includes(filter.toLowerCase()) ||
+      (program?.name.toLowerCase() || '').includes(filter.toLowerCase()) ||
+      (`${teacher?.firstName || ''} ${teacher?.lastName || ''}`.toLowerCase()).includes(filter.toLowerCase());
     const matchesArchiveStatus = showArchived ? cls.isArchived : !cls.isArchived;
     return matchesFilter && matchesArchiveStatus;
   });
+
+  const activeClasses = classes.filter((cls) => !cls.isArchived);
+  const archivedClasses = classes.filter((cls) => cls.isArchived);
+  const totalCapacity = activeClasses.reduce((sum, cls) => sum + cls.capacity, 0);
+
+  const getClassStudentCount = (classId: string) =>
+    students.filter((student) =>
+      student.programEnrollments?.some((enrollment) => enrollment.classId === classId && enrollment.status === 'ASSIGNED')
+    ).length;
+
+  const assignedSlots = activeClasses.reduce((sum, cls) => sum + Math.min(getClassStudentCount(cls.id), cls.capacity), 0);
+  const availableSlots = Math.max(totalCapacity - assignedSlots, 0);
+
+  const getClassStatus = (classData: Class, studentCount: number) => {
+    if (classData.isArchived) return 'Archived';
+    if (studentCount >= classData.capacity) return 'Full';
+    if (!classData.teacherId || !classData.meetLink) return 'Pending';
+    if (studentCount > 0) return 'Active';
+    return 'Available';
+  };
+
+  const statusStyles: Record<string, string> = {
+    Active: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+    Available: 'border-blue-100 bg-blue-50 text-blue-700',
+    Full: 'border-rose-100 bg-rose-50 text-rose-700',
+    Pending: 'border-amber-100 bg-amber-50 text-amber-700',
+    Archived: 'border-slate-200 bg-slate-100 text-slate-600',
+  };
 
   const sendTeacherAssignmentEmail = async (classId: string) => {
     try {
@@ -245,92 +287,248 @@ export function ClassManagement() {
   };
 
   if (!isLoaded) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+          <p className="text-sm text-slate-600">Loading classes...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <ClassNameMigration />
 
-      <div className="space-y-3">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search classes..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          {canCreate && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800"
-            >
-              + Create Class
-            </button>
-          )}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <FiCalendar className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Active Classes</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{activeClasses.length}</p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Show Archived Classes</span>
-          </label>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <FiUsers className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Assigned Slots</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{assignedSlots}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600">
+            <FiUserCheck className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Available Slots</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{availableSlots}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+            <FiArchive className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Archived</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{archivedClasses.length}</p>
         </div>
       </div>
 
-      {filteredClasses.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No classes yet. Create one to get started!</p>
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-950">Class Directory</h2>
+            <p className="mt-1 text-sm text-slate-500">{filteredClasses.length} classes shown</p>
           </div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClasses.map((classData) => {
-            // Get students enrolled in this class
-            const enrolledStudents = students.filter((student) =>
-              student.programEnrollments && student.programEnrollments.some((enrollment) => enrollment.classId === classData.id)
-            );
-            const studentCount = enrolledStudents.length;
-
-            // Validate and fix over-capacity issues
-            if (studentCount > classData.capacity) {
-              // Remove excess students from class
-              const excessStudents = enrolledStudents.slice(classData.capacity);
-              excessStudents.forEach((student) => {
-                const updatedEnrollments = (student.programEnrollments || []).map((e) =>
-                  e.classId === classData.id ? { ...e, classId: undefined } : e
-                );
-                updateStudent(student.id, { programEnrollments: updatedEnrollments });
-              });
-            }
-
-            const teacher = classData.teacherId ? teachers.find((t) => t.id === classData.teacherId) : undefined;
-
-            return (
-              <ClassCard
-                key={classData.id}
-                classData={classData}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onArchive={handleArchiveClass}
-                onUnarchive={handleUnarchiveClass}
-                onViewStudents={handleViewStudents}
-                studentCount={Math.min(studentCount, classData.capacity)}
-                teacher={teacher}
-                canEdit={canEdit}
-                canDelete={canDelete}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm md:w-80">
+              <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search classes, programs, tutors..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
               />
-            );
-          })}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+              />
+              Show archived
+            </label>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+              >
+                <FiPlus className="h-4 w-4" />
+                Create Class
+              </button>
+            )}
+          </div>
         </div>
-      )}
+
+        <div className="p-5">
+          {filteredClasses.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <FiCalendar className="h-6 w-6" />
+              </div>
+              <p className="text-base font-bold text-slate-950">No classes found</p>
+              <p className="mt-1 text-sm text-slate-500">Create a class or adjust your filters.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-4">Class</th>
+                    <th className="px-4 py-4">Program</th>
+                    <th className="px-4 py-4">Tutor</th>
+                    <th className="px-4 py-4">Students</th>
+                    <th className="px-4 py-4">Meeting Link</th>
+                    <th className="px-4 py-4">Status</th>
+                    <th className="px-4 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredClasses.map((classData) => {
+                    const enrolledStudents = students.filter((student) =>
+                      student.programEnrollments?.some((enrollment) => enrollment.classId === classData.id)
+                    );
+                    const studentCount = enrolledStudents.length;
+
+                    if (studentCount > classData.capacity) {
+                      const excessStudents = enrolledStudents.slice(classData.capacity);
+                      excessStudents.forEach((student) => {
+                        const updatedEnrollments = (student.programEnrollments || []).map((e) =>
+                          e.classId === classData.id ? { ...e, classId: undefined } : e
+                        );
+                        updateStudent(student.id, { programEnrollments: updatedEnrollments });
+                      });
+                    }
+
+                    const teacher = classData.teacherId ? teachers.find((t) => t.id === classData.teacherId) : undefined;
+                    const program = programs.find((p) => p.id === classData.programId);
+                    const safeStudentCount = Math.min(studentCount, classData.capacity);
+                    const utilization = classData.capacity > 0 ? Math.round((safeStudentCount / classData.capacity) * 100) : 0;
+                    const status = getClassStatus(classData, safeStudentCount);
+
+                    return (
+                      <tr key={classData.id} className="transition hover:bg-slate-50">
+                        <td className="px-4 py-4">
+                          <button type="button" onClick={() => handleViewStudents(classData)} className="flex items-center gap-3 text-left">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                              <FiCalendar className="h-5 w-5" />
+                            </span>
+                            <span>
+                              <span className="block font-bold text-slate-950">{classData.name}</span>
+                              <span className="mt-1 block text-xs text-slate-500">{classData.schedule || classData.slot}</span>
+                            </span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="font-semibold text-slate-700">{program ? `${program.name} ${program.year}` : 'Program missing'}</p>
+                          <p className="mt-1 text-xs text-slate-500">{classData.programLevel} · Batch {classData.batch}</p>
+                        </td>
+                        <td className="px-4 py-4 text-slate-600">
+                          {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className="font-bold text-slate-950">{safeStudentCount}/{classData.capacity}</p>
+                              <p className="text-xs text-slate-500">{utilization}% utilization</p>
+                            </div>
+                            <div className="h-2 w-24 rounded-full bg-slate-200">
+                              <div
+                                className={`h-full rounded-full ${
+                                  utilization >= 100 ? 'bg-rose-500' : utilization >= 70 ? 'bg-yellow-500' : 'bg-blue-600'
+                                }`}
+                                style={{ width: `${Math.min(utilization, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {classData.meetLink ? (
+                            <a
+                              href={classData.meetLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex max-w-44 items-center gap-2 truncate rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+                            >
+                              <FiLink className="h-3.5 w-3.5 shrink-0" />
+                              Meet ready
+                            </a>
+                          ) : (
+                            <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                              No link
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[status]}`}>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewStudents(classData)}
+                              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600"
+                              aria-label={`View students in ${classData.name}`}
+                            >
+                              <FiEye className="h-4 w-4" />
+                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleEdit(classData)}
+                                disabled={classData.isArchived}
+                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label={`Edit ${classData.name}`}
+                              >
+                                <FiEdit3 className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  classData.isArchived ? handleUnarchiveClass(classData.id) : handleArchiveClass(classData.id)
+                                }
+                                className="rounded-xl border border-amber-100 bg-amber-50 p-2 text-amber-700 transition hover:bg-amber-100"
+                                aria-label={`${classData.isArchived ? 'Unarchive' : 'Archive'} ${classData.name}`}
+                              >
+                                <FiArchive className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(classData.id)}
+                                className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
+                                aria-label={`Delete ${classData.name}`}
+                              >
+                                <FiTrash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingClass ? 'Edit Class' : 'Create New Class'}>
         <ClassForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingClass} />
