@@ -382,16 +382,16 @@ export function ClassManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-left text-sm">
+              <table className="w-full min-w-[1260px] table-fixed text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-4">Class</th>
-                    <th className="px-4 py-4">Program</th>
-                    <th className="px-4 py-4">Tutor</th>
-                    <th className="px-4 py-4">Students</th>
-                    <th className="px-4 py-4">Meeting Link</th>
-                    <th className="px-4 py-4">Status</th>
-                    <th className="px-4 py-4 text-right">Actions</th>
+                    <th className="w-[31%] px-4 py-4">Class</th>
+                    <th className="w-[15%] px-4 py-4">Program</th>
+                    <th className="w-[12%] px-4 py-4">Tutor</th>
+                    <th className="w-[14%] px-4 py-4">Students</th>
+                    <th className="w-[14%] px-4 py-4">Meeting Link</th>
+                    <th className="w-[9%] px-4 py-4">Status</th>
+                    <th className="w-[13%] px-4 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -419,25 +419,27 @@ export function ClassManagement() {
 
                     return (
                       <tr key={classData.id} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-4">
-                          <button type="button" onClick={() => handleViewStudents(classData)} className="flex items-center gap-3 text-left">
+                        <td className="px-4 py-4 align-middle">
+                          <button type="button" onClick={() => handleViewStudents(classData)} className="flex min-w-0 items-center gap-4 text-left">
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                               <FiCalendar className="h-5 w-5" />
                             </span>
-                            <span>
-                              <span className="block font-bold text-slate-950">{classData.name}</span>
+                            <span className="min-w-0">
+                              <span className="block max-w-[24rem] whitespace-normal break-normal text-base font-bold leading-6 text-slate-950">
+                                {classData.name}
+                              </span>
                               <span className="mt-1 block text-xs text-slate-500">{classData.schedule || classData.slot}</span>
                             </span>
                           </button>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-middle">
                           <p className="font-semibold text-slate-700">{program ? `${program.name} ${program.year}` : 'Program missing'}</p>
                           <p className="mt-1 text-xs text-slate-500">{classData.programLevel} · Batch {classData.batch}</p>
                         </td>
-                        <td className="px-4 py-4 text-slate-600">
+                        <td className="px-4 py-4 align-middle text-slate-600">
                           {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-middle">
                           <div className="flex items-center gap-3">
                             <div>
                               <p className="font-bold text-slate-950">{safeStudentCount}/{classData.capacity}</p>
@@ -453,29 +455,29 @@ export function ClassManagement() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-middle">
                           {classData.meetLink ? (
                             <a
                               href={classData.meetLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex max-w-44 items-center gap-2 truncate rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+                              className="inline-flex max-w-44 items-center gap-2 whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
                             >
                               <FiLink className="h-3.5 w-3.5 shrink-0" />
                               Meet ready
                             </a>
                           ) : (
-                            <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                            <span className="inline-flex whitespace-nowrap rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
                               No link
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[status]}`}>
+                        <td className="px-4 py-4 align-middle">
+                          <span className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[status]}`}>
                             {status}
                           </span>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 align-middle">
                           <div className="flex justify-end gap-2">
                             <button
                               type="button"
