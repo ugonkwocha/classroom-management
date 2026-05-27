@@ -1,4 +1,4 @@
-import { ProgramLevel, Student } from '@/types';
+import type { Class, ProgramLevel, Student } from '@/types';
 
 export function calculateAge(dateOfBirth: string): number {
   const today = new Date();
@@ -89,6 +89,54 @@ export function formatClassName(courseName: string, season: string, year: number
 
   // Format: Course - Month Year - Batch X - Slot
   return `${courseName} - ${abbreviatedSeason} ${year} - Batch ${batch} - ${formattedSlot}`;
+}
+
+export function generateClassNameWithNextSuffix({
+  courseName,
+  season,
+  year,
+  batch,
+  slot,
+  classes,
+  excludeClassId,
+}: {
+  courseName: string;
+  season: string;
+  year: number;
+  batch: string;
+  slot: string;
+  classes: Class[];
+  excludeClassId?: string;
+}): string {
+  const baseName = formatClassName(courseName, season, year, batch, slot);
+  const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const similarClasses = classes.filter((cls) => {
+    if (excludeClassId && cls.id === excludeClassId) return false;
+    return cls.name === baseName || cls.name.match(new RegExp(`^${escapedBaseName}-[A-Z]$`));
+  });
+
+  const existingSuffixes = new Set<string>();
+  similarClasses.forEach((cls) => {
+    const match = cls.name.match(new RegExp(`^${escapedBaseName}-([A-Z])$`));
+    if (match) {
+      existingSuffixes.add(match[1]);
+    }
+  });
+
+  let suffixIndex = 0;
+  let suffixChar = String.fromCharCode(65 + suffixIndex);
+  while (existingSuffixes.has(suffixChar) && suffixIndex < 26) {
+    suffixIndex++;
+    suffixChar = String.fromCharCode(65 + suffixIndex);
+  }
+
+  if (suffixIndex >= 26) {
+    console.warn('Too many classes with the same configuration (more than 26)');
+    return baseName;
+  }
+
+  return `${baseName}-${suffixChar}`;
 }
 
 export function extractClassInfo(className: string): { courseName: string; season: string; batch: string; slot: string; suffix: string } | null {

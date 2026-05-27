@@ -4,16 +4,17 @@ import { useState, useMemo } from 'react';
 import { Class, ProgramLevel } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
 import { useCourses, usePrograms, useClasses, useTeachers } from '@/lib/hooks';
-import { formatClassName } from '@/lib/utils';
+import { generateClassNameWithNextSuffix } from '@/lib/utils';
 
 interface ClassFormProps {
   onSubmit: (classData: Omit<Class, 'id' | 'createdAt'>) => void;
   onCancel?: () => void;
   initialData?: Class;
   isLoading?: boolean;
+  isDuplicate?: boolean;
 }
 
-export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }: ClassFormProps) {
+export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, isDuplicate = false }: ClassFormProps) {
   const { courses, isLoaded: coursesLoaded } = useCourses();
   const { programs, isLoaded: programsLoaded } = usePrograms();
   const { classes } = useClasses();
@@ -57,52 +58,18 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
   // Generate class name dynamically with suffix based on count of similar classes
   const generatedClassName = useMemo(() => {
     if (selectedCourse && selectedProgram && formData.batch && formData.slot) {
-      const baseName = formatClassName(
-        selectedCourse.name,
-        selectedProgram.season,
-        selectedProgram.year,
-        formData.batch,
-        formData.slot
-      );
-      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-      // Find all existing classes with the same configuration (base name with or without suffix)
-      const similarClasses = classes.filter((cls) => {
-        if (initialData && cls.id === initialData.id) return false; // Exclude current class being edited
-        // Match: exact base name OR base name with suffix like "-A", "-B", etc.
-        return (
-          cls.name === baseName ||
-          cls.name.match(new RegExp(`^${escapedBaseName}-[A-Z]$`))
-        );
+      return generateClassNameWithNextSuffix({
+        courseName: selectedCourse.name,
+        season: selectedProgram.season,
+        year: selectedProgram.year,
+        batch: formData.batch,
+        slot: formData.slot,
+        classes,
+        excludeClassId: initialData && !isDuplicate ? initialData.id : undefined,
       });
-
-      // Extract existing suffixes from similar classes
-      const existingSuffixes = new Set<string>();
-      similarClasses.forEach((cls) => {
-        const match = cls.name.match(new RegExp(`^${escapedBaseName}-([A-Z])$`));
-        if (match) {
-          existingSuffixes.add(match[1]);
-        }
-      });
-
-      // Find the first available letter (A, B, C, etc.)
-      let suffixIndex = 0;
-      let suffixChar = String.fromCharCode(65 + suffixIndex); // Start with A
-      while (existingSuffixes.has(suffixChar) && suffixIndex < 26) {
-        suffixIndex++;
-        suffixChar = String.fromCharCode(65 + suffixIndex);
-      }
-
-      if (suffixIndex >= 26) {
-        console.warn('Too many classes with the same configuration (more than 26)');
-        return baseName; // Fallback to base name if we run out of letters
-      }
-
-      const finalName = `${baseName}-${suffixChar}`;
-      return finalName;
     }
     return '';
-  }, [selectedCourse, selectedProgram, formData.batch, formData.slot, classes, initialData]);
+  }, [selectedCourse, selectedProgram, formData.batch, formData.slot, classes, initialData, isDuplicate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,9 +151,9 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
       schedule: formData.slot,
       teacherId: formData.teacherId || undefined,
       meetLink: formData.meetLink.trim() || undefined,
-      students: initialData?.students || [],
+      students: isDuplicate ? [] : initialData?.students || [],
       capacity: Math.floor(formData.capacity),
-      isArchived: initialData?.isArchived ?? false,
+      isArchived: isDuplicate ? false : initialData?.isArchived ?? false,
     });
 
     setFormData({
@@ -337,7 +304,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false }
 
       <div className="flex gap-3">
         <Button type="submit" variant="primary" className="flex-1" disabled={isLoading || !generatedClassName}>
-          {initialData ? 'Update Class' : 'Create Class'}
+          {isDuplicate ? 'Create Duplicate' : initialData ? 'Update Class' : 'Create Class'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useClasses, useStudents, useTeachers, usePrograms } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers, usePrograms, useCourses } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
 import { Modal, Button } from '@/components/ui';
@@ -13,6 +13,7 @@ import { ClassStudentsModal } from './ClassStudentsModal';
 import {
   FiArchive,
   FiCalendar,
+  FiCopy,
   FiEdit3,
   FiEye,
   FiLink,
@@ -21,18 +22,22 @@ import {
   FiTrash2,
   FiUserCheck,
   FiUsers,
+  FiZap,
 } from 'react-icons/fi';
+import { generateClassNameWithNextSuffix } from '@/lib/utils';
 
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
   const { students, updateStudent } = useStudents();
   const { teachers } = useTeachers();
   const { programs } = usePrograms();
-  const { hasPermission } = useAuth();
+  const { courses } = useCourses();
+  const { hasPermission, user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
   const [selectedClassForStudents, setSelectedClassForStudents] = useState<Class | undefined>();
   const [editingClass, setEditingClass] = useState<Class | undefined>();
+  const [duplicatingClass, setDuplicatingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
   const [archiveConfirmationClass, setArchiveConfirmationClass] = useState<Class | undefined>();
@@ -41,6 +46,7 @@ export function ClassManagement() {
   const canCreate = hasPermission(PERMISSIONS.CREATE_CLASS);
   const canEdit = hasPermission(PERMISSIONS.UPDATE_CLASS);
   const canDelete = hasPermission(PERMISSIONS.DELETE_CLASS);
+  const canDuplicate = canCreate && (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN');
 
   const filteredClasses = classes.filter((cls) => {
     const program = programs.find((p) => p.id === cls.programId);
@@ -115,6 +121,7 @@ export function ClassManagement() {
       }
 
       setEditingClass(undefined);
+      setDuplicatingClass(undefined);
       setIsModalOpen(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save class';
@@ -124,8 +131,59 @@ export function ClassManagement() {
   };
 
   const handleEdit = (classData: Class) => {
+    setDuplicatingClass(undefined);
     setEditingClass(classData);
     setIsModalOpen(true);
+  };
+
+  const handleDuplicate = (classData: Class) => {
+    setEditingClass(undefined);
+    setDuplicatingClass({
+      ...classData,
+      teacherId: undefined,
+      meetLink: undefined,
+      students: [],
+      isArchived: false,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleQuickDuplicate = async (classData: Class) => {
+    const course = classData.course || courses.find((c) => c.id === classData.courseId);
+    const program = classData.program || programs.find((p) => p.id === classData.programId);
+
+    if (!course || !program) {
+      alert('This class cannot be duplicated until its course and program data are available.');
+      return;
+    }
+
+    try {
+      await addClass({
+        name: generateClassNameWithNextSuffix({
+          courseName: course.name,
+          season: program.season,
+          year: program.year,
+          batch: String(classData.batch),
+          slot: classData.slot,
+          classes,
+        }),
+        courseId: classData.courseId,
+        programId: classData.programId,
+        programLevel: classData.programLevel,
+        batch: classData.batch,
+        slot: classData.slot,
+        schedule: classData.slot,
+        teacherId: undefined,
+        meetLink: undefined,
+        students: [],
+        capacity: classData.capacity,
+        isArchived: false,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to duplicate class';
+      console.error('Error duplicating class:', error);
+      alert(message);
+    }
   };
 
   const handleViewStudents = (classData: Class) => {
@@ -284,6 +342,7 @@ export function ClassManagement() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingClass(undefined);
+    setDuplicatingClass(undefined);
   };
 
   if (!isLoaded) {
@@ -517,6 +576,26 @@ export function ClassManagement() {
                             Edit
                           </button>
                         )}
+                        {canDuplicate && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickDuplicate(classData)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-100"
+                            >
+                              <FiZap className="h-4 w-4" />
+                              Quick Duplicate
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDuplicate(classData)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+                            >
+                              <FiCopy className="h-4 w-4" />
+                              Duplicate
+                            </button>
+                          </>
+                        )}
                         {canEdit && (
                           <button
                             type="button"
@@ -550,13 +629,13 @@ export function ClassManagement() {
               <table className="w-full min-w-[1260px] table-fixed text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
-                    <th className="w-[31%] px-4 py-4">Class</th>
+                    <th className="w-[28%] px-4 py-4">Class</th>
                     <th className="w-[15%] px-4 py-4">Program</th>
                     <th className="w-[12%] px-4 py-4">Tutor</th>
                     <th className="w-[14%] px-4 py-4">Students</th>
                     <th className="w-[14%] px-4 py-4">Meeting Link</th>
                     <th className="w-[9%] px-4 py-4">Status</th>
-                    <th className="w-[13%] px-4 py-4 text-right">Actions</th>
+                    <th className="w-[16%] px-4 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -641,6 +720,28 @@ export function ClassManagement() {
                                 <FiEdit3 className="h-4 w-4" />
                               </button>
                             )}
+                            {canDuplicate && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickDuplicate(classData)}
+                                  className="rounded-xl border border-blue-100 bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100"
+                                  aria-label={`Quick duplicate ${classData.name}`}
+                                  title="Quick duplicate"
+                                >
+                                  <FiZap className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicate(classData)}
+                                  className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600"
+                                  aria-label={`Duplicate ${classData.name}`}
+                                  title="Duplicate"
+                                >
+                                  <FiCopy className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
                             {canEdit && (
                               <button
                                 type="button"
@@ -675,8 +776,17 @@ export function ClassManagement() {
         </div>
       </section>
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingClass ? 'Edit Class' : 'Create New Class'}>
-        <ClassForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingClass} />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingClass ? 'Edit Class' : duplicatingClass ? 'Duplicate Class' : 'Create New Class'}
+      >
+        <ClassForm
+          onSubmit={handleSubmit}
+          onCancel={handleCloseModal}
+          initialData={editingClass || duplicatingClass}
+          isDuplicate={!!duplicatingClass}
+        />
       </Modal>
 
       <Modal
