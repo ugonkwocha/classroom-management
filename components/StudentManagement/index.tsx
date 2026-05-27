@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useStudents } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Student } from '@/types';
+import { getStudentPaymentStatus } from '@/lib/student-payment-status';
 import { Modal } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
 import { StudentForm } from './StudentForm';
@@ -50,7 +51,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
     (student.programEnrollments || student.enrollments || []).some((enrollment) => enrollment.classId)
   ).length;
   const returningStudents = students.filter((student) => student.isReturningStudent).length;
-  const pendingPayments = students.filter((student) => student.paymentStatus === 'PENDING').length;
+  const pendingPayments = students.filter((student) => getStudentPaymentStatus(student) === 'PENDING').length;
 
   const handleSubmit = async (studentData: Omit<Student, 'id' | 'createdAt'>) => {
     try {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Student } from '@/types';
+import { getStudentPaymentStatus } from '@/lib/student-payment-status';
 import { calculateAge } from '@/lib/utils';
 import { FiBookOpen, FiEdit3, FiEye, FiTrash2, FiUser } from 'react-icons/fi';
 
@@ -46,6 +47,7 @@ export function StudentList({ students, onView, onEdit, onDelete, canEdit = true
             const enrollments = student.programEnrollments || student.enrollments || [];
             const classAssignmentCount = enrollments.filter((enrollment) => enrollment.classId).length;
             const historyCount = student.courseHistory?.length || 0;
+            const paymentStatus = getStudentPaymentStatus(student);
             const paymentStatusStyles = {
               PENDING: 'bg-amber-50 text-amber-700 border-amber-100',
               CONFIRMED: 'bg-blue-50 text-blue-700 border-blue-100',
@@ -88,10 +90,10 @@ export function StudentList({ students, onView, onEdit, onDelete, canEdit = true
                 <td className="px-5 py-4">
                   <span
                     className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${
-                      paymentStatusStyles[student.paymentStatus] || paymentStatusStyles.PENDING
+                      paymentStatusStyles[paymentStatus] || paymentStatusStyles.PENDING
                     }`}
                   >
-                    {student.paymentStatus}
+                    {paymentStatus}
                   </span>
                 </td>
                 <td className="px-5 py-4">
