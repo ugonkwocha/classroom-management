@@ -116,12 +116,12 @@ function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+    <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <div className="flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
           <Icon className="h-5 w-5" />
         </span>
-        <h2 className="text-base font-bold text-slate-950">{title}</h2>
+        <h2 className="text-sm font-bold text-slate-950 sm:text-base">{title}</h2>
       </div>
       {action}
     </div>
@@ -130,7 +130,7 @@ function SectionHeader({
 
 function MiniSparkline({ accent }: { accent: Accent }) {
   return (
-    <svg viewBox="0 0 220 54" className="mt-5 h-12 w-full" role="img" aria-label="Metric trend">
+    <svg viewBox="0 0 220 54" className="mt-4 h-10 w-full 2xl:mt-5 2xl:h-12" role="img" aria-label="Metric trend">
       <path
         d="M2 42 C26 40, 36 38, 52 39 C72 40, 76 28, 102 27 C124 26, 127 20, 151 25 C174 31, 178 20, 198 22 C209 22, 214 17, 218 12"
         fill="none"
@@ -156,19 +156,19 @@ function MetricCard({
   accent: Accent;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className={`flex h-14 w-14 items-center justify-center rounded-full ${accentStyles[accent].icon}`}>
-          <Icon className="h-7 w-7" />
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md 2xl:p-5">
+      <div className="flex items-start justify-between gap-3 2xl:gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-full 2xl:h-14 2xl:w-14 ${accentStyles[accent].icon}`}>
+          <Icon className="h-6 w-6 2xl:h-7 2xl:w-7" />
         </div>
         <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-xs font-bold text-slate-400">
           i
         </span>
       </div>
-      <div className="mt-4">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="mt-1 text-3xl font-bold text-slate-950">{value}</p>
-        <p className="mt-3 text-sm text-slate-600">{helper}</p>
+      <div className="mt-4 min-w-0">
+        <p className="text-xs font-semibold text-slate-500 2xl:text-sm">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-slate-950 2xl:text-3xl">{value}</p>
+        <p className="mt-3 text-xs leading-5 text-slate-600 2xl:text-sm">{helper}</p>
       </div>
       <MiniSparkline accent={accent} />
     </div>
@@ -191,12 +191,12 @@ function SummaryTile({
   return (
     <div className={`rounded-xl border p-4 ${accentStyles[accent].soft}`}>
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
+        <div className="min-w-0">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-slate-500 2xl:text-xs">{label}</p>
+          <p className="mt-2 text-xl font-bold text-slate-950 2xl:text-2xl">{value}</p>
           <p className="mt-1 text-xs text-slate-500">{helper}</p>
         </div>
-        <Icon className="h-8 w-8 opacity-30" />
+        <Icon className="h-7 w-7 shrink-0 opacity-30 2xl:h-8 2xl:w-8" />
       </div>
     </div>
   );
@@ -209,7 +209,7 @@ function UtilizationDonut({ value }: { value: number }) {
   const dashOffset = circumference - (normalizedValue / 100) * circumference;
 
   return (
-    <div className="relative flex aspect-square h-40 w-40 shrink-0 items-center justify-center">
+    <div className="relative flex aspect-square h-32 w-32 shrink-0 items-center justify-center 2xl:h-40 2xl:w-40">
       <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 160 160" aria-hidden="true">
         <circle
           cx="80"
@@ -231,9 +231,9 @@ function UtilizationDonut({ value }: { value: number }) {
           strokeDashoffset={dashOffset}
         />
       </svg>
-      <div className="relative flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-inner">
-        <span className="text-3xl font-bold text-slate-950">{normalizedValue}%</span>
-        <span className="text-sm text-slate-500">Utilization</span>
+      <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white shadow-inner 2xl:h-28 2xl:w-28">
+        <span className="text-2xl font-bold text-slate-950 2xl:text-3xl">{normalizedValue}%</span>
+        <span className="text-xs text-slate-500 2xl:text-sm">Utilization</span>
       </div>
     </div>
   );
@@ -271,7 +271,7 @@ function DashboardButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-24 flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-4 text-center text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700 hover:shadow-md"
+      className="flex min-h-24 flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-4 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700 hover:shadow-md 2xl:text-sm"
     >
       <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${accentStyles[accent].icon}`}>
         <Icon className="h-5 w-5" />
@@ -462,7 +462,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(12.5rem,1fr))] gap-4 2xl:grid-cols-5">
         <MetricCard
           icon={FiUsers}
           label="Total Students"
@@ -500,7 +500,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_390px]">
         <SectionCard>
           <SectionHeader
             icon={FiBarChart2}
@@ -531,7 +531,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
               </div>
             }
           />
-          <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="grid gap-5 p-4 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)] sm:p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SummaryTile
                 label="Unique Students"
@@ -562,9 +562,9 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
                 icon={FiClock}
               />
             </div>
-            <div className="flex flex-col items-center justify-center gap-6 rounded-2xl bg-slate-50 p-5 sm:flex-row">
+            <div className="flex flex-col items-center justify-center gap-5 rounded-2xl bg-slate-50 p-4 md:flex-row xl:flex-col 2xl:flex-row 2xl:gap-6 2xl:p-5">
               <UtilizationDonut value={analyticsSummary.utilization} />
-              <div className="space-y-3 text-sm">
+              <div className="grid w-full grid-cols-1 gap-3 text-xs sm:grid-cols-3 md:w-auto md:grid-cols-1 2xl:text-sm">
                 <p className="flex items-center gap-2 text-slate-600">
                   <span className="h-3 w-3 rounded-full bg-emerald-500" />
                   Filled Slots: {analyticsSummary.enrollmentSlots}
@@ -634,7 +634,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
         </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_390px]">
         <SectionCard>
           <SectionHeader
             icon={FiUsers}
@@ -718,7 +718,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
 
         <SectionCard>
           <SectionHeader icon={FiUserPlus} title="Quick Actions" />
-          <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 xl:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 2xl:grid-cols-2 2xl:p-5">
             <DashboardButton icon={FiUserPlus} label="Add Student" accent="blue" onClick={() => onNavigate?.('students')} />
             <DashboardButton icon={FiCalendar} label="Create Class" accent="green" onClick={() => onNavigate?.('classes')} />
             <DashboardButton icon={FiUsers} label="Assign Student" accent="purple" onClick={() => onNavigate?.('students')} />

@@ -256,7 +256,7 @@ function HomeContent() {
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-          <div className="flex min-h-24 items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-20 flex-wrap items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:px-8 2xl:min-h-24">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
@@ -266,12 +266,12 @@ function HomeContent() {
               <FiMenu className="h-5 w-5" />
             </button>
 
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold tracking-normal text-slate-950">{currentPage.title}</h1>
+            <div className="min-w-48 flex-1">
+              <h1 className="text-xl font-bold tracking-normal text-slate-950 2xl:text-2xl">{currentPage.title}</h1>
               <p className="mt-1 text-sm text-slate-500">{currentPage.subtitle}</p>
             </div>
 
-            <div className="hidden w-full max-w-md items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm md:flex">
+            <div className="hidden w-full max-w-xs items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm md:flex xl:max-w-sm 2xl:max-w-md">
               <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
               <input
                 type="search"
