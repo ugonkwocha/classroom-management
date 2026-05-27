@@ -21,6 +21,7 @@ model User {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  sentInvitations UserInvitation[] @relation("UserInvitations")
 
   @@index([email])
 }
@@ -29,6 +30,34 @@ enum UserRole {
   SUPERADMIN
   ADMIN
   STAFF
+}
+
+model UserInvitation {
+  id          String           @id @default(cuid())
+  email       String
+  firstName   String
+  lastName    String
+  role        UserRole
+  tokenHash   String           @unique
+  status      InvitationStatus @default(PENDING)
+  invitedById String
+  invitedBy   User             @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([invitedById])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
 }
 
 // ==================== Teachers ====================

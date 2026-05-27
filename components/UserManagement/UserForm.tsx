@@ -8,15 +8,17 @@ interface UserFormProps {
   onSubmit: (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password?: string }) => Promise<void>;
   onCancel: () => void;
   initialData?: User;
+  allowedRoles?: UserRole[];
 }
 
-export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
+export function UserForm({ onSubmit, onCancel, initialData, allowedRoles }: UserFormProps) {
+  const roles: UserRole[] = allowedRoles?.length ? allowedRoles : ['STAFF'];
   const [formData, setFormData] = useState({
     email: initialData?.email || '',
     firstName: initialData?.firstName || '',
     lastName: initialData?.lastName || '',
     password: '',
-    role: (initialData?.role || 'STAFF') as UserRole,
+    role: (initialData?.role || roles[0]) as UserRole,
     isActive: initialData?.isActive ?? true,
   });
 
@@ -30,12 +32,6 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
     // Validate required fields
     if (!formData.email || !formData.firstName || !formData.lastName) {
       setError('Email, first name, and last name are required');
-      return;
-    }
-
-    // For new users, password is required
-    if (!initialData && !formData.password) {
-      setError('Password is required for new users');
       return;
     }
 
@@ -58,8 +54,6 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
       setIsLoading(false);
     }
   };
-
-  const roles: UserRole[] = ['SUPERADMIN', 'ADMIN', 'STAFF'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,20 +108,11 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
       </div>
 
       {!initialData && (
-        <div>
-          <label htmlFor="password" className="mb-2 block text-sm font-bold text-slate-700">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required={!initialData}
-            placeholder="At least 8 characters"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-          />
-          <p className="mt-1.5 text-xs text-slate-500">Password will be set during user creation</p>
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3">
+          <p className="text-sm font-bold text-blue-950">Invite-based access</p>
+          <p className="mt-1 text-sm text-blue-700">
+            The user will receive an email invite and set their own password before they can sign in.
+          </p>
         </div>
       )}
 
@@ -148,10 +133,15 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
           ))}
         </select>
         <p className="mt-1.5 text-xs text-slate-500">
-          Choose user role: Superadmin (full access), Admin (manage courses/programs/classes/teachers), or Staff (manage students)
+          {initialData
+            ? 'Choose the user role for this account.'
+            : roles.includes('ADMIN')
+              ? 'Superadmins can invite admins or staff. Invited users set their own password.'
+              : 'Admins can invite staff. Invited users set their own password.'}
         </p>
       </div>
 
+      {initialData && (
       <div>
         <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <input
@@ -164,6 +154,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
         </label>
         <p className="mt-1.5 text-xs text-slate-500">Inactive users cannot log in</p>
       </div>
+      )}
 
       <div className="flex gap-2 justify-end pt-4">
         <Button
@@ -178,7 +169,7 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
           type="submit"
           disabled={isLoading}
         >
-          {isLoading ? 'Saving...' : initialData ? 'Update User' : 'Create User'}
+          {isLoading ? 'Saving...' : initialData ? 'Update User' : 'Send Invite'}
         </Button>
       </div>
     </form>

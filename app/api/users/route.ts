@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { getSessionUser, hashPassword } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { getSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,6 +17,7 @@ export async function GET(request: NextRequest) {
     checkPermission(sessionUser.role, PERMISSIONS.READ_USERS);
 
     const users = await prisma.user.findMany({
+      where: sessionUser.role === 'SUPERADMIN' ? undefined : { role: 'STAFF' },
       select: {
         id: true,
         email: true,
@@ -29,6 +28,7 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(users);
@@ -44,8 +44,6 @@ export async function GET(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -62,49 +60,10 @@ export async function POST(request: NextRequest) {
 
     checkPermission(sessionUser.role, PERMISSIONS.CREATE_USER);
 
-    const body = await request.json();
-    const { email, password, firstName, lastName, role } = body;
-
-    if (!email || !password || !firstName || !lastName || !role) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 400 }
-      );
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: role as any,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
-
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(
+      { error: 'Users must be invited before they can create an account' },
+      { status: 410 }
+    );
   } catch (error: any) {
     if (error.message.includes('does not have permission')) {
       return NextResponse.json(
@@ -117,7 +76,5 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

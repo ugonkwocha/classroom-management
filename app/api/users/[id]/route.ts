@@ -42,6 +42,13 @@ export async function GET(
       );
     }
 
+    if (sessionUser.role !== 'SUPERADMIN' && user.role !== 'STAFF') {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(user);
   } catch (error: any) {
     if (error.message.includes('does not have permission')) {

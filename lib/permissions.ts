@@ -2,7 +2,7 @@ import { UserRole } from '@/types';
 
 // Permission definitions
 export const PERMISSIONS = {
-  // User management (Superadmin only)
+  // User management and invitations
   CREATE_USER: 'CREATE_USER',
   READ_USERS: 'READ_USERS',
   UPDATE_USER: 'UPDATE_USER',
@@ -123,7 +123,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
 
   ADMIN: [
-    // User management - NO
+    // User invitations - staff only
+    PERMISSIONS.CREATE_USER,
+    PERMISSIONS.READ_USERS,
     // Students - full
     PERMISSIONS.CREATE_STUDENT,
     PERMISSIONS.READ_STUDENTS,

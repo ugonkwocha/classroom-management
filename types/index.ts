@@ -3,6 +3,7 @@ export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
 export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
 export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
 export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
 
@@ -13,6 +14,20 @@ export interface User {
   lastName: string;
   role: UserRole;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserInvitation {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  status: InvitationStatus;
+  expiresAt: string;
+  acceptedAt?: string | null;
+  invitedBy?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
   createdAt: string;
   updatedAt: string;
 }
