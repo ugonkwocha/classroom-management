@@ -141,7 +141,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   };
 
   // Update payment status for a specific program enrollment
-  const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED') => {
+  const handleUpdatePaymentStatus = (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED') => {
     const updatedEnrollments = getEnrollments().map((e) =>
       e.id === enrollmentId ? { ...e, paymentStatus } : e
     );
@@ -395,7 +395,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     const programEnrollment = currentEnrollments.find((e) => e.programId === programId && e.batchNumber === batchNumber);
     console.log('[handleAssignStudent] Found program enrollment:', !!programEnrollment, 'Payment status:', programEnrollment?.paymentStatus);
 
-    if (!programEnrollment || programEnrollment.paymentStatus !== 'CONFIRMED') {
+    if (!programEnrollment || (programEnrollment.paymentStatus !== 'CONFIRMED' && programEnrollment.paymentStatus !== 'COMPLETED')) {
       alert('Cannot assign student to this program. Payment must be confirmed first. Please update the payment status in the Payment Status section.');
       return;
     }

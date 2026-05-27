@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 export async function GET(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
         classId: data.classId,
         batchNumber: data.batchNumber || 1,
         status: data.status,
-        paymentStatus: data.paymentStatus || 'PENDING',
+        paymentStatus: normalizePaymentStatus(data.paymentStatus || 'PENDING'),
         priceType: data.priceType || 'FULL_PRICE',
         priceAmount: data.priceAmount || 60000,
       },

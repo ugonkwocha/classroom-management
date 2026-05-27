@@ -1,26 +1,27 @@
 import { Student } from '@/types';
 
 type PaymentStatus = Student['paymentStatus'];
+export type OperationalPaymentStatus = Exclude<PaymentStatus, 'COMPLETED'>;
 
-export function getStudentPaymentStatus(student: Student): PaymentStatus {
+export function normalizePaymentStatus(status: PaymentStatus | undefined | null): OperationalPaymentStatus {
+  return status === 'CONFIRMED' || status === 'COMPLETED' ? 'CONFIRMED' : 'PENDING';
+}
+
+export function getStudentPaymentStatus(student: Student): OperationalPaymentStatus {
   const enrollments = student.programEnrollments || student.enrollments || [];
 
   if (enrollments.length === 0) {
-    return student.paymentStatus || 'PENDING';
+    return normalizePaymentStatus(student.paymentStatus);
   }
 
   const activeEnrollments = enrollments.filter((enrollment) => enrollment.status !== 'DROPPED');
 
   if (activeEnrollments.length === 0) {
-    return student.paymentStatus || 'PENDING';
+    return normalizePaymentStatus(student.paymentStatus);
   }
 
   if (activeEnrollments.some((enrollment) => enrollment.paymentStatus === 'PENDING')) {
     return 'PENDING';
-  }
-
-  if (activeEnrollments.every((enrollment) => enrollment.paymentStatus === 'COMPLETED')) {
-    return 'COMPLETED';
   }
 
   return 'CONFIRMED';

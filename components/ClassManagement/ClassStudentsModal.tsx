@@ -2,6 +2,7 @@
 
 import { Class, Student, Program } from '@/types';
 import { Card, Button } from '@/components/ui';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 interface ClassStudentsModalProps {
   classData: Class;
@@ -72,17 +73,14 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
       <div className="space-y-3">
         {enrolledStudents.map((student) => {
           const enrollment = getEnrollmentInfo(student);
+          const paymentStatus = normalizePaymentStatus(enrollment?.paymentStatus);
           const paymentStatusColor =
-            enrollment?.paymentStatus === 'COMPLETED'
-              ? 'text-green-600'
-              : enrollment?.paymentStatus === 'CONFIRMED'
+            paymentStatus === 'CONFIRMED'
               ? 'text-blue-600'
               : 'text-amber-600';
 
           const statusLabel =
-            enrollment?.paymentStatus === 'COMPLETED'
-              ? 'Completed'
-              : enrollment?.paymentStatus === 'CONFIRMED'
+            paymentStatus === 'CONFIRMED'
               ? 'Confirmed'
               : 'Pending';
 

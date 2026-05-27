@@ -6,6 +6,7 @@ import { Card, Button } from '@/components/ui';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PriceEditModal } from './PriceEditModal';
 import { getPriceLabel, formatCurrency } from '@/lib/constants/pricing';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 interface ProgramEnrollmentsSectionProps {
   enrollments: ProgramEnrollment[];
@@ -18,6 +19,16 @@ interface ProgramEnrollmentsSectionProps {
   onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
   onEditPrice?: (enrollmentId: string, priceType: PriceType, priceAmount: number) => Promise<void>;
   studentId?: string;
+}
+
+function paymentBadgeClass(paymentStatus: ProgramEnrollment['paymentStatus']) {
+  return normalizePaymentStatus(paymentStatus) === 'CONFIRMED'
+    ? 'bg-blue-100 text-blue-800'
+    : 'bg-amber-100 text-amber-800';
+}
+
+function paymentBadgeLabel(paymentStatus: ProgramEnrollment['paymentStatus']) {
+  return normalizePaymentStatus(paymentStatus) === 'CONFIRMED' ? '✓ Confirmed' : '⏳ Pending';
 }
 
 export function ProgramEnrollmentsSection({
@@ -178,14 +189,8 @@ export function ProgramEnrollmentsSection({
                 <div className="mt-3 pt-3 border-t border-current border-opacity-20">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                      enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                      'bg-amber-100 text-amber-800'
-                    }`}>
-                      {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
-                      {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
-                      {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${paymentBadgeClass(enrollment.paymentStatus)}`}>
+                      {paymentBadgeLabel(enrollment.paymentStatus)}
                     </span>
                   </div>
                 </div>
@@ -309,14 +314,8 @@ export function ProgramEnrollmentsSection({
                     <div className="mb-4 pt-3 border-t border-purple-200">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                          enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                          'bg-amber-100 text-amber-800'
-                        }`}>
-                          {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
-                          {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
-                          {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${paymentBadgeClass(enrollment.paymentStatus)}`}>
+                          {paymentBadgeLabel(enrollment.paymentStatus)}
                         </span>
                       </div>
                     </div>
@@ -397,14 +396,8 @@ export function ProgramEnrollmentsSection({
                     <div className="mb-4 pt-3 border-t border-amber-200">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-600 font-semibold">Payment Status</p>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          enrollment.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                          enrollment.paymentStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                          'bg-amber-100 text-amber-800'
-                        }`}>
-                          {enrollment.paymentStatus === 'CONFIRMED' && '✓ Confirmed'}
-                          {enrollment.paymentStatus === 'PENDING' && '⏳ Pending'}
-                          {enrollment.paymentStatus === 'COMPLETED' && '✓ Completed'}
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${paymentBadgeClass(enrollment.paymentStatus)}`}>
+                          {paymentBadgeLabel(enrollment.paymentStatus)}
                         </span>
                       </div>
                     </div>

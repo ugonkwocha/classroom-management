@@ -19,10 +19,11 @@ import { useClasses, useCourses, usePrograms, useStudents, useTeachers } from '@
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import type { Class, CourseHistory, Program, ProgramEnrollment, Student } from '@/types';
 
 type EnrollmentStatus = ProgramEnrollment['status'];
-type PaymentStatus = NonNullable<ProgramEnrollment['paymentStatus']>;
+type PaymentStatus = Exclude<NonNullable<ProgramEnrollment['paymentStatus']>, 'COMPLETED'>;
 type AssignmentFilter = 'ALL' | 'UNASSIGNED' | 'ASSIGNED' | 'READY';
 
 type EnrollmentRow = {
@@ -33,7 +34,7 @@ type EnrollmentRow = {
 };
 
 const enrollmentStatuses: EnrollmentStatus[] = ['WAITLIST', 'ASSIGNED', 'COMPLETED', 'DROPPED'];
-const paymentStatuses: PaymentStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED'];
+const paymentStatuses: PaymentStatus[] = ['PENDING', 'CONFIRMED'];
 
 const statusStyles: Record<EnrollmentStatus, string> = {
   WAITLIST: 'border-amber-100 bg-amber-50 text-amber-700',
@@ -45,7 +46,6 @@ const statusStyles: Record<EnrollmentStatus, string> = {
 const paymentStyles: Record<PaymentStatus, string> = {
   PENDING: 'border-amber-100 bg-amber-50 text-amber-700',
   CONFIRMED: 'border-blue-100 bg-blue-50 text-blue-700',
-  COMPLETED: 'border-emerald-100 bg-emerald-50 text-emerald-700',
 };
 
 function formatLabel(value: string) {
@@ -78,8 +78,7 @@ function getStudentEnrollments(student: Student) {
 }
 
 function deriveStudentPaymentStatus(enrollments: ProgramEnrollment[]): Student['paymentStatus'] {
-  if (enrollments.some((enrollment) => enrollment.paymentStatus === 'COMPLETED')) return 'COMPLETED';
-  if (enrollments.some((enrollment) => enrollment.paymentStatus === 'CONFIRMED')) return 'CONFIRMED';
+  if (enrollments.some((enrollment) => normalizePaymentStatus(enrollment.paymentStatus) === 'CONFIRMED')) return 'CONFIRMED';
   return 'PENDING';
 }
 
@@ -229,9 +228,9 @@ export function EnrollmentManagement() {
         .join(' ')
         .toLowerCase();
 
-      const paymentStatus = row.enrollment.paymentStatus || 'PENDING';
+      const paymentStatus = normalizePaymentStatus(row.enrollment.paymentStatus);
       const assigned = row.enrollment.status === 'ASSIGNED' && Boolean(row.enrollment.classId);
-      const ready = !assigned && (paymentStatus === 'CONFIRMED' || paymentStatus === 'COMPLETED');
+      const ready = !assigned && paymentStatus === 'CONFIRMED';
 
       return (
         (!normalizedSearch || haystack.includes(normalizedSearch)) &&
@@ -249,7 +248,7 @@ export function EnrollmentManagement() {
 
   const metrics = useMemo(() => {
     const total = rows.length;
-    const pendingPayment = rows.filter((row) => (row.enrollment.paymentStatus || 'PENDING') === 'PENDING').length;
+    const pendingPayment = rows.filter((row) => normalizePaymentStatus(row.enrollment.paymentStatus) === 'PENDING').length;
     const waitlist = rows.filter((row) => row.enrollment.status === 'WAITLIST').length;
     const assigned = rows.filter((row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId).length;
     const activeCapacity = classes.filter((classItem) => !classItem.isArchived).reduce((sum, classItem) => sum + classItem.capacity, 0);
@@ -352,14 +351,14 @@ export function EnrollmentManagement() {
   const handleAssignClass = async (row: EnrollmentRow) => {
     const classId = selectedClasses[row.enrollment.id] || row.enrollment.classId || '';
     const classItem = classes.find((item) => item.id === classId);
-    const paymentStatus = row.enrollment.paymentStatus || 'PENDING';
+    const paymentStatus = normalizePaymentStatus(row.enrollment.paymentStatus);
 
     if (!classId || !classItem) {
       setMessage({ type: 'error', text: 'Select a class before assigning this enrollment.' });
       return;
     }
 
-    if (paymentStatus !== 'CONFIRMED' && paymentStatus !== 'COMPLETED') {
+    if (paymentStatus !== 'CONFIRMED') {
       setMessage({ type: 'error', text: 'Confirm payment before assigning a student to a class.' });
       return;
     }
@@ -553,7 +552,7 @@ export function EnrollmentManagement() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredRows.map((row) => {
-                const paymentStatus = row.enrollment.paymentStatus || 'PENDING';
+                const paymentStatus = normalizePaymentStatus(row.enrollment.paymentStatus);
                 const availableClasses = getAvailableClasses(row);
                 const selectedClassId = selectedClasses[row.enrollment.id] ?? row.enrollment.classId ?? '';
                 const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);

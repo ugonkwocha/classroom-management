@@ -8,6 +8,7 @@ import {
   primaryGuardianLegacyData,
   studentFamilyInclude,
 } from '@/lib/family-server';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 export async function GET(
   request: NextRequest,
@@ -179,7 +180,7 @@ export async function PUT(
                 parentPhone: data.parentPhone,
                 parentPhoneCountryCode: data.parentPhoneCountryCode,
               }),
-          paymentStatus: data.paymentStatus,
+          paymentStatus: data.paymentStatus ? normalizePaymentStatus(data.paymentStatus) : undefined,
         },
         include: {
           ...studentFamilyInclude,

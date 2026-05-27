@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 export async function GET(
   request: NextRequest,
@@ -139,7 +140,7 @@ export async function PUT(
       const updateData: any = {};
       if (Object.prototype.hasOwnProperty.call(data, 'batchNumber')) updateData.batchNumber = data.batchNumber;
       if (Object.prototype.hasOwnProperty.call(data, 'status')) updateData.status = data.status;
-      if (Object.prototype.hasOwnProperty.call(data, 'paymentStatus')) updateData.paymentStatus = data.paymentStatus;
+      if (Object.prototype.hasOwnProperty.call(data, 'paymentStatus')) updateData.paymentStatus = normalizePaymentStatus(data.paymentStatus);
       if (Object.prototype.hasOwnProperty.call(data, 'priceType')) updateData.priceType = data.priceType;
       if (Object.prototype.hasOwnProperty.call(data, 'priceAmount')) updateData.priceAmount = data.priceAmount;
       if (

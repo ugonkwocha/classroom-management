@@ -3,11 +3,14 @@
 import { ProgramEnrollment, Program } from '@/types';
 import { Select, Button } from '@/components/ui';
 import { useState } from 'react';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
+
+type OperationalPaymentStatus = 'PENDING' | 'CONFIRMED';
 
 interface PaymentStatusSectionProps {
   enrollments: ProgramEnrollment[];
   programs: Program[];
-  onUpdatePaymentStatus: (enrollmentId: string, paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED') => void;
+  onUpdatePaymentStatus: (enrollmentId: string, paymentStatus: OperationalPaymentStatus) => void;
 }
 
 export function PaymentStatusSection({
@@ -16,11 +19,11 @@ export function PaymentStatusSection({
   onUpdatePaymentStatus,
 }: PaymentStatusSectionProps) {
   const [editingEnrollmentId, setEditingEnrollmentId] = useState<string | null>(null);
-  const [editingPaymentStatus, setEditingPaymentStatus] = useState<'PENDING' | 'CONFIRMED' | 'COMPLETED'>('PENDING');
+  const [editingPaymentStatus, setEditingPaymentStatus] = useState<OperationalPaymentStatus>('PENDING');
 
-  const startEdit = (enrollmentId: string, currentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | undefined) => {
+  const startEdit = (enrollmentId: string, currentStatus: ProgramEnrollment['paymentStatus'] | undefined) => {
     setEditingEnrollmentId(enrollmentId);
-    setEditingPaymentStatus(currentStatus || 'PENDING');
+    setEditingPaymentStatus(normalizePaymentStatus(currentStatus));
   };
 
   const saveEdit = () => {
@@ -31,10 +34,7 @@ export function PaymentStatusSection({
   };
 
   const getStatusColor = (status: string | undefined) => {
-    if (!status) return 'text-gray-600';
-    switch (status) {
-      case 'COMPLETED':
-        return 'text-green-600';
+    switch (normalizePaymentStatus(status as ProgramEnrollment['paymentStatus'])) {
       case 'CONFIRMED':
         return 'text-blue-600';
       case 'PENDING':
@@ -44,10 +44,7 @@ export function PaymentStatusSection({
   };
 
   const getStatusBg = (status: string | undefined) => {
-    if (!status) return 'bg-gray-50';
-    switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-50';
+    switch (normalizePaymentStatus(status as ProgramEnrollment['paymentStatus'])) {
       case 'CONFIRMED':
         return 'bg-blue-50';
       case 'PENDING':
@@ -67,6 +64,7 @@ export function PaymentStatusSection({
         {enrollments.map((enrollment) => {
           const program = programs.find((p) => p.id === enrollment.programId);
           const isEditing = editingEnrollmentId === enrollment.id;
+          const displayPaymentStatus = normalizePaymentStatus(enrollment.paymentStatus);
 
           return (
             <div
@@ -112,20 +110,17 @@ export function PaymentStatusSection({
                 <Select
                   label="Payment Status"
                   value={editingPaymentStatus}
-                  onChange={(e) => setEditingPaymentStatus(e.target.value as 'PENDING' | 'CONFIRMED' | 'COMPLETED')}
+                  onChange={(e) => setEditingPaymentStatus(e.target.value as OperationalPaymentStatus)}
                   options={[
                     { value: 'PENDING', label: 'Pending - Awaiting Payment' },
                     { value: 'CONFIRMED', label: 'Confirmed - Payment Verified' },
-                    { value: 'COMPLETED', label: 'Completed' },
                   ]}
                   className="mt-2"
                 />
               ) : (
                 <div>
                   <p className={`text-sm font-semibold ${getStatusColor(enrollment.paymentStatus)}`}>
-                    {enrollment.paymentStatus
-                      ? enrollment.paymentStatus.charAt(0).toUpperCase() + enrollment.paymentStatus.slice(1)
-                      : 'Not Set'}
+                    {displayPaymentStatus === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
                   </p>
                 </div>
               )}

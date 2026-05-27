@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Program, Class, CourseHistory, ProgramEnrollment } from '@/types';
 import { Button } from '@/components/ui';
+import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 interface AssignmentModalProps {
   studentId: string;
@@ -55,7 +56,7 @@ export function AssignmentModal({
   const selectedProgramEnrollment = studentProgramEnrollments.find(
     (e) => e.programId === selectedProgram
   );
-  const isPaymentConfirmed = selectedProgramEnrollment?.paymentStatus === 'CONFIRMED';
+  const isPaymentConfirmed = normalizePaymentStatus(selectedProgramEnrollment?.paymentStatus) === 'CONFIRMED';
 
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(programId);
