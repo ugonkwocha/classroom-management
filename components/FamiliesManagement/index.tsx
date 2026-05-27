@@ -41,7 +41,7 @@ export function FamiliesManagement() {
   const [search, setSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isEditingFamily, setIsEditingFamily] = useState(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [moveSelections, setMoveSelections] = useState<Record<string, string>>({});
   const [mergeSourceId, setMergeSourceId] = useState('');
@@ -149,7 +149,7 @@ export function FamiliesManagement() {
       relationship: primary?.relationship || 'PARENT',
     });
     setSelectedFamily(family);
-    setIsEditOpen(true);
+    setIsEditingFamily(true);
   };
 
   const handleUpdateFamily = async (event: React.FormEvent) => {
@@ -174,7 +174,7 @@ export function FamiliesManagement() {
         ],
       });
       setSelectedFamily(updated);
-      setIsEditOpen(false);
+      setIsEditingFamily(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to update family');
     }
@@ -440,175 +440,185 @@ export function FamiliesManagement() {
         </form>
       </Modal>
 
-      <Modal isOpen={!!selectedFamily} onClose={() => setSelectedFamily(null)} title={selectedFamily?.displayName || 'Family'} size="xl">
+      <Modal
+        isOpen={!!selectedFamily}
+        onClose={() => {
+          setSelectedFamily(null);
+          setIsEditingFamily(false);
+        }}
+        title={isEditingFamily ? 'Edit Family' : selectedFamily?.displayName || 'Family'}
+        size="xl"
+      >
         {selectedFamily && (
-          <div className="space-y-6">
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-950">Family actions</p>
-                <p className="mt-1 text-sm text-slate-500">Update guardian details or add a child directly to this family.</p>
+          isEditingFamily ? (
+            <form onSubmit={handleUpdateFamily} className="space-y-4">
+              <Input
+                label="Family Display Name"
+                required
+                value={editFormData.displayName}
+                onChange={(event) => setEditFormData({ ...editFormData, displayName: event.target.value })}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Primary Guardian First Name"
+                  required
+                  value={editFormData.firstName}
+                  onChange={(event) => setEditFormData({ ...editFormData, firstName: event.target.value })}
+                />
+                <Input
+                  label="Primary Guardian Last Name"
+                  required
+                  value={editFormData.lastName}
+                  onChange={(event) => setEditFormData({ ...editFormData, lastName: event.target.value })}
+                />
               </div>
-              <div className="flex flex-wrap gap-2">
-                {canEdit && (
-                  <Button type="button" variant="outline" onClick={() => openEditFamily(selectedFamily)}>
-                    Edit Family
-                  </Button>
-                )}
-                {canCreate && (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setStudentFormErrors([]);
-                      setIsAddStudentOpen(true);
-                    }}
-                  >
-                    <FiPlus className="h-4 w-4" />
-                    Add Student
-                  </Button>
-                )}
+              <Input
+                label="Primary Guardian Email"
+                type="email"
+                value={editFormData.email}
+                onChange={(event) => setEditFormData({ ...editFormData, email: event.target.value })}
+              />
+              <PhoneInput
+                label="Primary Guardian Phone"
+                value={editFormData.phone}
+                countryCode={editFormData.phoneCountryCode}
+                onCountryCodeChange={(phoneCountryCode) => setEditFormData({ ...editFormData, phoneCountryCode })}
+                onChange={(phone) => setEditFormData({ ...editFormData, phone })}
+              />
+              <Select
+                label="Relationship"
+                value={editFormData.relationship}
+                onChange={(event) => setEditFormData({ ...editFormData, relationship: event.target.value })}
+                options={relationshipOptions}
+              />
+              <div className="flex gap-3 border-t border-slate-200 pt-4">
+                <Button type="submit" className="flex-1">
+                  <FiSave className="h-4 w-4" />
+                  Save Changes
+                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditingFamily(false)}>
+                  Cancel
+                </Button>
               </div>
-            </div>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-slate-950">Family actions</p>
+                  <p className="mt-1 text-sm text-slate-500">Update guardian details or add a child directly to this family.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {canEdit && (
+                    <Button type="button" variant="outline" onClick={() => openEditFamily(selectedFamily)}>
+                      Edit Family
+                    </Button>
+                  )}
+                  {canCreate && (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setStudentFormErrors([]);
+                        setIsAddStudentOpen(true);
+                      }}
+                    >
+                      <FiPlus className="h-4 w-4" />
+                      Add Student
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-            <section>
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">Guardians</h3>
-              <div className="grid gap-3 md:grid-cols-2">
-                {selectedFamily.guardians.map((guardian) => (
-                  <div key={guardian.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-slate-950">{formatGuardianName(guardian.firstName, guardian.lastName)}</p>
-                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{guardian.relationship}</p>
+              <section>
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">Guardians</h3>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {selectedFamily.guardians.map((guardian) => (
+                    <div key={guardian.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-slate-950">{formatGuardianName(guardian.firstName, guardian.lastName)}</p>
+                          <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{guardian.relationship}</p>
+                        </div>
+                        {guardian.isPrimary && (
+                          <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">Primary</span>
+                        )}
                       </div>
-                      {guardian.isPrimary && (
-                        <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">Primary</span>
+                      <div className="mt-4 space-y-2 text-sm text-slate-600">
+                        <p className="flex items-center gap-2"><FiMail className="h-4 w-4" /> {guardian.email || 'No email'}</p>
+                        <p className="flex items-center gap-2"><FiPhone className="h-4 w-4" /> {guardian.phone || 'No phone'}</p>
+                      </div>
+                      {guardian.needsReview && (
+                        <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+                          Needs name/contact review from migrated data
+                        </p>
                       )}
                     </div>
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <p className="flex items-center gap-2"><FiMail className="h-4 w-4" /> {guardian.email || 'No email'}</p>
-                      <p className="flex items-center gap-2"><FiPhone className="h-4 w-4" /> {guardian.phone || 'No phone'}</p>
-                    </div>
-                    {guardian.needsReview && (
-                      <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-                        Needs name/contact review from migrated data
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">Linked Students</h3>
-              <div className="space-y-2">
-                {(selectedFamily.students || []).map((student) => (
-                  <div key={student.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-bold text-slate-950">{student.firstName} {student.lastName}</p>
-                      <p className="text-sm text-slate-500">{student.email || 'No student email'}</p>
-                    </div>
-                    {canEdit && (
-                      <div className="flex min-w-0 gap-2 sm:w-80">
-                        <select
-                          value={moveSelections[student.id] || ''}
-                          onChange={(event) => setMoveSelections({ ...moveSelections, [student.id]: event.target.value })}
-                          className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                        >
-                          <option value="">Move to...</option>
-                          {familyOptions.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                        <Button type="button" variant="outline" size="sm" onClick={() => handleMoveStudent(student.id)}>
-                          <FiMove className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {(selectedFamily.students || []).length === 0 && (
-                  <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                    No students linked to this family yet.
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {canMerge && (
-              <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <div className="flex-1">
-                    <label className="mb-2 block text-sm font-bold text-blue-950">Merge another family into this one</label>
-                    <select
-                      value={mergeSourceId}
-                      onChange={(event) => setMergeSourceId(event.target.value)}
-                      className="w-full rounded-xl border border-blue-100 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
-                    >
-                      <option value="">Choose duplicate family...</option>
-                      {familyOptions.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <Button type="button" onClick={handleMerge} disabled={!mergeSourceId}>
-                    <FiGitMerge className="h-4 w-4" />
-                    Merge
-                  </Button>
+                  ))}
                 </div>
               </section>
-            )}
-          </div>
-        )}
-      </Modal>
 
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Edit Family" size="lg">
-        <form onSubmit={handleUpdateFamily} className="space-y-4">
-          <Input
-            label="Family Display Name"
-            required
-            value={editFormData.displayName}
-            onChange={(event) => setEditFormData({ ...editFormData, displayName: event.target.value })}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Primary Guardian First Name"
-              required
-              value={editFormData.firstName}
-              onChange={(event) => setEditFormData({ ...editFormData, firstName: event.target.value })}
-            />
-            <Input
-              label="Primary Guardian Last Name"
-              required
-              value={editFormData.lastName}
-              onChange={(event) => setEditFormData({ ...editFormData, lastName: event.target.value })}
-            />
-          </div>
-          <Input
-            label="Primary Guardian Email"
-            type="email"
-            value={editFormData.email}
-            onChange={(event) => setEditFormData({ ...editFormData, email: event.target.value })}
-          />
-          <PhoneInput
-            label="Primary Guardian Phone"
-            value={editFormData.phone}
-            countryCode={editFormData.phoneCountryCode}
-            onCountryCodeChange={(phoneCountryCode) => setEditFormData({ ...editFormData, phoneCountryCode })}
-            onChange={(phone) => setEditFormData({ ...editFormData, phone })}
-          />
-          <Select
-            label="Relationship"
-            value={editFormData.relationship}
-            onChange={(event) => setEditFormData({ ...editFormData, relationship: event.target.value })}
-            options={relationshipOptions}
-          />
-          <div className="flex gap-3 border-t border-slate-200 pt-4">
-            <Button type="submit" className="flex-1">
-              <FiSave className="h-4 w-4" />
-              Save Changes
-            </Button>
-            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-          </div>
-        </form>
+              <section>
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">Linked Students</h3>
+                <div className="space-y-2">
+                  {(selectedFamily.students || []).map((student) => (
+                    <div key={student.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-bold text-slate-950">{student.firstName} {student.lastName}</p>
+                        <p className="text-sm text-slate-500">{student.email || 'No student email'}</p>
+                      </div>
+                      {canEdit && (
+                        <div className="flex min-w-0 gap-2 sm:w-80">
+                          <select
+                            value={moveSelections[student.id] || ''}
+                            onChange={(event) => setMoveSelections({ ...moveSelections, [student.id]: event.target.value })}
+                            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                          >
+                            <option value="">Move to...</option>
+                            {familyOptions.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                          <Button type="button" variant="outline" size="sm" onClick={() => handleMoveStudent(student.id)}>
+                            <FiMove className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {(selectedFamily.students || []).length === 0 && (
+                    <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                      No students linked to this family yet.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              {canMerge && (
+                <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="flex-1">
+                      <label className="mb-2 block text-sm font-bold text-blue-950">Merge another family into this one</label>
+                      <select
+                        value={mergeSourceId}
+                        onChange={(event) => setMergeSourceId(event.target.value)}
+                        className="w-full rounded-xl border border-blue-100 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                      >
+                        <option value="">Choose duplicate family...</option>
+                        {familyOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button type="button" onClick={handleMerge} disabled={!mergeSourceId}>
+                      <FiGitMerge className="h-4 w-4" />
+                      Merge
+                    </Button>
+                  </div>
+                </section>
+              )}
+            </div>
+          )
+        )}
       </Modal>
 
       <Modal
