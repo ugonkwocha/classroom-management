@@ -243,6 +243,7 @@ export function StudentManagement({ selectedStudentId }: StudentManagementProps)
           onCancel={handleCloseFormModal}
           initialData={editingStudent}
           apiErrors={formApiErrors}
+          existingStudents={students}
         />
       </Modal>
 

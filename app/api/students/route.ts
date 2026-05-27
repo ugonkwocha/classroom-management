@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     console.log('[API] POST /api/students received data keys:', Object.keys(data));
     console.log('[API] programEnrollments in request:', data.programEnrollments ? 'YES' : 'NO');
 
-    // Validate uniqueness for email, phone, parentEmail, and parentPhone
+    // Validate uniqueness for student-owned contact fields only. Parent contact
+    // details can be shared by siblings.
     const validationErrors: string[] = [];
 
     if (data.email) {
@@ -99,24 +100,6 @@ export async function POST(request: NextRequest) {
       });
       if (existingPhone) {
         validationErrors.push(`Phone number "${data.phone}" is already in use by another student`);
-      }
-    }
-
-    if (data.parentEmail) {
-      const existingParentEmail = await prisma.student.findFirst({
-        where: { parentEmail: data.parentEmail },
-      });
-      if (existingParentEmail) {
-        validationErrors.push(`Parent email "${data.parentEmail}" is already in use by another student's parent`);
-      }
-    }
-
-    if (data.parentPhone) {
-      const existingParentPhone = await prisma.student.findFirst({
-        where: { parentPhone: data.parentPhone },
-      });
-      if (existingParentPhone) {
-        validationErrors.push(`Parent phone number "${data.parentPhone}" is already in use by another student's parent`);
       }
     }
 

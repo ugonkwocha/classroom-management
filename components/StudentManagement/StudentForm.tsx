@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Student, CourseHistory, ProgramEnrollment, PriceType } from '@/types';
-import { Input, Select, Button, PhoneInput } from '@/components/ui';
+import { Input, Button, PhoneInput } from '@/components/ui';
 import { useCourses, usePrograms, usePricing } from '@/lib/hooks';
 import { calculateAge, generateId } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
@@ -14,9 +14,21 @@ interface StudentFormProps {
   initialData?: Student;
   isLoading?: boolean;
   apiErrors?: string[];
+  existingStudents?: Student[];
 }
 
-export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false, apiErrors = [] }: StudentFormProps) {
+const normalizeEmail = (value?: string | null) => value?.trim().toLowerCase() || '';
+const normalizePhone = (value?: string | null) => value?.replace(/\D/g, '') || '';
+const getFullName = (student: Student) => `${student.firstName} ${student.lastName}`.trim();
+
+export function StudentForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  isLoading = false,
+  apiErrors = [],
+  existingStudents = [],
+}: StudentFormProps) {
   const { courses } = useCourses();
   const { programs } = usePrograms();
   const { priceOptions } = usePricing();
@@ -46,7 +58,66 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
   const [enrollInProgram, setEnrollInProgram] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedBatches, setSelectedBatches] = useState<{ batchNumber: number; priceType: PriceType }[]>([]);
+  const [applySiblingDiscount, setApplySiblingDiscount] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const siblingMatches = useMemo(() => {
+    const parentEmail = normalizeEmail(formData.parentEmail);
+    const parentPhone = normalizePhone(formData.parentPhone);
+    const parentCountry = parentPhoneCountry || 'NG';
+
+    if (!parentEmail && !parentPhone) return [];
+
+    return existingStudents.filter((student) => {
+      if (initialData?.id && student.id === initialData.id) return false;
+
+      const emailMatches = Boolean(
+        parentEmail && normalizeEmail(student.parentEmail) === parentEmail
+      );
+      const phoneMatches = Boolean(
+        parentPhone &&
+          normalizePhone(student.parentPhone) === parentPhone &&
+          (student.parentPhoneCountryCode || 'NG') === parentCountry
+      );
+
+      return emailMatches || phoneMatches;
+    });
+  }, [
+    existingStudents,
+    formData.parentEmail,
+    formData.parentPhone,
+    initialData?.id,
+    parentPhoneCountry,
+  ]);
+
+  const hasSiblingMatch = siblingMatches.length > 0;
+  const hasSiblingDiscountOption = priceOptions.some((option) => option.type === 'SIBLING_DISCOUNT');
+
+  useEffect(() => {
+    if (!hasSiblingMatch && applySiblingDiscount) {
+      setApplySiblingDiscount(false);
+      setSelectedBatches((batches) =>
+        batches.map((batch) => ({
+          ...batch,
+          priceType: batch.priceType === 'SIBLING_DISCOUNT' ? 'FULL_PRICE' : batch.priceType,
+        }))
+      );
+    }
+  }, [applySiblingDiscount, hasSiblingMatch]);
+
+  const handleSiblingDiscountToggle = (enabled: boolean) => {
+    setApplySiblingDiscount(enabled);
+    setSelectedBatches((batches) =>
+      batches.map((batch) => ({
+        ...batch,
+        priceType: enabled
+          ? 'SIBLING_DISCOUNT'
+          : batch.priceType === 'SIBLING_DISCOUNT'
+            ? 'FULL_PRICE'
+            : batch.priceType,
+      }))
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +334,32 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
           required={true}
           className="mt-3"
         />
+
+        {hasSiblingMatch && (
+          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-blue-950">Sibling match found</p>
+                <p className="mt-1 text-xs text-blue-800">
+                  This parent contact matches {siblingMatches.length} existing student{siblingMatches.length === 1 ? '' : 's'}.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-blue-700">
+                {siblingMatches.length} sibling{siblingMatches.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div className="mt-3 space-y-1">
+              {siblingMatches.slice(0, 3).map((student) => (
+                <p key={student.id} className="text-xs text-blue-900">
+                  {getFullName(student)}
+                </p>
+              ))}
+              {siblingMatches.length > 3 && (
+                <p className="text-xs text-blue-700">+{siblingMatches.length - 3} more</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Program Enrollment Section */}
@@ -285,6 +382,27 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
 
         {enrollInProgram && (
           <div className="mt-4 space-y-4">
+            {hasSiblingMatch && hasSiblingDiscountOption && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={applySiblingDiscount}
+                    onChange={(e) => handleSiblingDiscountToggle(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-emerald-950">
+                      Apply sibling discount to selected batches
+                    </span>
+                    <span className="mt-1 block text-xs text-emerald-800">
+                      Suggested because this parent already has a student record. You can still choose a different price per batch below.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Program</label>
               {programs.length === 0 ? (
@@ -331,7 +449,13 @@ export function StudentForm({ onSubmit, onCancel, initialData, isLoading = false
                                     if (e.target.checked) {
                                       setSelectedBatches([
                                         ...selectedBatches,
-                                        { batchNumber: batchNum, priceType: 'FULL_PRICE' },
+                                        {
+                                          batchNumber: batchNum,
+                                          priceType:
+                                            applySiblingDiscount && hasSiblingMatch
+                                              ? 'SIBLING_DISCOUNT'
+                                              : 'FULL_PRICE',
+                                        },
                                       ]);
                                     } else {
                                       setSelectedBatches(selectedBatches.filter((b) => b.batchNumber !== batchNum));

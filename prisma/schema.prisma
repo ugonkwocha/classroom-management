@@ -156,8 +156,8 @@ model Student {
   dateOfBirth       DateTime?
   isReturningStudent Boolean  @default(false)
   paymentStatus     PaymentStatus @default(PENDING)
-  parentEmail       String?   @unique
-  parentPhone       String?   @unique
+  parentEmail       String?
+  parentPhone       String?
   parentPhoneCountryCode String? // Country code for parent phone
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
