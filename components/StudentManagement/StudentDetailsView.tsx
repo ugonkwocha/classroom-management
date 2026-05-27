@@ -370,7 +370,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       alert(`Error: ${error instanceof Error ? error.message : 'Failed to mark class as completed'}`);
     }
   };
-  const handleAssignStudent = (studentId: string, programId: string, batchNumber: number, classId: string) => {
+  const handleAssignStudent = async (studentId: string, programId: string, batchNumber: number, classId: string) => {
     console.log('[handleAssignStudent] Assigning student to class:', { studentId, programId, batchNumber, classId });
 
     // Get current enrollments (handle both field names)
@@ -451,14 +451,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     console.log('[handleAssignStudent] Calling updateStudent with', updatedEnrollments.length, 'enrollments and', updatedCourseHistory.length, 'course history entries');
     console.log('[handleAssignStudent] Existing course history:', student.courseHistory);
     console.log('[handleAssignStudent] New course history:', updatedCourseHistory);
-    updateStudent(studentId, {
+    await updateStudent(studentId, {
       programEnrollments: updatedEnrollments,
       courseHistory: updatedCourseHistory,
     });
 
     // Add student to class (only if not already added)
     if (classData && !classData.students.includes(studentId)) {
-      updateClass(classId, {
+      await updateClass(classId, {
         students: [...classData.students, studentId],
       });
     }

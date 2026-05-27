@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     const parentRecipient = student.parentEmail?.trim()
       ? [{ email: student.parentEmail, name: 'Parent/Guardian' }]
       : [];
+    const studentName = `${student.firstName} ${student.lastName}`.trim();
 
     // Format enrollment date
     const enrollmentDate = new Date().toLocaleDateString('en-US', {
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
         meetLink: classData.meetLink || undefined,
         enrollmentDate,
         recipientType: 'parent',
+        studentName,
       });
     }
 

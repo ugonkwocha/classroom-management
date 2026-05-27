@@ -85,23 +85,28 @@ export async function PUT(
 
   try {
     const data = await request.json();
+    const updateData: any = {};
+
+    if (Object.prototype.hasOwnProperty.call(data, 'name')) updateData.name = data.name;
+    if (Object.prototype.hasOwnProperty.call(data, 'courseId')) updateData.courseId = data.courseId;
+    if (Object.prototype.hasOwnProperty.call(data, 'programId')) updateData.programId = data.programId;
+    if (Object.prototype.hasOwnProperty.call(data, 'programLevel')) updateData.programLevel = data.programLevel;
+    if (Object.prototype.hasOwnProperty.call(data, 'batch')) updateData.batch = data.batch;
+    if (Object.prototype.hasOwnProperty.call(data, 'slot')) updateData.slot = data.slot;
+    if (Object.prototype.hasOwnProperty.call(data, 'schedule')) updateData.schedule = data.schedule;
+    if (Object.prototype.hasOwnProperty.call(data, 'capacity')) updateData.capacity = data.capacity;
+    if (Object.prototype.hasOwnProperty.call(data, 'students')) updateData.students = data.students;
+    if (Object.prototype.hasOwnProperty.call(data, 'teacherId')) {
+      updateData.teacherId = data.teacherId || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'meetLink')) {
+      updateData.meetLink = data.meetLink?.trim() || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'isArchived')) updateData.isArchived = data.isArchived;
 
     const classData = await prisma.class.update({
       where: { id: params.id },
-      data: {
-        name: data.name,
-        courseId: data.courseId,
-        programId: data.programId,
-        programLevel: data.programLevel,
-        batch: data.batch,
-        slot: data.slot,
-        schedule: data.schedule,
-        capacity: data.capacity,
-        students: data.students,
-        teacherId: data.teacherId,
-        meetLink: data.meetLink || null,
-        isArchived: data.isArchived,
-      },
+      data: updateData,
       include: {
         course: true,
         program: true,

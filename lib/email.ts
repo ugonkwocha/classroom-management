@@ -17,6 +17,7 @@ interface ClassAssignmentEmailParams {
   meetLink?: string;
   enrollmentDate: string;
   recipientType: 'teacher' | 'student' | 'parent';
+  studentName?: string;
 }
 
 interface EmailResponse {
@@ -48,7 +49,9 @@ function getSubject(params: ClassAssignmentEmailParams): string {
     return `Class assignment: ${params.className}`;
   }
 
-  return `Class details for ${params.className}`;
+  return params.studentName
+    ? `Class details for ${params.studentName}`
+    : `Class details for ${params.className}`;
 }
 
 function getIntro(params: ClassAssignmentEmailParams, recipient: EmailRecipient): string {
@@ -58,7 +61,9 @@ function getIntro(params: ClassAssignmentEmailParams, recipient: EmailRecipient)
     return `Hello${recipientName}, you have been assigned to teach a class at 9jacodekids Academy.`;
   }
 
-  return `Hello${recipientName}, your child has been assigned to a class at 9jacodekids Academy.`;
+  return params.studentName
+    ? `Hello${recipientName}, ${params.studentName} has been assigned to a class at 9jacodekids Academy.`
+    : `Hello${recipientName}, your child has been assigned to a class at 9jacodekids Academy.`;
 }
 
 function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient: EmailRecipient) {
@@ -71,6 +76,7 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
   const safeMeetLink = escapeHtml(params.meetLink);
   const safeIntro = escapeHtml(getIntro(params, recipient));
   const safeEnrollmentDate = escapeHtml(params.enrollmentDate);
+  const safeStudentName = escapeHtml(params.studentName);
 
   const meetLinkHtml = params.meetLink
     ? `<a href="${safeMeetLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Join Google Meet</a>`
@@ -89,6 +95,10 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
           <p style="margin:0 0 22px;color:#475569;font-size:15px;line-height:1.65;">${safeIntro}</p>
 
           <div style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Student</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeStudentName || 'Not provided'}</div>
+            </div>
             <div style="display:flex;border-bottom:1px solid #e2e8f0;">
               <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Course</div>
               <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeCourseName}</div>
@@ -136,6 +146,7 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
     '',
     getIntro(params, recipient),
     '',
+    params.studentName ? `Student: ${params.studentName}` : '',
     `Class: ${params.className}`,
     `Course: ${params.courseName}`,
     `Program: ${params.programName}`,
