@@ -10,7 +10,7 @@ A Next.js application for enrolling 9jacodekids Academy students, managing progr
 - Program enrollments with batch selection, class assignment, waitlist status, and course history
 - Pricing management for full price, sibling discount, and early bird options
 - Role-based access for superadmins, admins, and staff
-- AWS SES email notifications for class assignments
+- Manual Google Meet link support for class communications
 
 ## Tech Stack
 
@@ -101,14 +101,7 @@ SEED_ADMIN_PASSWORD="choose-a-temporary-password"
 
 After the account is created, set `RUN_DATABASE_SEED` back to `false` and redeploy.
 
-Email notifications also require:
-
-```env
-AWS_ACCESS_KEY_ID="..."
-AWS_SECRET_ACCESS_KEY="..."
-AWS_REGION="us-east-2"
-AWS_SES_FROM_EMAIL="admin@9jacodekids.com"
-```
+Email delivery is currently disabled until a new provider is selected.
 
 ## Project Structure
 

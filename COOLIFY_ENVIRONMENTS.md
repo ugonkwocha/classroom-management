@@ -45,10 +45,6 @@ RUN_DATABASE_SEED=false
 ALLOW_START_WITH_DB_INIT_FAILURE=false
 SEED_ADMIN_EMAIL=admin@9jacodekids.com
 SEED_ADMIN_PASSWORD=<temporary-staging-admin-password>
-AWS_ACCESS_KEY_ID=<staging-or-shared-ses-key>
-AWS_SECRET_ACCESS_KEY=<staging-or-shared-ses-secret>
-AWS_REGION=us-east-2
-AWS_SES_FROM_EMAIL=admin@9jacodekids.com
 ```
 
 ## Coolify Production App
@@ -76,10 +72,6 @@ JWT_SECRET=<unique-production-secret>
 DB_INIT_MODE=migrate
 RUN_DATABASE_SEED=false
 ALLOW_START_WITH_DB_INIT_FAILURE=false
-AWS_ACCESS_KEY_ID=<production-ses-key>
-AWS_SECRET_ACCESS_KEY=<production-ses-secret>
-AWS_REGION=us-east-2
-AWS_SES_FROM_EMAIL=admin@9jacodekids.com
 ```
 
 ## Database Rules
@@ -97,7 +89,7 @@ After each Coolify deployment:
 2. Confirm startup logs show `Database migrations applied successfully`.
 3. Log in to the app.
 4. Check students, classes, programs, and pricing pages.
-5. For staging only, test class assignment email notifications before promoting to production.
+5. For staging only, test class assignment flows and Google Meet link display before promoting to production.
 
 ## Promotion Checklist
 
