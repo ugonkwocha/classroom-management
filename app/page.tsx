@@ -34,6 +34,7 @@ import { TeachersManagement } from '@/components/TeachersManagement';
 import { UserManagement } from '@/components/UserManagement';
 import { PricingPage } from '@/components/PricingManagement';
 import { FamiliesManagement } from '@/components/FamiliesManagement';
+import { EnrollmentManagement } from '@/components/EnrollmentManagement';
 
 type Tab =
   | 'dashboard'
@@ -98,7 +99,7 @@ function HomeContent() {
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
     { id: 'students', label: 'Students', icon: FiUsers },
     { id: 'families', label: 'Families', icon: FiHome },
-    { id: 'enrollments', label: 'Enrollments', icon: FiClipboard, disabled: true },
+    { id: 'enrollments', label: 'Enrollments', icon: FiClipboard },
     { id: 'courses', label: 'Courses', icon: FiBookOpen },
     { id: 'programs', label: 'Programs', icon: FiLayers },
     { id: 'classes', label: 'Classes', icon: FiCalendar },
@@ -337,12 +338,7 @@ function HomeContent() {
               )}
               {activeTab === 'students' && <StudentManagement selectedStudentId={selectedStudentId} />}
               {activeTab === 'families' && <FamiliesManagement />}
-              {activeTab === 'enrollments' && (
-                <ComingSoonPanel
-                  title="Enrollment Workspace"
-                  description="Enrollment management currently lives inside student records. This sidebar item is ready for a dedicated enrollment workflow in a later phase."
-                />
-              )}
+              {activeTab === 'enrollments' && <EnrollmentManagement />}
               {activeTab === 'courses' && <CoursesManagement />}
               {activeTab === 'programs' && <ProgramsManagement />}
               {activeTab === 'classes' && <ClassManagement />}
