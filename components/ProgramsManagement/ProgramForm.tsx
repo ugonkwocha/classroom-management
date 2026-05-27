@@ -152,8 +152,8 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
         error={errors.batches}
       />
 
-      <div className="border-t pt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Time Slots</label>
+      <div className="border-t border-slate-100 pt-4">
+        <label className="mb-3 block text-sm font-bold text-slate-700">Time Slots</label>
         <div className="space-y-2">
           <div className="flex gap-2">
             <input
@@ -167,7 +167,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
                   addSlot();
                 }
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
             />
             <Button type="button" variant="secondary" size="sm" onClick={addSlot}>
               Add Slot
@@ -179,13 +179,13 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
               {formData.slots.map((slot, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
-                  <span className="text-sm text-gray-700">{slot}</span>
+                  <span className="text-sm font-medium text-slate-700">{slot}</span>
                   <button
                     type="button"
                     onClick={() => removeSlot(index)}
-                    className="text-xs text-red-600 hover:text-red-800 font-semibold"
+                    className="text-xs font-bold text-rose-600 hover:text-rose-700"
                   >
                     Remove
                   </button>
@@ -193,7 +193,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
               ))}
             </div>
           )}
-          {errors.slots && <p className="text-sm text-red-500">{errors.slots}</p>}
+          {errors.slots && <p className="text-sm font-medium text-rose-600">{errors.slots}</p>}
         </div>
       </div>
 

@@ -10,14 +10,14 @@ export function Select({ label, error, options, className, ...props }: SelectPro
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-bold text-slate-700">
           {label}
         </label>
       )}
       <select
         className={clsx(
-          'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white',
-          error && 'border-red-500 focus:ring-red-500',
+          'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50',
+          error && 'border-rose-300 focus:border-rose-300 focus:ring-rose-50',
           className
         )}
         {...props}
@@ -29,7 +29,7 @@ export function Select({ label, error, options, className, ...props }: SelectPro
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-1.5 text-sm font-medium text-rose-600">{error}</p>}
     </div>
   );
 }

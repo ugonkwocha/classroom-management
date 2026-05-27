@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { Program, Class } from '@/types';
-import { Badge, Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
 import { useClasses, useStudents, useTeachers } from '@/lib/hooks';
+import { FiCalendar, FiSearch, FiUsers } from 'react-icons/fi';
 
 interface ProgramDetailsViewProps {
   program: Program;
@@ -56,12 +57,11 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
   }, [programClasses, students]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{program.name} - {program.year}</h2>
-          <div className="flex gap-2 mt-2">
+          <h2 className="text-2xl font-bold text-slate-950">{program.name} - {program.year}</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="primary">{program.season}</Badge>
             <Badge variant="info">{program.type === 'WEEKEND_CLUB' ? 'Weekend Club' : 'Holiday Camp'}</Badge>
             <Badge variant="success">{program.batches} Batch{program.batches > 1 ? 'es' : ''}</Badge>
@@ -69,45 +69,45 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
         </div>
         <button
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 font-semibold text-lg"
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-500 transition hover:text-slate-700"
         >
-          ✕
+          Close
         </button>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-4 gap-3">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-600 font-semibold">Total Classes</p>
-          <p className="text-2xl font-bold text-blue-900 mt-1">{stats.totalClasses}</p>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Total Classes</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{stats.totalClasses}</p>
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <p className="text-xs text-green-600 font-semibold">Total Capacity</p>
-          <p className="text-2xl font-bold text-green-900 mt-1">{stats.totalCapacity}</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Total Capacity</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{stats.totalCapacity}</p>
         </div>
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-          <p className="text-xs text-purple-600 font-semibold">Enrolled</p>
-          <p className="text-2xl font-bold text-purple-900 mt-1">{stats.totalEnrolled}</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Enrolled</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{stats.totalEnrolled}</p>
         </div>
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-          <p className="text-xs text-orange-600 font-semibold">Utilization</p>
-          <p className="text-2xl font-bold text-orange-900 mt-1">{stats.utilizationPercentage}%</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Utilization</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{stats.utilizationPercentage}%</p>
         </div>
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        placeholder="Search classes by name, teacher, or level..."
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-      />
+      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm">
+        <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search classes by name, teacher, or level..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+        />
+      </div>
 
-      {/* Classes List */}
       {filteredClasses.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-gray-500 text-lg">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+          <p className="text-base font-bold text-slate-950">
             {programClasses.length === 0 ? 'No classes created for this program yet.' : 'No classes match your search.'}
           </p>
         </div>
@@ -124,12 +124,17 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
             return (
               <div
                 key={classData.id}
-                className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-100"
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="mb-3 flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{classData.name}</h3>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <FiCalendar className="h-5 w-5" />
+                      </span>
+                      <h3 className="font-bold text-slate-950">{classData.name}</h3>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <Badge variant="primary">{classData.programLevel}</Badge>
                       <Badge variant="info">Batch {classData.batch}</Badge>
                       <Badge variant="success">
@@ -147,21 +152,21 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
                 {/* Enrollment Progress */}
                 <div className="mb-3">
                   <div className="flex justify-between items-center mb-1">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-600">
                       <span className="font-semibold">{enrolledCount}</span>/{classData.capacity} students
-                      {availableSlots > 0 && <span className="text-green-600 ml-2">({availableSlots} available)</span>}
-                      {availableSlots === 0 && <span className="text-red-600 ml-2">(Full)</span>}
+                      {availableSlots > 0 && <span className="ml-2 text-emerald-600">({availableSlots} available)</span>}
+                      {availableSlots === 0 && <span className="ml-2 text-rose-600">(Full)</span>}
                     </p>
-                    <p className="text-xs text-gray-500">{Math.round(utilizationPercent)}%</p>
+                    <p className="text-xs text-slate-500">{Math.round(utilizationPercent)}%</p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="h-2 w-full rounded-full bg-slate-100">
                     <div
                       className={`h-2 rounded-full transition-all ${
                         utilizationPercent < 50
-                          ? 'bg-green-500'
+                          ? 'bg-emerald-500'
                           : utilizationPercent < 80
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
+                          ? 'bg-amber-500'
+                          : 'bg-rose-500'
                       }`}
                       style={{ width: `${Math.min(utilizationPercent, 100)}%` }}
                     />
@@ -169,19 +174,21 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
                 </div>
 
                 {/* Time Slot */}
-                <p className="text-xs text-gray-600 mb-3">
+                <p className="mb-3 text-xs text-slate-600">
                   <span className="font-semibold">Slot:</span> {classData.slot}
                 </p>
 
-                {/* Student List */}
                 {classStudents.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Enrolled Students:</p>
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+                      <FiUsers className="h-3.5 w-3.5" />
+                      Enrolled Students
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {classStudents.map((student) => (
                         <span
                           key={student.id}
-                          className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded"
+                          className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700"
                         >
                           {student.firstName} {student.lastName}
                         </span>

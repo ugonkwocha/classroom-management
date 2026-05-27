@@ -144,31 +144,38 @@ export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="mb-3 block text-sm font-bold text-slate-700">
           Qualified Courses
         </label>
-        <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+        <div className="max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
           {courses.length === 0 ? (
-            <p className="text-sm text-gray-500">No courses available</p>
+            <p className="text-sm text-slate-500">No courses available</p>
           ) : (
             courses.map((course) => (
-              <label key={course.id} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
+              <label
+                key={course.id}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
+                  formData.qualifiedCourses.includes(course.id)
+                    ? 'border-blue-200 bg-blue-50'
+                    : 'border-transparent bg-white hover:border-slate-200'
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={formData.qualifiedCourses.includes(course.id)}
                   onChange={() => toggleCourse(course.id)}
-                  className="w-4 h-4 text-purple-600 rounded"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
                 <div>
-                  <p className="font-medium text-gray-900">{course.name}</p>
-                  <p className="text-xs text-gray-600">{course.description}</p>
+                  <p className="font-bold text-slate-950">{course.name}</p>
+                  <p className="text-xs text-slate-500">{course.description}</p>
                 </div>
               </label>
             ))
           )}
         </div>
         {errors.qualifiedCourses && (
-          <p className="mt-2 text-sm text-red-500">{errors.qualifiedCourses}</p>
+          <p className="mt-2 text-sm font-medium text-rose-600">{errors.qualifiedCourses}</p>
         )}
       </div>
 

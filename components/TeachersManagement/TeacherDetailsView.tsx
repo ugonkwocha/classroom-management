@@ -57,10 +57,10 @@ export function TeacherDetailsView({
   return (
     <div className="space-y-6">
       {/* Teacher Info Header */}
-      <div className="pb-4 border-b border-gray-200">
+      <div className="border-b border-slate-100 pb-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-slate-950">
               {teacher.firstName} {teacher.lastName}
             </h1>
             <Badge variant="success" className="mt-2">
@@ -74,33 +74,33 @@ export function TeacherDetailsView({
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-gray-600">Email</p>
-            <p className="font-medium text-gray-900">{teacher.email}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Email</p>
+            <p className="mt-1 font-medium text-slate-900">{teacher.email}</p>
           </div>
           <div>
-            <p className="text-gray-600">Phone</p>
-            <p className="font-medium text-gray-900">{teacher.phone}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Phone</p>
+            <p className="mt-1 font-medium text-slate-900">{teacher.phone}</p>
           </div>
         </div>
 
         {teacher.bio && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-700">{teacher.bio}</p>
+          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-sm leading-6 text-blue-900">{teacher.bio}</p>
           </div>
         )}
       </div>
 
       {/* Current Assignments by Program */}
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <button
           onClick={() => toggleSection('currentAssignments')}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
         >
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-base font-bold text-slate-950">
             Current Class Assignments ({currentAssignedClasses.length})
           </h2>
           <svg
-            className={`w-5 h-5 text-gray-600 transition-transform ${
+            className={`h-5 w-5 text-slate-500 transition-transform ${
               expandedSections.currentAssignments ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -112,9 +112,9 @@ export function TeacherDetailsView({
         </button>
 
         {expandedSections.currentAssignments && (
-          <div className="px-4 pb-4 border-t pt-4">
+          <div className="border-t border-slate-100 px-4 pb-4 pt-4">
             {currentAssignedClasses.length === 0 ? (
-              <p className="text-gray-500 text-sm">No active classes assigned</p>
+              <p className="text-sm text-slate-500">No active classes assigned</p>
             ) : (
               <div className="space-y-4">
             {currentClassesByProgram.map(({ program, classes: programClasses }) => {
@@ -122,7 +122,7 @@ export function TeacherDetailsView({
 
               return (
                 <div key={program.id}>
-                  <h3 className="font-medium text-gray-900 mb-2">
+                  <h3 className="mb-2 font-bold text-slate-900">
                     {program.name} - {program.year}
                   </h3>
                   <div className="space-y-2 ml-4">
@@ -131,27 +131,27 @@ export function TeacherDetailsView({
                       return (
                         <div
                           key={cls.id}
-                          className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-gray-900">{cls.name}</h4>
+                            <h4 className="font-bold text-slate-950">{cls.name}</h4>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                             <div>
-                              <p className="text-gray-600">Course</p>
-                              <p className="text-gray-900 font-medium">{course?.name}</p>
+                              <p className="text-slate-500">Course</p>
+                              <p className="font-medium text-slate-900">{course?.name}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Schedule</p>
-                              <p className="text-gray-900 font-medium">Batch {cls.batch} - {cls.slot}</p>
+                              <p className="text-slate-500">Schedule</p>
+                              <p className="font-medium text-slate-900">Batch {cls.batch} - {cls.slot}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Level</p>
-                              <p className="text-gray-900 font-medium">{cls.programLevel}</p>
+                              <p className="text-slate-500">Level</p>
+                              <p className="font-medium text-slate-900">{cls.programLevel}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Enrollment</p>
-                              <p className="text-gray-900 font-medium">
+                              <p className="text-slate-500">Enrollment</p>
+                              <p className="font-medium text-slate-900">
                                 {cls.students.length}/{cls.capacity}
                               </p>
                             </div>
@@ -176,16 +176,16 @@ export function TeacherDetailsView({
 
       {/* Past Assignments by Program */}
       {pastAssignedClasses.length > 0 && (
-        <div className="border rounded-lg">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <button
             onClick={() => toggleSection('pastAssignments')}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-base font-bold text-slate-950">
               Past Class Assignments ({pastAssignedClasses.length})
             </h2>
             <svg
-              className={`w-5 h-5 text-gray-600 transition-transform ${
+              className={`h-5 w-5 text-slate-500 transition-transform ${
                 expandedSections.pastAssignments ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -197,14 +197,14 @@ export function TeacherDetailsView({
           </button>
 
           {expandedSections.pastAssignments && (
-            <div className="px-4 pb-4 border-t pt-4">
+            <div className="border-t border-slate-100 px-4 pb-4 pt-4">
               <div className="space-y-4">
             {pastClassesByProgram.map(({ program, classes: programClasses }) => {
               if (programClasses.length === 0) return null;
 
               return (
                 <div key={program.id}>
-                  <h3 className="font-medium text-gray-900 mb-2">
+                  <h3 className="mb-2 font-bold text-slate-900">
                     {program.name} - {program.year}
                   </h3>
                   <div className="space-y-2 ml-4">
@@ -213,28 +213,28 @@ export function TeacherDetailsView({
                       return (
                         <div
                           key={cls.id}
-                          className="p-3 bg-gray-100 rounded-lg border border-gray-300 opacity-75"
+                          className="rounded-2xl border border-slate-200 bg-slate-100 p-3 opacity-75"
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-gray-700">{cls.name}</h4>
+                            <h4 className="font-bold text-slate-700">{cls.name}</h4>
                             <Badge variant="warning" className="text-xs">Archived</Badge>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                             <div>
-                              <p className="text-gray-600">Course</p>
-                              <p className="text-gray-900 font-medium">{course?.name}</p>
+                              <p className="text-slate-500">Course</p>
+                              <p className="font-medium text-slate-900">{course?.name}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Schedule</p>
-                              <p className="text-gray-900 font-medium">Batch {cls.batch} - {cls.slot}</p>
+                              <p className="text-slate-500">Schedule</p>
+                              <p className="font-medium text-slate-900">Batch {cls.batch} - {cls.slot}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Level</p>
-                              <p className="text-gray-900 font-medium">{cls.programLevel}</p>
+                              <p className="text-slate-500">Level</p>
+                              <p className="font-medium text-slate-900">{cls.programLevel}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Last Enrollment</p>
-                              <p className="text-gray-900 font-medium">
+                              <p className="text-slate-500">Last Enrollment</p>
+                              <p className="font-medium text-slate-900">
                                 {cls.students.length}/{cls.capacity}
                               </p>
                             </div>
@@ -257,16 +257,16 @@ export function TeacherDetailsView({
       )}
 
       {/* Qualifications */}
-      <div className="border rounded-lg">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <button
           onClick={() => toggleSection('qualifications')}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
         >
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-base font-bold text-slate-950">
             Qualified Courses ({qualifiedCourses.length})
           </h2>
           <svg
-            className={`w-5 h-5 text-gray-600 transition-transform ${
+            className={`h-5 w-5 text-slate-500 transition-transform ${
               expandedSections.qualifications ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -278,15 +278,15 @@ export function TeacherDetailsView({
         </button>
 
         {expandedSections.qualifications && (
-          <div className="px-4 pb-4 border-t pt-4">
+          <div className="border-t border-slate-100 px-4 pb-4 pt-4">
             {qualifiedCourses.length === 0 ? (
-              <p className="text-gray-500 text-sm">No course qualifications</p>
+              <p className="text-sm text-slate-500">No course qualifications</p>
             ) : (
               <div className="grid grid-cols-1 gap-2">
             {qualifiedCourses.map((course) => (
-              <div key={course.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="font-medium text-gray-900">{course.name}</h3>
-                <p className="text-xs text-gray-600 mt-1">{course.description}</p>
+              <div key={course.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <h3 className="font-bold text-slate-950">{course.name}</h3>
+                <p className="mt-1 text-xs text-slate-500">{course.description}</p>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {course.programLevels.map((level) => (
                     <Badge key={level} variant="info" className="text-xs">
@@ -303,7 +303,7 @@ export function TeacherDetailsView({
       </div>
 
       {/* Action Button */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="border-t border-slate-100 pt-4">
         <Button variant="outline" className="w-full" onClick={onClose}>
           Close
         </Button>

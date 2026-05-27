@@ -13,20 +13,21 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'font-medium rounded-lg transition-colors duration-200 font-semibold';
+  const baseStyles =
+    'inline-flex items-center justify-center gap-2 rounded-xl font-bold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60';
 
   const variants = {
-    primary:
-      'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 active:scale-95',
-    secondary: 'bg-teal-500 text-white hover:bg-teal-600 active:scale-95',
-    outline: 'border-2 border-purple-600 text-purple-600 hover:bg-purple-50 active:scale-95',
-    danger: 'bg-red-500 text-white hover:bg-red-600 active:scale-95',
+    primary: 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-[0.99]',
+    secondary: 'bg-slate-900 text-white shadow-sm hover:bg-slate-800 active:scale-[0.99]',
+    outline:
+      'border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.99]',
+    danger: 'bg-rose-600 text-white shadow-sm hover:bg-rose-700 active:scale-[0.99]',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-base',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-3 py-2 text-xs',
+    md: 'px-4 py-2.5 text-sm',
+    lg: 'px-5 py-3 text-base',
   };
 
   return (

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Course, ProgramLevel } from '@/types';
-import { Input, Button, Badge } from '@/components/ui';
+import { Input, Button } from '@/components/ui';
 
 interface CourseFormProps {
   onSubmit: (course: Omit<Course, 'id' | 'createdAt'>) => void;
@@ -85,30 +85,37 @@ export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false 
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="mb-3 block text-sm font-bold text-slate-700">
           Available for Program Levels
         </label>
         <div className="space-y-2">
           {allProgramLevels.map((level) => (
-            <label key={level} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <label
+              key={level}
+              className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition ${
+                formData.programLevels.includes(level)
+                  ? 'border-blue-200 bg-blue-50'
+                  : 'border-slate-200 bg-white hover:bg-slate-50'
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={formData.programLevels.includes(level)}
                 onChange={() => toggleProgramLevel(level)}
-                className="w-4 h-4 text-purple-600 rounded"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <div>
-                <p className="font-medium text-gray-900">{level}</p>
-                <p className="text-xs text-gray-600">{programLevelInfo[level]}</p>
+                <p className="font-bold text-slate-950">{level}</p>
+                <p className="text-xs text-slate-500">{programLevelInfo[level]}</p>
               </div>
             </label>
           ))}
         </div>
         {errors.programLevels && (
-          <p className="mt-2 text-sm text-red-500">{errors.programLevels}</p>
+          <p className="mt-2 text-sm font-medium text-rose-600">{errors.programLevels}</p>
         )}
-        <p className="text-xs text-gray-500 mt-3">
-          💡 Select multiple levels if this course can be taught to different age groups. Classes will still be separated by age and instructor.
+        <p className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs font-medium leading-5 text-blue-800">
+          Select multiple levels if this course can be taught to different age groups. Classes will still be separated by age and instructor.
         </p>
       </div>
 

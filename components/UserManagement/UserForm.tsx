@@ -64,13 +64,13 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 text-sm">{error}</p>
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3">
+          <p className="text-sm font-medium text-rose-700">{error}</p>
         </div>
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="email" className="mb-2 block text-sm font-bold text-slate-700">
           Email
         </label>
         <input
@@ -79,13 +79,13 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="firstName" className="mb-2 block text-sm font-bold text-slate-700">
             First Name
           </label>
           <input
@@ -94,12 +94,12 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             value={formData.firstName}
             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
         </div>
 
         <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="lastName" className="mb-2 block text-sm font-bold text-slate-700">
             Last Name
           </label>
           <input
@@ -108,14 +108,14 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             value={formData.lastName}
             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
         </div>
       </div>
 
       {!initialData && (
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="mb-2 block text-sm font-bold text-slate-700">
             Password
           </label>
           <input
@@ -125,21 +125,21 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required={!initialData}
             placeholder="At least 8 characters"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
           />
-          <p className="text-xs text-gray-500 mt-1">Password will be set during user creation</p>
+          <p className="mt-1.5 text-xs text-slate-500">Password will be set during user creation</p>
         </div>
       )}
 
       <div>
-        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="role" className="mb-2 block text-sm font-bold text-slate-700">
           Role
         </label>
         <select
           id="role"
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
         >
           {roles.map((role) => (
             <option key={role} value={role}>
@@ -147,22 +147,22 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
             </option>
           ))}
         </select>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="mt-1.5 text-xs text-slate-500">
           Choose user role: Superadmin (full access), Admin (manage courses/programs/classes/teachers), or Staff (manage students)
         </p>
       </div>
 
       <div>
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <input
             type="checkbox"
             checked={formData.isActive}
             onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-            className="w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-purple-500"
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
           />
-          <span className="text-sm font-medium text-gray-700">Active</span>
+          <span className="text-sm font-bold text-slate-700">Active</span>
         </label>
-        <p className="text-xs text-gray-500 mt-1">Inactive users cannot log in</p>
+        <p className="mt-1.5 text-xs text-slate-500">Inactive users cannot log in</p>
       </div>
 
       <div className="flex gap-2 justify-end pt-4">
@@ -177,7 +177,6 @@ export function UserForm({ onSubmit, onCancel, initialData }: UserFormProps) {
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-gradient-to-r from-purple-600 to-purple-700 text-white"
         >
           {isLoading ? 'Saving...' : initialData ? 'Update User' : 'Create User'}
         </Button>
