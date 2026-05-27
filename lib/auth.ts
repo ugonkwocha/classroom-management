@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, UserRole } from '@/types';
+import prisma from '@/lib/prisma';
 
 const JWT_EXPIRY = '7d';
 const BCRYPT_ROUNDS = 10;
@@ -74,4 +75,32 @@ export function getSessionUser(request: Request): TokenPayload | null {
   }
 
   return verifyToken(token);
+}
+
+export async function getActiveSessionUser(request: Request): Promise<TokenPayload | null> {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+  if (!user?.isActive) {
+    return null;
+  }
+
+  return {
+    ...sessionUser,
+    email: user.email,
+    role: user.role as UserRole,
+  };
 }

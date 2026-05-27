@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getSessionUser, hashPassword } from '@/lib/auth';
+import { getActiveSessionUser, hashPassword } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 const prisma = new PrismaClient();
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json(
@@ -141,7 +141,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json(

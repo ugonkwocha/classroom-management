@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 function canManageInvitation(
@@ -28,7 +28,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -87,7 +87,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

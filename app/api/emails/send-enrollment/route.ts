@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { sendClassAssignmentEmail } from '@/lib/email';
 import prisma from '@/lib/prisma';
 import { formatGuardianName } from '@/lib/family-utils';
@@ -10,7 +10,7 @@ interface SendEnrollmentEmailRequest {
 }
 
 export async function POST(request: NextRequest) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionUser = getSessionUser(request);
+    const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
       return NextResponse.json(

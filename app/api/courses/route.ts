@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(

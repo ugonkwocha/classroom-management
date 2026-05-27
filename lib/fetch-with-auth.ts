@@ -20,6 +20,15 @@ export function fetchWithAuth(
   return fetch(url, {
     ...options,
     headers,
+  }).then((response) => {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
+    return response;
   });
 }
 

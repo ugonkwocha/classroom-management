@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(
@@ -68,7 +68,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(
@@ -122,7 +122,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
     return NextResponse.json(

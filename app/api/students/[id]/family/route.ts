@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getSessionUser } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { primaryGuardianLegacyData, studentFamilyInclude } from '@/lib/family-server';
 
@@ -8,7 +8,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const sessionUser = getSessionUser(request);
+  const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
