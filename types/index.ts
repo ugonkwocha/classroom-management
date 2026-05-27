@@ -130,6 +130,9 @@ export interface Class {
   meetLink?: string | null;
   isArchived: boolean; // Archive instead of delete (default: false)
   createdAt: string;
+  course?: Course;
+  program?: Program;
+  teacher?: Teacher | null;
 }
 
 export interface Stats {
