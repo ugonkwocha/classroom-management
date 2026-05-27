@@ -40,6 +40,7 @@ export function useFamilies(search = '') {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       focusThrottleInterval: 0,
+      keepPreviousData: true,
     } as SWRConfiguration
   );
 

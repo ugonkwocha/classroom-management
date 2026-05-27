@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Family, Student } from '@/types';
 import { useFamilies, useStudents } from '@/lib/hooks';
@@ -39,6 +39,7 @@ function getPrimaryGuardian(family: Family) {
 
 export function FamiliesManagement() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditingFamily, setIsEditingFamily] = useState(false);
@@ -68,6 +69,7 @@ export function FamiliesManagement() {
   const {
     families,
     isLoaded,
+    isLoading,
     createFamily,
     updateFamily,
     deleteFamily,
@@ -75,7 +77,7 @@ export function FamiliesManagement() {
     mergeFamily,
     moveStudentToFamily,
     mutate,
-  } = useFamilies(search);
+  } = useFamilies(debouncedSearch);
   const { students, addStudent } = useStudents();
   const { hasPermission } = useAuth();
 
@@ -83,6 +85,15 @@ export function FamiliesManagement() {
   const canEdit = hasPermission(PERMISSIONS.UPDATE_FAMILY);
   const canDelete = hasPermission(PERMISSIONS.DELETE_FAMILY);
   const canMerge = hasPermission(PERMISSIONS.MERGE_FAMILY);
+  const isSearchPending = search.trim() !== debouncedSearch.trim();
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   const activeGuardians = families.reduce(
     (total, family) => total + family.guardians.filter((guardian) => guardian.isActive).length,
@@ -258,7 +269,7 @@ export function FamiliesManagement() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded && families.length === 0 && !search.trim()) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
         <div className="text-center">
@@ -294,6 +305,9 @@ export function FamiliesManagement() {
                 onChange={(event) => setSearch(event.target.value)}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
               />
+              {(isSearchPending || isLoading) && search.trim() && (
+                <span className="ml-3 h-2 w-2 shrink-0 animate-pulse rounded-full bg-blue-500" aria-label="Searching" />
+              )}
             </div>
             {canCreate && (
               <button
@@ -319,15 +333,15 @@ export function FamiliesManagement() {
         </div>
 
         <div className="overflow-x-auto p-5">
-          <table className="w-full min-w-[880px] text-left text-sm">
+          <table className="w-full min-w-[1040px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-4">Family</th>
-                <th className="px-5 py-4">Primary Guardian</th>
-                <th className="px-5 py-4">Contact</th>
-                <th className="px-5 py-4">Children</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4 text-right">Actions</th>
+                <th className="w-[20%] px-5 py-4">Family</th>
+                <th className="w-[17%] px-5 py-4">Primary Guardian</th>
+                <th className="w-[27%] px-5 py-4">Contact</th>
+                <th className="w-[10%] px-5 py-4">Children</th>
+                <th className="w-[10%] px-5 py-4">Status</th>
+                <th className="w-[16%] px-5 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -335,31 +349,31 @@ export function FamiliesManagement() {
                 const primary = getPrimaryGuardian(family);
                 return (
                   <tr key={family.id} className="transition hover:bg-slate-50">
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 align-middle">
                       <button type="button" onClick={() => setSelectedFamily(family)} className="flex items-center gap-3 text-left">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                           <FiHome className="h-5 w-5" />
                         </span>
-                        <span>
+                        <span className="min-w-0">
                           <span className="block font-bold text-slate-950">{family.displayName}</span>
                           <span className="text-xs text-slate-500">{family.guardians.length} guardian{family.guardians.length === 1 ? '' : 's'}</span>
                         </span>
                       </button>
                     </td>
-                    <td className="px-5 py-4 font-medium text-slate-700">
+                    <td className="px-5 py-4 align-middle font-medium text-slate-700">
                       {primary ? formatGuardianName(primary.firstName, primary.lastName) : 'No guardian'}
                     </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      <p>{primary?.email || 'No email'}</p>
+                    <td className="px-5 py-4 align-middle text-slate-600">
+                      <p className="break-words">{primary?.email || 'No email'}</p>
                       <p className="mt-1 text-xs text-slate-500">{primary?.phone || 'No phone'}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                    <td className="px-5 py-4 align-middle">
+                      <span className="inline-flex min-w-[5.75rem] items-center justify-center whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
                         {family.students?.length || 0} linked
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                    <td className="px-5 py-4 align-middle">
+                      <span className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${
                         family.guardians.some((guardian) => guardian.needsReview)
                           ? 'border-amber-100 bg-amber-50 text-amber-700'
                           : 'border-emerald-100 bg-emerald-50 text-emerald-700'
@@ -367,7 +381,7 @@ export function FamiliesManagement() {
                         {family.guardians.some((guardian) => guardian.needsReview) ? 'Needs review' : 'Ready'}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 align-middle">
                       <div className="flex justify-end gap-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setSelectedFamily(family)}>
                           View
