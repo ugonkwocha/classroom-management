@@ -14,14 +14,23 @@ import {
   FiLayers,
   FiMoreVertical,
   FiPlus,
+  FiTrendingUp,
   FiUserCheck,
   FiUserPlus,
   FiUsers,
 } from 'react-icons/fi';
 import { useStudents, useClasses, usePrograms, useTeachers } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Modal } from '@/components/ui';
 import { calculateAge } from '@/lib/utils';
 import type { Class, Program, Student } from '@/types';
+import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
+import { YearOverYearComparison } from './YearOverYearComparison';
+import { ProgramComparison } from './ProgramComparison';
+import { ProgramHistoryComparison } from './ProgramHistoryComparison';
+import { RevenueAnalytics } from './RevenueAnalytics';
+import { RevenueForecast } from './RevenueForecast';
+import { DiscountAdoptionAnalysis } from './DiscountAdoptionAnalysis';
 
 type DashboardTarget = 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'pricing';
 
@@ -240,6 +249,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
   const { classes, isLoaded: classesLoaded } = useClasses();
   const { programs } = usePrograms();
   const { teachers } = useTeachers();
+  const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({
     type: null,
@@ -250,6 +260,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
 
   const classesArray = Array.isArray(classes) ? classes : [];
   const activeClasses = classesArray.filter((classItem) => !classItem.isArchived);
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
 
   const classEnrollmentCount = useCallback(
     (classId: string) =>
@@ -350,6 +361,32 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
       utilization: capacity > 0 ? Math.round((enrollmentSlots / capacity) * 100) : 0,
     };
   }, [activeClasses, analyticsViewMode, analyticsYearFilter, getClassProgram, programs, students]);
+
+  const programDistribution = useMemo(() => {
+    const getFilteredStudents = (programLevelName: string) =>
+      students.filter((student) =>
+        activeClasses.some((classItem) => {
+          if (classItem.programLevel !== programLevelName) return false;
+          if (selectedProgram && classItem.programId !== selectedProgram) return false;
+
+          return getEnrollments(student).some(
+            (enrollment) => enrollment.classId === classItem.id && enrollment.status === 'ASSIGNED'
+          );
+        })
+      ).length;
+
+    return {
+      CREATORS: getFilteredStudents('CREATORS'),
+      INNOVATORS: getFilteredStudents('INNOVATORS'),
+      INVENTORS: getFilteredStudents('INVENTORS'),
+    };
+  }, [activeClasses, selectedProgram, students]);
+
+  const filteredStudentsCount = selectedProgram
+    ? students.filter((student) =>
+        getEnrollments(student).some((enrollment) => enrollment.programId === selectedProgram && enrollment.status === 'ASSIGNED')
+      ).length
+    : Object.values(programDistribution).reduce((sum, count) => sum + count, 0);
 
   const upcomingClasses = useMemo(
     () =>
@@ -753,6 +790,127 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {isSuperAdmin && (
+        <div className="space-y-6">
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-blue-600">Super Admin</p>
+              <h2 className="mt-1 text-2xl font-bold text-slate-950">Advanced Analytics</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Revenue, forecast, discount, and comparison analytics preserved from the previous dashboard.
+              </p>
+            </div>
+          </div>
+
+          <SectionCard>
+            <SectionHeader
+              icon={FiLayers}
+              title="Program Distribution"
+              action={
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedProgram}
+                    onChange={(event) => setSelectedProgram(event.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+                  >
+                    <option value="">All Programs</option>
+                    {programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.name} - {program.season} {program.year}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedProgram && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProgram('')}
+                      className="rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              }
+            />
+            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
+              {Object.entries(programDistribution).map(([programLevel, count], index) => {
+                const accents: Accent[] = ['purple', 'blue', 'green'];
+                const percent = filteredStudentsCount > 0 ? Math.round((count / filteredStudentsCount) * 100) : 0;
+
+                return (
+                  <SummaryTile
+                    key={programLevel}
+                    label={programLevel}
+                    value={count}
+                    helper={`${percent}% of enrolled students`}
+                    accent={accents[index] || 'blue'}
+                    icon={FiUsers}
+                  />
+                );
+              })}
+              <SummaryTile
+                label="Total Enrolled"
+                value={filteredStudentsCount}
+                helper={selectedProgram ? 'For selected program' : 'Across all programs'}
+                accent="blue"
+                icon={FiUserCheck}
+              />
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader icon={FiDollarSign} title="Revenue Analytics" />
+            <div className="p-5">
+              <RevenueAnalytics students={students} programs={programs} />
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader icon={FiTrendingUp} title="Revenue Forecast" />
+            <div className="p-5">
+              <RevenueForecast students={students} programs={programs} classes={classesArray} />
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader icon={FiBarChart2} title="Discount Adoption Analysis" />
+            <div className="p-5">
+              <DiscountAdoptionAnalysis students={students} programs={programs} />
+            </div>
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <SectionCard>
+              <SectionHeader icon={FiBarChart2} title="Program Comparison" />
+              <div className="p-5">
+                <ProgramComparison students={students} programs={programs} classes={classesArray} />
+              </div>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionHeader icon={FiCalendar} title="Program History Comparison" />
+              <div className="p-5">
+                <ProgramHistoryComparison students={students} programs={programs} classes={classesArray} />
+              </div>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionHeader icon={FiTrendingUp} title="Year-over-Year Comparison" />
+              <div className="p-5">
+                <YearOverYearComparison students={students} programs={programs} classes={classesArray} />
+              </div>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionHeader icon={FiBarChart2} title="Enrollment Trends" />
+              <div className="p-5">
+                <EnrollmentTrendsChartWrapper students={students} programs={programs} />
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={detailsModal.type === 'unassigned'}
