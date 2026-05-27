@@ -5,3 +5,4 @@ export { useCourses } from './useCourses';
 export { usePrograms } from './usePrograms';
 export { useTeachers } from './useTeachers';
 export { usePricing } from './usePricing';
+export { useProgramLevelSettings } from './useProgramLevelSettings';

@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import { Class, Teacher } from '@/types';
 import { Badge, Button } from '@/components/ui';
+import { useProgramLevelSettings } from '@/lib/hooks';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 
 interface ClassCardProps {
   classData: Class;
@@ -18,6 +20,7 @@ interface ClassCardProps {
 }
 
 export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive, onViewStudents, studentCount, teacher, canEdit = true, canDelete = true }: ClassCardProps) {
+  const { settings } = useProgramLevelSettings();
   const capacity = classData.capacity;
   const percentage = Math.round((studentCount / capacity) * 100);
   const isFull = studentCount >= capacity;
@@ -65,7 +68,7 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Badge variant="primary">{classData.programLevel}</Badge>
+          <Badge variant="primary">{getProgramLevelLabel(settings, classData.programLevel)}</Badge>
           <Badge variant="info">{classData.schedule}</Badge>
           <Badge variant={classData.meetLink ? 'success' : 'warning'}>
             {classData.meetLink ? 'Meet Ready' : 'No Meet Link'}

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Teacher, Class, Program, Course } from '@/types';
 import { Badge, Button } from '@/components/ui';
+import { useProgramLevelSettings } from '@/lib/hooks';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 
 interface TeacherDetailsViewProps {
   teacher: Teacher;
@@ -21,6 +23,7 @@ export function TeacherDetailsView({
   onClose,
   onEdit,
 }: TeacherDetailsViewProps) {
+  const { settings } = useProgramLevelSettings();
   // State for collapsible sections
   const [expandedSections, setExpandedSections] = useState({
     currentAssignments: true,
@@ -147,7 +150,7 @@ export function TeacherDetailsView({
                             </div>
                             <div>
                               <p className="text-slate-500">Level</p>
-                              <p className="font-medium text-slate-900">{cls.programLevel}</p>
+                              <p className="font-medium text-slate-900">{getProgramLevelLabel(settings, cls.programLevel)}</p>
                             </div>
                             <div>
                               <p className="text-slate-500">Enrollment</p>
@@ -157,7 +160,7 @@ export function TeacherDetailsView({
                             </div>
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            <Badge variant="primary">{cls.programLevel}</Badge>
+                            <Badge variant="primary">{getProgramLevelLabel(settings, cls.programLevel)}</Badge>
                             <Badge variant="info">Batch {cls.batch}</Badge>
                             <Badge variant="success">{cls.students.length} Students</Badge>
                           </div>
@@ -230,7 +233,7 @@ export function TeacherDetailsView({
                             </div>
                             <div>
                               <p className="text-slate-500">Level</p>
-                              <p className="font-medium text-slate-900">{cls.programLevel}</p>
+                              <p className="font-medium text-slate-900">{getProgramLevelLabel(settings, cls.programLevel)}</p>
                             </div>
                             <div>
                               <p className="text-slate-500">Last Enrollment</p>
@@ -240,7 +243,7 @@ export function TeacherDetailsView({
                             </div>
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            <Badge variant="primary">{cls.programLevel}</Badge>
+                            <Badge variant="primary">{getProgramLevelLabel(settings, cls.programLevel)}</Badge>
                             <Badge variant="info">Batch {cls.batch}</Badge>
                           </div>
                         </div>
@@ -290,7 +293,7 @@ export function TeacherDetailsView({
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {course.programLevels.map((level) => (
                     <Badge key={level} variant="info" className="text-xs">
-                      {level}
+                      {getProgramLevelLabel(settings, level)}
                     </Badge>
                   ))}
                 </div>

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Program, Class, CourseHistory, ProgramEnrollment } from '@/types';
 import { Button } from '@/components/ui';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
+import { useProgramLevelSettings } from '@/lib/hooks';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 
 interface AssignmentModalProps {
   studentId: string;
@@ -30,6 +32,7 @@ export function AssignmentModal({
   onAssign,
   onCancel,
 }: AssignmentModalProps) {
+  const { settings } = useProgramLevelSettings();
   const [mode, setMode] = useState<'choice' | 'assign'>('choice');
   const [step, setStep] = useState<'program' | 'batch' | 'payment' | 'class'>('program');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
@@ -401,7 +404,7 @@ export function AssignmentModal({
                       <div>
                         <p className="font-semibold text-gray-900">{cls.name}</p>
                         <p className="text-xs text-gray-600 mt-1">
-                          Slot: {cls.slot} | Level: {cls.programLevel}
+                          Slot: {cls.slot} | Level: {getProgramLevelLabel(settings, cls.programLevel)}
                         </p>
                         {isAlreadyAssigned && (
                           <p className="text-xs text-yellow-600 mt-2 font-semibold">Already assigned</p>

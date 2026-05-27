@@ -19,10 +19,11 @@ import {
   FiUserPlus,
   FiUsers,
 } from 'react-icons/fi';
-import { useStudents, useClasses, usePrograms, useTeachers } from '@/lib/hooks';
+import { useStudents, useClasses, usePrograms, useTeachers, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Modal } from '@/components/ui';
 import { calculateAge } from '@/lib/utils';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 import type { Class, Program, Student } from '@/types';
 import { EnrollmentTrendsChartWrapper } from './EnrollmentTrendsChartWrapper';
 import { YearOverYearComparison } from './YearOverYearComparison';
@@ -286,6 +287,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
   const { classes, isLoaded: classesLoaded } = useClasses();
   const { programs } = usePrograms();
   const { teachers } = useTeachers();
+  const { settings } = useProgramLevelSettings();
   const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [detailsModal, setDetailsModal] = useState<{ type: 'unassigned' | 'availability' | null; programFilter: string }>({
@@ -868,7 +870,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
                 return (
                   <SummaryTile
                     key={programLevel}
-                    label={programLevel}
+                    label={getProgramLevelLabel(settings, programLevel)}
                     value={count}
                     helper={`${percent}% of enrolled students`}
                     accent={accents[index] || 'blue'}
@@ -1047,7 +1049,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
                 return (
                   <div key={classItem.id} className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
                     <p className="font-semibold text-slate-950">{classItem.name}</p>
-                    <p className="mt-1 text-xs text-slate-600">Level: {classItem.programLevel}</p>
+                    <p className="mt-1 text-xs text-slate-600">Level: {getProgramLevelLabel(settings, classItem.programLevel)}</p>
                     <p className="text-xs text-slate-600">Slot: {classItem.slot}</p>
                     <p className="mt-2 text-xs font-semibold text-emerald-700">
                       {availableSlots} spot{availableSlots !== 1 ? 's' : ''} available ({enrolledCount}/{classItem.capacity} enrolled)

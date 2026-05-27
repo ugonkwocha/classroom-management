@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Program, Class } from '@/types';
 import { Badge } from '@/components/ui';
-import { useClasses, useStudents, useTeachers } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers, useProgramLevelSettings } from '@/lib/hooks';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 import { FiCalendar, FiSearch, FiUsers } from 'react-icons/fi';
 
 interface ProgramDetailsViewProps {
@@ -15,6 +16,7 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
   const { classes } = useClasses();
   const { students } = useStudents();
   const { teachers } = useTeachers();
+  const { settings } = useProgramLevelSettings();
   const [filter, setFilter] = useState('');
 
   // Get all classes for this program
@@ -30,10 +32,11 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
       return (
         cls.name.toLowerCase().includes(filter.toLowerCase()) ||
         teacherName.toLowerCase().includes(filter.toLowerCase()) ||
-        cls.programLevel.toLowerCase().includes(filter.toLowerCase())
+        cls.programLevel.toLowerCase().includes(filter.toLowerCase()) ||
+        getProgramLevelLabel(settings, cls.programLevel).toLowerCase().includes(filter.toLowerCase())
       );
     });
-  }, [programClasses, filter, teachers]);
+  }, [programClasses, filter, teachers, settings]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -135,7 +138,7 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
                       <h3 className="font-bold text-slate-950">{classData.name}</h3>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="primary">{classData.programLevel}</Badge>
+                      <Badge variant="primary">{getProgramLevelLabel(settings, classData.programLevel)}</Badge>
                       <Badge variant="info">Batch {classData.batch}</Badge>
                       <Badge variant="success">
                         {classData.teacherId

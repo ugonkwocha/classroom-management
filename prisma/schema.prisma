@@ -108,6 +108,19 @@ enum ProgramLevel {
   INVENTORS
 }
 
+model ProgramLevelSetting {
+  id                String       @id @default(cuid())
+  level             ProgramLevel @unique
+  displayName       String
+  ageRange          String?
+  description       String?
+  sortOrder         Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([sortOrder])
+}
+
 // ==================== Programs ====================
 model Program {
   id                String   @id @default(cuid())

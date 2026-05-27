@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Course, ProgramLevel } from '@/types';
 import { Input, Button } from '@/components/ui';
+import { useProgramLevelSettings } from '@/lib/hooks';
+import { PROGRAM_LEVELS, getProgramLevelLabel, getProgramLevelSetting } from '@/lib/program-levels';
 
 interface CourseFormProps {
   onSubmit: (course: Omit<Course, 'id' | 'createdAt'>) => void;
@@ -11,15 +13,8 @@ interface CourseFormProps {
   isLoading?: boolean;
 }
 
-const allProgramLevels: ProgramLevel[] = ['CREATORS', 'INNOVATORS', 'INVENTORS'];
-
-const programLevelInfo = {
-  'CREATORS': 'Ages 6-8',
-  'INNOVATORS': 'Ages 9-11',
-  'INVENTORS': 'Ages 12-16',
-};
-
 export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false }: CourseFormProps) {
+  const { settings } = useProgramLevelSettings();
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -89,7 +84,7 @@ export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false 
           Available for Program Levels
         </label>
         <div className="space-y-2">
-          {allProgramLevels.map((level) => (
+          {PROGRAM_LEVELS.map((level) => (
             <label
               key={level}
               className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition ${
@@ -105,8 +100,8 @@ export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false 
                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <div>
-                <p className="font-bold text-slate-950">{level}</p>
-                <p className="text-xs text-slate-500">{programLevelInfo[level]}</p>
+                <p className="font-bold text-slate-950">{getProgramLevelLabel(settings, level)}</p>
+                <p className="text-xs text-slate-500">{getProgramLevelSetting(settings, level).ageRange}</p>
               </div>
             </label>
           ))}

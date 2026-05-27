@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useCourses } from '@/lib/hooks';
+import { useCourses, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Course, ProgramLevel } from '@/types';
 import { Modal } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 import { CourseForm } from './CourseForm';
 import { CourseList } from './CourseList';
 import { FiBookOpen, FiLayers, FiPlus, FiSearch, FiTarget } from 'react-icons/fi';
 
 export function CoursesManagement() {
   const { courses, isLoaded, addCourse, updateCourse, deleteCourse } = useCourses();
+  const { settings } = useProgramLevelSettings();
   const { hasPermission } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | undefined>();
@@ -24,7 +26,9 @@ export function CoursesManagement() {
   const filteredCourses = courses.filter((course) =>
     course.name.toLowerCase().includes(filter.toLowerCase()) ||
     course.description.toLowerCase().includes(filter.toLowerCase()) ||
-    course.programLevels.some((level) => level.toLowerCase().includes(filter.toLowerCase()))
+    course.programLevels.some((level) =>
+      `${level} ${getProgramLevelLabel(settings, level)}`.toLowerCase().includes(filter.toLowerCase())
+    )
   );
 
   const handleSubmit = (courseData: Omit<Course, 'id' | 'createdAt'>) => {
@@ -86,21 +90,21 @@ export function CoursesManagement() {
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <FiTarget className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Creators</p>
+          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'CREATORS')}</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('CREATORS')}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600">
             <FiLayers className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Innovators</p>
+          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'INNOVATORS')}</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('INNOVATORS')}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
             <FiLayers className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Inventors</p>
+          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'INVENTORS')}</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('INVENTORS')}</p>
         </div>
       </div>

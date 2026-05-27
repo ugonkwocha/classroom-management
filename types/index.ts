@@ -40,6 +40,17 @@ export interface Course {
   createdAt: string;
 }
 
+export interface ProgramLevelSetting {
+  id?: string;
+  level: ProgramLevel;
+  displayName: string;
+  ageRange?: string | null;
+  description?: string | null;
+  sortOrder: number;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
 export interface Program {
   id: string;
   name: string;

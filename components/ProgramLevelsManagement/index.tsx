@@ -2,51 +2,43 @@
 
 import { useMemo, useState } from 'react';
 import { Badge, Button, Modal } from '@/components/ui';
-import { useCourses } from '@/lib/hooks';
+import { useCourses, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { Course, ProgramLevel } from '@/types';
+import { PROGRAM_LEVELS, getProgramLevelLabel, getProgramLevelSetting } from '@/lib/program-levels';
 import { FiBookOpen, FiEdit3, FiLayers, FiTarget, FiUsers } from 'react-icons/fi';
 
-const programLevels: ProgramLevel[] = ['CREATORS', 'INNOVATORS', 'INVENTORS'];
+const levelAccents: Record<ProgramLevel, string> = {
+  CREATORS: 'bg-emerald-50 text-emerald-600',
+  INNOVATORS: 'bg-blue-50 text-blue-600',
+  INVENTORS: 'bg-amber-50 text-amber-600',
+};
 
-const levelMeta: Record<ProgramLevel, { label: string; ageRange: string; description: string; accent: string }> = {
-  CREATORS: {
-    label: 'Creators',
-    ageRange: 'Ages 6-8',
-    description: 'Entry-level coding and creative technology courses for younger learners.',
-    accent: 'bg-emerald-50 text-emerald-600',
-  },
-  INNOVATORS: {
-    label: 'Innovators',
-    ageRange: 'Ages 9-11',
-    description: 'Intermediate courses for learners building stronger programming foundations.',
-    accent: 'bg-blue-50 text-blue-600',
-  },
-  INVENTORS: {
-    label: 'Inventors',
-    ageRange: 'Ages 12-16',
-    description: 'Advanced project-based courses for older learners and teen builders.',
-    accent: 'bg-amber-50 text-amber-600',
-  },
+const defaultLevelNames: Record<ProgramLevel, string> = {
+  CREATORS: 'Creators',
+  INNOVATORS: 'Innovators',
+  INVENTORS: 'Inventors',
 };
 
 function sortLevels(levels: ProgramLevel[]) {
-  return programLevels.filter((level) => levels.includes(level));
+  return PROGRAM_LEVELS.filter((level) => levels.includes(level));
 }
 
 export function ProgramLevelsManagement() {
   const { courses, isLoaded, updateCourse } = useCourses();
+  const { settings, isLoaded: settingsLoaded, updateProgramLevelSetting } = useProgramLevelSettings();
   const { hasPermission } = useAuth();
   const [editingLevel, setEditingLevel] = useState<ProgramLevel | undefined>();
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+  const [levelForm, setLevelForm] = useState({ displayName: '', ageRange: '', description: '' });
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const canEdit = hasPermission(PERMISSIONS.UPDATE_COURSE);
 
   const coursesByLevel = useMemo(() => {
-    return programLevels.reduce<Record<ProgramLevel, Course[]>>((acc, level) => {
+    return PROGRAM_LEVELS.reduce<Record<ProgramLevel, Course[]>>((acc, level) => {
       acc[level] = courses.filter((course) => course.programLevels.includes(level));
       return acc;
     }, {
@@ -57,14 +49,21 @@ export function ProgramLevelsManagement() {
   }, [courses]);
 
   const handleOpenEditor = (level: ProgramLevel) => {
+    const setting = getProgramLevelSetting(settings, level);
     setEditingLevel(level);
     setSelectedCourseIds(coursesByLevel[level].map((course) => course.id));
+    setLevelForm({
+      displayName: setting.displayName,
+      ageRange: setting.ageRange || '',
+      description: setting.description || '',
+    });
     setError('');
   };
 
   const handleCloseEditor = () => {
     setEditingLevel(undefined);
     setSelectedCourseIds([]);
+    setLevelForm({ displayName: '', ageRange: '', description: '' });
     setError('');
     setIsSaving(false);
   };
@@ -83,6 +82,10 @@ export function ProgramLevelsManagement() {
 
     try {
       setIsSaving(true);
+      if (!levelForm.displayName.trim()) {
+        throw new Error('Program level name is required.');
+      }
+
       const selectedSet = new Set(selectedCourseIds);
       const courseUpdates = courses
         .map((course) => {
@@ -106,6 +109,12 @@ export function ProgramLevelsManagement() {
         })
         .filter(Boolean) as { course: Course; nextLevels: ProgramLevel[] }[];
 
+      await updateProgramLevelSetting(editingLevel, {
+        displayName: levelForm.displayName,
+        ageRange: levelForm.ageRange,
+        description: levelForm.description,
+      });
+
       await Promise.all(
         courseUpdates.map(({ course, nextLevels }) =>
           updateCourse(course.id, {
@@ -123,7 +132,7 @@ export function ProgramLevelsManagement() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !settingsLoaded) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
         <div className="text-center">
@@ -142,16 +151,16 @@ export function ProgramLevelsManagement() {
             <FiLayers className="h-5 w-5" />
           </div>
           <p className="text-sm font-medium text-slate-500">Program Levels</p>
-          <p className="mt-1 text-3xl font-bold text-slate-950">{programLevels.length}</p>
+          <p className="mt-1 text-3xl font-bold text-slate-950">{PROGRAM_LEVELS.length}</p>
         </div>
-        {programLevels.map((level) => {
-          const meta = levelMeta[level];
+        {PROGRAM_LEVELS.map((level) => {
+          const meta = getProgramLevelSetting(settings, level);
           return (
             <div key={level} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${meta.accent}`}>
+              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${levelAccents[level]}`}>
                 <FiTarget className="h-5 w-5" />
               </div>
-              <p className="text-sm font-medium text-slate-500">{meta.label}</p>
+              <p className="text-sm font-medium text-slate-500">{meta.displayName}</p>
               <p className="mt-1 text-3xl font-bold text-slate-950">{coursesByLevel[level].length}</p>
               <p className="mt-1 text-xs font-semibold text-slate-400">{meta.ageRange}</p>
             </div>
@@ -166,17 +175,17 @@ export function ProgramLevelsManagement() {
         </div>
 
         <div className="grid gap-4 p-5 xl:grid-cols-3">
-          {programLevels.map((level) => {
-            const meta = levelMeta[level];
+          {PROGRAM_LEVELS.map((level) => {
+            const meta = getProgramLevelSetting(settings, level);
             const levelCourses = coursesByLevel[level];
             return (
               <article key={level} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-2xl ${meta.accent}`}>
+                    <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-2xl ${levelAccents[level]}`}>
                       <FiUsers className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-950">{meta.label}</h3>
+                    <h3 className="text-lg font-bold text-slate-950">{meta.displayName}</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">{meta.ageRange}</p>
                   </div>
                   {canEdit && (
@@ -222,17 +231,49 @@ export function ProgramLevelsManagement() {
       <Modal
         isOpen={!!editingLevel}
         onClose={handleCloseEditor}
-        title={editingLevel ? `Edit ${levelMeta[editingLevel].label}` : 'Edit Program Level'}
+        title={editingLevel ? `Edit ${getProgramLevelLabel(settings, editingLevel)}` : 'Edit Program Level'}
       >
         {editingLevel && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
               <p className="text-sm font-semibold text-blue-950">
-                Select the courses available for {levelMeta[editingLevel].label}.
+                Rename this program level and select the courses available for it.
               </p>
               <p className="mt-1 text-xs leading-5 text-blue-800">
-                Course names stay in the Courses tab. This tab controls level availability.
+                Internal records keep using {editingLevel}; this changes the display name across the app.
               </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="md:col-span-2">
+                <span className="mb-1 block text-sm font-bold text-slate-700">Program Level Name</span>
+                <input
+                  type="text"
+                  value={levelForm.displayName}
+                  onChange={(e) => setLevelForm((current) => ({ ...current, displayName: e.target.value }))}
+                  placeholder={defaultLevelNames[editingLevel]}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="md:col-span-2">
+                <span className="mb-1 block text-sm font-bold text-slate-700">Age Range</span>
+                <input
+                  type="text"
+                  value={levelForm.ageRange}
+                  onChange={(e) => setLevelForm((current) => ({ ...current, ageRange: e.target.value }))}
+                  placeholder="Ages 6-8"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="md:col-span-2">
+                <span className="mb-1 block text-sm font-bold text-slate-700">Description</span>
+                <textarea
+                  value={levelForm.description}
+                  onChange={(e) => setLevelForm((current) => ({ ...current, description: e.target.value }))}
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
             </div>
 
             <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
@@ -258,7 +299,7 @@ export function ProgramLevelsManagement() {
                       <span className="mt-2 flex flex-wrap gap-1">
                         {course.programLevels.map((level) => (
                           <Badge key={level} variant={level === editingLevel ? 'primary' : 'info'}>
-                            {level}
+                            {getProgramLevelLabel(settings, level)}
                           </Badge>
                         ))}
                       </span>

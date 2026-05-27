@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Class, ProgramLevel } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
-import { useCourses, usePrograms, useClasses, useTeachers } from '@/lib/hooks';
+import { useCourses, usePrograms, useClasses, useTeachers, useProgramLevelSettings } from '@/lib/hooks';
+import { formatProgramLevelList, getProgramLevelLabel } from '@/lib/program-levels';
 import { generateClassNameWithNextSuffix } from '@/lib/utils';
 
 interface ClassFormProps {
@@ -19,6 +20,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
   const { programs, isLoaded: programsLoaded } = usePrograms();
   const { classes } = useClasses();
   const { teachers, isLoaded: teachersLoaded } = useTeachers();
+  const { settings } = useProgramLevelSettings();
 
   const [formData, setFormData] = useState({
     courseId: initialData?.courseId || '',
@@ -186,7 +188,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
 
   const courseOptions = filteredCourses.map((c) => ({
     value: c.id,
-    label: `${c.name} (${c.programLevels.join(', ')})`,
+    label: `${c.name} (${formatProgramLevelList(settings, c.programLevels)})`,
   }));
 
   const programOptions = programs.map((p) => ({
@@ -223,7 +225,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
           label="Program Level"
           options={selectedCourse.programLevels.map((level) => ({
             value: level,
-            label: level,
+            label: getProgramLevelLabel(settings, level),
           }))}
           value={formData.programLevel}
           onChange={(e) => setFormData({ ...formData, programLevel: e.target.value })}

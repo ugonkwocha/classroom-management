@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useClasses, useStudents, useTeachers, usePrograms, useCourses } from '@/lib/hooks';
+import { useClasses, useStudents, useTeachers, usePrograms, useCourses, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
 import { Modal, Button } from '@/components/ui';
@@ -26,6 +26,7 @@ import {
   FiZap,
 } from 'react-icons/fi';
 import { generateClassNameWithNextSuffix } from '@/lib/utils';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 
 export function ClassManagement() {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
@@ -33,6 +34,7 @@ export function ClassManagement() {
   const { teachers } = useTeachers();
   const { programs } = usePrograms();
   const { courses } = useCourses();
+  const { settings } = useProgramLevelSettings();
   const { hasPermission, user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
@@ -56,6 +58,7 @@ export function ClassManagement() {
     const matchesFilter =
       cls.name.toLowerCase().includes(filter.toLowerCase()) ||
       cls.programLevel.toLowerCase().includes(filter.toLowerCase()) ||
+      getProgramLevelLabel(settings, cls.programLevel).toLowerCase().includes(filter.toLowerCase()) ||
       (program?.name.toLowerCase() || '').includes(filter.toLowerCase()) ||
       (`${teacher?.firstName || ''} ${teacher?.lastName || ''}`.toLowerCase()).includes(filter.toLowerCase());
     const matchesArchiveStatus = showArchived ? cls.isArchived : !cls.isArchived;
@@ -520,7 +523,7 @@ export function ClassManagement() {
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
                           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Program</p>
                           <p className="mt-1 text-sm font-bold text-slate-800">{program ? `${program.name} ${program.year}` : 'Program missing'}</p>
-                          <p className="mt-1 text-xs text-slate-500">{classData.programLevel} · Batch {classData.batch}</p>
+                          <p className="mt-1 text-xs text-slate-500">{getProgramLevelLabel(settings, classData.programLevel)} · Batch {classData.batch}</p>
                         </div>
 
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
@@ -668,7 +671,7 @@ export function ClassManagement() {
                         </td>
                         <td className="px-4 py-4 align-middle">
                           <p className="font-semibold text-slate-700">{program ? `${program.name} ${program.year}` : 'Program missing'}</p>
-                          <p className="mt-1 text-xs text-slate-500">{classData.programLevel} · Batch {classData.batch}</p>
+                          <p className="mt-1 text-xs text-slate-500">{getProgramLevelLabel(settings, classData.programLevel)} · Batch {classData.batch}</p>
                         </td>
                         <td className="px-4 py-4 align-middle text-slate-600">
                           {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}

@@ -2,6 +2,8 @@
 
 import { Course } from '@/types';
 import { Badge } from '@/components/ui';
+import { useProgramLevelSettings } from '@/lib/hooks';
+import { getProgramLevelLabel } from '@/lib/program-levels';
 import { FiBookOpen, FiEdit3, FiTrash2 } from 'react-icons/fi';
 
 interface CourseListProps {
@@ -13,6 +15,8 @@ interface CourseListProps {
 }
 
 export function CourseList({ courses, onEdit, onDelete, canEdit = true, canDelete = true }: CourseListProps) {
+  const { settings } = useProgramLevelSettings();
+
   if (courses.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
@@ -54,7 +58,7 @@ export function CourseList({ courses, onEdit, onDelete, canEdit = true, canDelet
                 <div className="flex flex-wrap gap-2">
                   {course.programLevels.map((level) => (
                     <Badge key={level} variant="primary">
-                      {level}
+                      {getProgramLevelLabel(settings, level)}
                     </Badge>
                   ))}
                 </div>
