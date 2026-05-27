@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { UserForm } from './UserForm';
 import { UserList } from './UserList';
-import { FiMail, FiPlus, FiSearch, FiShield, FiUserCheck, FiUsers, FiUserX } from 'react-icons/fi';
+import { FiMail, FiPlus, FiSearch, FiShield, FiSlash, FiTrash2, FiUserCheck, FiUsers, FiUserX } from 'react-icons/fi';
 
 function getInvitableRoles(role?: UserRole): UserRole[] {
   if (role === 'SUPERADMIN') return ['ADMIN', 'STAFF'];
@@ -154,6 +154,62 @@ export function UserManagement() {
     }
   };
 
+  const handleRevokeInvitation = async (invitation: UserInvitation) => {
+    if (!window.confirm(`Revoke the invitation for ${invitation.email}? The invite link will stop working.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setNotice('');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/invitations/${invitation.id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to revoke invitation');
+      }
+
+      setInvitations(invitations.filter((item) => item.id !== invitation.id));
+      setNotice(`Invitation revoked for ${invitation.email}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to revoke invitation');
+    }
+  };
+
+  const handleDeleteInvitation = async (invitation: UserInvitation) => {
+    if (!window.confirm(`Delete the invitation record for ${invitation.email}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setNotice('');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/invitations/${invitation.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete invitation');
+      }
+
+      setInvitations(invitations.filter((item) => item.id !== invitation.id));
+      setNotice(`Invitation deleted for ${invitation.email}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete invitation');
+    }
+  };
+
   const filteredUsers = users.filter(
     (user) =>
       `${user.firstName} ${user.lastName}`.toLowerCase().includes(filter.toLowerCase()) ||
@@ -292,7 +348,7 @@ export function UserManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-[920px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
                     <th className="px-5 py-4">Invitee</th>
@@ -300,6 +356,7 @@ export function UserManagement() {
                     <th className="px-5 py-4">Role</th>
                     <th className="px-5 py-4">Invited By</th>
                     <th className="px-5 py-4">Expires</th>
+                    <th className="px-5 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -321,6 +378,28 @@ export function UserManagement() {
                       </td>
                       <td className="px-5 py-4 text-slate-600">
                         {new Date(invitation.expiresAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeInvitation(invitation)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100"
+                            aria-label={`Revoke invitation for ${invitation.email}`}
+                          >
+                            <FiSlash className="h-4 w-4" />
+                            Revoke
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInvitation(invitation)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
+                            aria-label={`Delete invitation for ${invitation.email}`}
+                          >
+                            <FiTrash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
