@@ -113,20 +113,18 @@ export async function DELETE(
     const studentCount = await prisma.student.count({ where: { familyId: params.id } });
     if (studentCount > 0) {
       return NextResponse.json(
-        { error: 'Only empty families can be archived. Move students first.' },
+        { error: 'Only empty families can be deleted. Move or delete students first.' },
         { status: 400 }
       );
     }
 
-    const family = await prisma.family.update({
+    await prisma.family.delete({
       where: { id: params.id },
-      data: { isArchived: true },
-      include: familyInclude,
     });
 
-    return NextResponse.json(family);
+    return NextResponse.json({ success: true, deletedFamilyId: params.id });
   } catch (error) {
-    console.error('Error archiving family:', error);
-    return NextResponse.json({ error: 'Failed to archive family' }, { status: 500 });
+    console.error('Error deleting family:', error);
+    return NextResponse.json({ error: 'Failed to delete family' }, { status: 500 });
   }
 }

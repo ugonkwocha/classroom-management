@@ -127,3 +127,37 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const sessionUser = getSessionUser(request);
+
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    checkPermission(sessionUser.role, PERMISSIONS.DELETE_FAMILY);
+  } catch (error: any) {
+    if (error.message.includes('does not have permission')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  try {
+    const deleted = await prisma.family.deleteMany({
+      where: {
+        students: {
+          none: {},
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      deletedFamilies: deleted.count,
+    });
+  } catch (error) {
+    console.error('Error deleting empty families:', error);
+    return NextResponse.json({ error: 'Failed to delete empty families' }, { status: 500 });
+  }
+}

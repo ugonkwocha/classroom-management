@@ -71,15 +71,26 @@ export function useFamilies(search = '') {
     return family;
   };
 
-  const archiveFamily = async (id: string) => {
+  const deleteFamily = async (id: string) => {
     const res = await fetchWithAuth(`/api/families/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const errorData = await res.json();
-      throw new Error(errorData.error || 'Failed to archive family');
+      throw new Error(errorData.error || 'Failed to delete family');
     }
-    const family = await res.json();
+    const result = await res.json();
     await mutate();
-    return family;
+    return result;
+  };
+
+  const deleteEmptyFamilies = async () => {
+    const res = await fetchWithAuth('/api/families', { method: 'DELETE' });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to delete empty families');
+    }
+    const result = await res.json();
+    await mutate();
+    return result;
   };
 
   const mergeFamily = async (destinationFamilyId: string, sourceFamilyId: string) => {
@@ -118,7 +129,8 @@ export function useFamilies(search = '') {
     mutate,
     createFamily,
     updateFamily,
-    archiveFamily,
+    deleteFamily,
+    deleteEmptyFamilies,
     mergeFamily,
     moveStudentToFamily,
   };

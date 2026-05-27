@@ -9,7 +9,7 @@ import { PERMISSIONS } from '@/lib/permissions';
 import { formatGuardianName } from '@/lib/family-utils';
 import { Button, Input, Modal, PhoneInput, Select } from '@/components/ui';
 import {
-  FiArchive,
+  FiAlertCircle,
   FiGitMerge,
   FiHome,
   FiMail,
@@ -17,6 +17,7 @@ import {
   FiPhone,
   FiPlus,
   FiSearch,
+  FiTrash2,
   FiUsers,
 } from 'react-icons/fi';
 
@@ -50,7 +51,7 @@ export function FamiliesManagement() {
     relationship: 'PARENT',
   });
 
-  const { families, isLoaded, createFamily, archiveFamily, mergeFamily, moveStudentToFamily, mutate } = useFamilies(search);
+  const { families, isLoaded, createFamily, deleteFamily, deleteEmptyFamilies, mergeFamily, moveStudentToFamily, mutate } = useFamilies(search);
   const { hasPermission } = useAuth();
 
   const canCreate = hasPermission(PERMISSIONS.CREATE_FAMILY);
@@ -63,6 +64,7 @@ export function FamiliesManagement() {
     0
   );
   const linkedStudents = families.reduce((total, family) => total + (family.students?.length || 0), 0);
+  const emptyFamilies = families.filter((family) => (family.students?.length || 0) === 0).length;
   const needsReview = families.filter((family) =>
     family.guardians.some((guardian) => guardian.needsReview)
   ).length;
@@ -109,13 +111,24 @@ export function FamiliesManagement() {
     }
   };
 
-  const handleArchive = async (family: Family) => {
-    if (!window.confirm(`Archive ${family.displayName}?`)) return;
+  const handleDelete = async (family: Family) => {
+    if (!window.confirm(`Delete ${family.displayName}? This will also remove its guardian records.`)) return;
     try {
-      await archiveFamily(family.id);
+      await deleteFamily(family.id);
       if (selectedFamily?.id === family.id) setSelectedFamily(null);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to archive family');
+      alert(error instanceof Error ? error.message : 'Failed to delete family');
+    }
+  };
+
+  const handleDeleteEmptyFamilies = async () => {
+    if (!window.confirm(`Delete ${emptyFamilies} empty famil${emptyFamilies === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+
+    try {
+      await deleteEmptyFamilies();
+      setSelectedFamily(null);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to delete empty families');
     }
   };
 
@@ -168,7 +181,7 @@ export function FamiliesManagement() {
         <MetricCard icon={<FiHome />} label="Total Families" value={families.length} tone="blue" />
         <MetricCard icon={<FiUsers />} label="Active Guardians" value={activeGuardians} tone="emerald" />
         <MetricCard icon={<FiUsers />} label="Linked Students" value={linkedStudents} tone="amber" />
-        <MetricCard icon={<FiArchive />} label="Needs Review" value={needsReview} tone="rose" />
+        <MetricCard icon={<FiAlertCircle />} label="Needs Review" value={needsReview} tone="rose" />
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -196,6 +209,16 @@ export function FamiliesManagement() {
               >
                 <FiPlus className="h-4 w-4" />
                 Add Family
+              </button>
+            )}
+            {canDelete && emptyFamilies > 0 && (
+              <button
+                type="button"
+                onClick={handleDeleteEmptyFamilies}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-rose-700"
+              >
+                <FiTrash2 className="h-4 w-4" />
+                Delete empty families
               </button>
             )}
           </div>
@@ -256,8 +279,8 @@ export function FamiliesManagement() {
                           View
                         </Button>
                         {canDelete && (
-                          <Button type="button" variant="outline" size="sm" onClick={() => handleArchive(family)}>
-                            Archive
+                          <Button type="button" variant="danger" size="sm" onClick={() => handleDelete(family)}>
+                            Delete
                           </Button>
                         )}
                       </div>
