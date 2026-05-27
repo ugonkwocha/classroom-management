@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useClasses, useStudents, useTeachers, usePrograms, useCourses } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Class } from '@/types';
@@ -17,6 +17,7 @@ import {
   FiEdit3,
   FiEye,
   FiLink,
+  FiMoreVertical,
   FiPlus,
   FiSearch,
   FiTrash2,
@@ -40,6 +41,7 @@ export function ClassManagement() {
   const [duplicatingClass, setDuplicatingClass] = useState<Class | undefined>();
   const [filter, setFilter] = useState<string>('');
   const [showArchived, setShowArchived] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | undefined>();
   const [archiveConfirmationClass, setArchiveConfirmationClass] = useState<Class | undefined>();
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
 
@@ -87,6 +89,14 @@ export function ClassManagement() {
     Pending: 'border-amber-100 bg-amber-50 text-amber-700',
     Archived: 'border-slate-200 bg-slate-100 text-slate-600',
   };
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+
+    const closeMenu = () => setOpenActionMenuId(undefined);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, [openActionMenuId]);
 
   const sendTeacherAssignmentEmail = async (classId: string) => {
     try {
@@ -344,6 +354,8 @@ export function ClassManagement() {
     setEditingClass(undefined);
     setDuplicatingClass(undefined);
   };
+
+  const closeActionMenu = () => setOpenActionMenuId(undefined);
 
   if (!isLoaded) {
     return (
@@ -700,69 +712,115 @@ export function ClassManagement() {
                           </span>
                         </td>
                         <td className="px-4 py-4 align-middle">
-                          <div className="flex justify-end gap-2">
+                          <div className="relative flex justify-end">
                             <button
                               type="button"
-                              onClick={() => handleViewStudents(classData)}
-                              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600"
-                              aria-label={`View students in ${classData.name}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionMenuId(openActionMenuId === classData.id ? undefined : classData.id);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+                              aria-expanded={openActionMenuId === classData.id}
+                              aria-haspopup="menu"
+                              aria-label={`Open actions for ${classData.name}`}
                             >
-                              <FiEye className="h-4 w-4" />
+                              <FiMoreVertical className="h-4 w-4" />
                             </button>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(classData)}
-                                disabled={classData.isArchived}
-                                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                aria-label={`Edit ${classData.name}`}
+
+                            {openActionMenuId === classData.id && (
+                              <div
+                                role="menu"
+                                onClick={(event) => event.stopPropagation()}
+                                className="absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white py-2 text-left shadow-xl"
                               >
-                                <FiEdit3 className="h-4 w-4" />
-                              </button>
-                            )}
-                            {canDuplicate && (
-                              <>
                                 <button
                                   type="button"
-                                  onClick={() => handleQuickDuplicate(classData)}
-                                  className="rounded-xl border border-blue-100 bg-blue-50 p-2 text-blue-700 transition hover:bg-blue-100"
-                                  aria-label={`Quick duplicate ${classData.name}`}
-                                  title="Quick duplicate"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    closeActionMenu();
+                                    handleViewStudents(classData);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
                                 >
-                                  <FiZap className="h-4 w-4" />
+                                  <FiEye className="h-4 w-4" />
+                                  View students
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDuplicate(classData)}
-                                  className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:text-blue-600"
-                                  aria-label={`Duplicate ${classData.name}`}
-                                  title="Duplicate"
-                                >
-                                  <FiCopy className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  classData.isArchived ? handleUnarchiveClass(classData.id) : handleArchiveClass(classData.id)
-                                }
-                                className="rounded-xl border border-amber-100 bg-amber-50 p-2 text-amber-700 transition hover:bg-amber-100"
-                                aria-label={`${classData.isArchived ? 'Unarchive' : 'Archive'} ${classData.name}`}
-                              >
-                                <FiArchive className="h-4 w-4" />
-                              </button>
-                            )}
-                            {canDelete && (
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(classData.id)}
-                                className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
-                                aria-label={`Delete ${classData.name}`}
-                              >
-                                <FiTrash2 className="h-4 w-4" />
-                              </button>
+
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      closeActionMenu();
+                                      handleEdit(classData);
+                                    }}
+                                    disabled={classData.isArchived}
+                                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                                  >
+                                    <FiEdit3 className="h-4 w-4" />
+                                    Edit class
+                                  </button>
+                                )}
+
+                                {canDuplicate && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      onClick={() => {
+                                        closeActionMenu();
+                                        handleQuickDuplicate(classData);
+                                      }}
+                                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                                    >
+                                      <FiZap className="h-4 w-4" />
+                                      Quick duplicate
+                                    </button>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      onClick={() => {
+                                        closeActionMenu();
+                                        handleDuplicate(classData);
+                                      }}
+                                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                                    >
+                                      <FiCopy className="h-4 w-4" />
+                                      Duplicate
+                                    </button>
+                                  </>
+                                )}
+
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      closeActionMenu();
+                                      classData.isArchived ? handleUnarchiveClass(classData.id) : handleArchiveClass(classData.id);
+                                    }}
+                                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-50"
+                                  >
+                                    <FiArchive className="h-4 w-4" />
+                                    {classData.isArchived ? 'Restore class' : 'Archive class'}
+                                  </button>
+                                )}
+
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      closeActionMenu();
+                                      handleDelete(classData.id);
+                                    }}
+                                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                                  >
+                                    <FiTrash2 className="h-4 w-4" />
+                                    Delete class
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         </td>
