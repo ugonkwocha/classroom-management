@@ -160,6 +160,11 @@ export function EnrollmentManagement() {
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    row: EnrollmentRow;
+    currentClass?: Class;
+    targetClass: Class;
+  } | null>(null);
 
   const canUpdate = hasPermission(PERMISSIONS.UPDATE_ENROLLMENT);
   const isLoaded = studentsLoaded && classesLoaded && programsLoaded;
@@ -348,6 +353,29 @@ export function EnrollmentManagement() {
     return true;
   };
 
+  const executeClassAssignment = async (row: EnrollmentRow, classItem: Class) => {
+    try {
+      const courseHistoryEntry = buildCourseHistoryEntry(row.student, classItem, row.program);
+      await applyEnrollmentUpdate(
+        row,
+        {
+          classId: classItem.id,
+          status: 'ASSIGNED',
+          batchNumber: classItem.batch,
+        },
+        { courseHistoryEntry }
+      );
+
+      const emailQueued = await sendEnrollmentEmail(row.student.id, classItem.id);
+      setMessage({
+        type: 'success',
+        text: `${row.student.firstName} ${row.student.lastName} assigned to ${classItem.name}.${emailQueued ? ' Notification email queued.' : ''}`,
+      });
+    } catch {
+      // Message is set in applyEnrollmentUpdate.
+    }
+  };
+
   const handleAssignClass = async (row: EnrollmentRow) => {
     const classId = selectedClasses[row.enrollment.id] || row.enrollment.classId || '';
     const classItem = classes.find((item) => item.id === classId);
@@ -360,6 +388,11 @@ export function EnrollmentManagement() {
 
     if (paymentStatus !== 'CONFIRMED') {
       setMessage({ type: 'error', text: 'Confirm payment before assigning a student to a class.' });
+      return;
+    }
+
+    if (row.enrollment.classId === classId) {
+      setMessage({ type: 'error', text: 'This student is already assigned to that class.' });
       return;
     }
 
@@ -382,26 +415,23 @@ export function EnrollmentManagement() {
       return;
     }
 
-    try {
-      const courseHistoryEntry = buildCourseHistoryEntry(row.student, classItem, row.program);
-      await applyEnrollmentUpdate(
+    if (row.enrollment.classId && row.enrollment.classId !== classId) {
+      setPendingMove({
         row,
-        {
-          classId,
-          status: 'ASSIGNED',
-          batchNumber: classItem.batch,
-        },
-        { courseHistoryEntry }
-      );
-
-      const emailQueued = await sendEnrollmentEmail(row.student.id, classId);
-      setMessage({
-        type: 'success',
-        text: `${row.student.firstName} ${row.student.lastName} assigned to ${classItem.name}.${emailQueued ? ' Notification email queued.' : ''}`,
+        currentClass: row.classItem || classes.find((item) => item.id === row.enrollment.classId),
+        targetClass: classItem,
       });
-    } catch {
-      // Message is set in applyEnrollmentUpdate.
+      return;
     }
+
+    await executeClassAssignment(row, classItem);
+  };
+
+  const confirmMoveClass = async () => {
+    if (!pendingMove) return;
+    const { row, targetClass } = pendingMove;
+    setPendingMove(null);
+    await executeClassAssignment(row, targetClass);
   };
 
   const clearFilters = () => {
@@ -426,6 +456,53 @@ export function EnrollmentManagement() {
 
   return (
     <div className="space-y-6">
+      {pendingMove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-slate-100 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                  <FiAlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950">Confirm class move</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    You are about to move {pendingMove.row.student.firstName} {pendingMove.row.student.lastName} to a different class.
+                    This will update their enrollment and send the class assignment email for the new class.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4 p-6">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Current class</p>
+                <p className="mt-1 font-bold text-slate-950">{pendingMove.currentClass?.name || 'No class assigned'}</p>
+              </div>
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-blue-500">New class</p>
+                <p className="mt-1 font-bold text-slate-950">{pendingMove.targetClass.name}</p>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 p-6 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingMove(null)}
+                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmMoveClass}
+                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+              >
+                Confirm move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {message && (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
