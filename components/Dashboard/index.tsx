@@ -792,7 +792,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
       </div>
 
       {isSuperAdmin && (
-        <div className="space-y-6">
+        <div className="advanced-analytics space-y-6">
           <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-blue-600">Super Admin</p>
