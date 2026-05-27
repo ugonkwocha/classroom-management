@@ -202,6 +202,43 @@ function SummaryTile({
   );
 }
 
+function UtilizationDonut({ value }: { value: number }) {
+  const normalizedValue = Math.max(0, Math.min(value, 100));
+  const radius = 64;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference - (normalizedValue / 100) * circumference;
+
+  return (
+    <div className="relative flex aspect-square h-40 w-40 shrink-0 items-center justify-center">
+      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 160 160" aria-hidden="true">
+        <circle
+          cx="80"
+          cy="80"
+          r={radius}
+          fill="none"
+          stroke="#e2e8f0"
+          strokeWidth="16"
+        />
+        <circle
+          cx="80"
+          cy="80"
+          r={radius}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth="16"
+          strokeLinecap="butt"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+        />
+      </svg>
+      <div className="relative flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-inner">
+        <span className="text-3xl font-bold text-slate-950">{normalizedValue}%</span>
+        <span className="text-sm text-slate-500">Utilization</span>
+      </div>
+    </div>
+  );
+}
+
 function ProgressBar({ value }: { value: number }) {
   const width = Math.max(0, Math.min(value, 100));
   return (
@@ -525,18 +562,8 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
                 icon={FiClock}
               />
             </div>
-            <div className="flex items-center justify-center gap-6 rounded-2xl bg-slate-50 p-5">
-              <div
-                className="relative flex h-40 w-40 items-center justify-center rounded-full"
-                style={{
-                  background: `conic-gradient(#2563eb ${analyticsSummary.utilization * 3.6}deg, #e2e8f0 0deg)`,
-                }}
-              >
-                <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-inner">
-                  <span className="text-3xl font-bold text-slate-950">{analyticsSummary.utilization}%</span>
-                  <span className="text-sm text-slate-500">Utilization</span>
-                </div>
-              </div>
+            <div className="flex flex-col items-center justify-center gap-6 rounded-2xl bg-slate-50 p-5 sm:flex-row">
+              <UtilizationDonut value={analyticsSummary.utilization} />
               <div className="space-y-3 text-sm">
                 <p className="flex items-center gap-2 text-slate-600">
                   <span className="h-3 w-3 rounded-full bg-emerald-500" />
