@@ -39,6 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setShowIdleWarning(false);
   }, []);
 
+  const getIdleDuration = useCallback(() => {
+    const lastActivityAt = Number(localStorage.getItem(AUTH_LAST_ACTIVITY_KEY));
+    if (!lastActivityAt) return 0;
+    return Date.now() - lastActivityAt;
+  }, []);
+
   const refreshUser = useCallback(async (setLoading = true) => {
     if (setLoading) {
       setIsLoading(true);
@@ -131,14 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       markActivity(true);
     }
 
-    const handleActivity = () => markActivity();
-    ACTIVITY_EVENTS.forEach((eventName) => {
-      window.addEventListener(eventName, handleActivity, { passive: true });
-    });
-
-    const intervalId = window.setInterval(() => {
-      const lastActivityAt = Number(localStorage.getItem(AUTH_LAST_ACTIVITY_KEY) || Date.now());
-      const idleFor = Date.now() - lastActivityAt;
+    const checkIdleState = () => {
+      const idleFor = getIdleDuration();
 
       if (idleFor >= IDLE_TIMEOUT_MS) {
         logout();
@@ -146,15 +146,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setShowIdleWarning(idleFor >= IDLE_WARNING_MS);
+    };
+
+    const handleActivity = () => {
+      const idleFor = getIdleDuration();
+
+      if (idleFor >= IDLE_TIMEOUT_MS) {
+        logout();
+        return;
+      }
+
+      if (idleFor >= IDLE_WARNING_MS) {
+        setShowIdleWarning(true);
+        return;
+      }
+
+      markActivity();
+    };
+
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, handleActivity, { passive: true });
+    });
+    window.addEventListener('focus', checkIdleState);
+    document.addEventListener('visibilitychange', checkIdleState);
+
+    const intervalId = window.setInterval(() => {
+      checkIdleState();
     }, 15 * 1000);
 
     return () => {
       ACTIVITY_EVENTS.forEach((eventName) => {
         window.removeEventListener(eventName, handleActivity);
       });
+      window.removeEventListener('focus', checkIdleState);
+      document.removeEventListener('visibilitychange', checkIdleState);
       window.clearInterval(intervalId);
     };
-  }, [logout, markActivity, user]);
+  }, [getIdleDuration, logout, markActivity, user]);
 
   const checkPermission = useCallback(
     (permission: string) => {
