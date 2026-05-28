@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User, UserRole } from '@/types';
 import prisma from '@/lib/prisma';
 
-const JWT_EXPIRY = '7d';
+const JWT_EXPIRY = '12h';
 const BCRYPT_ROUNDS = 10;
 
 function getJwtSecret(): string {

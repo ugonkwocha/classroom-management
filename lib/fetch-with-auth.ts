@@ -23,6 +23,7 @@ export function fetchWithAuth(
   }).then((response) => {
     if (response.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('authLastActivityAt');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
