@@ -173,7 +173,7 @@ function HomeContent() {
   const currentPage = pageMeta[activeTab];
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-[#05204a] text-white">
+    <div className="flex min-h-full flex-col bg-[#05204a] text-white">
       <div className="px-6 pb-6 pt-7">
         <div className="relative h-12 w-48">
           <Image
@@ -236,7 +236,7 @@ function HomeContent() {
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto bg-[#05204a] lg:block">
         {sidebarContent}
       </aside>
 
@@ -248,7 +248,7 @@ function HomeContent() {
             aria-label="Close navigation"
             onClick={() => setIsSidebarOpen(false)}
           />
-          <aside className="relative h-full w-72 overflow-y-auto shadow-2xl">
+          <aside className="relative h-full w-72 overflow-y-auto bg-[#05204a] shadow-2xl">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(false)}
