@@ -27,7 +27,7 @@ export const DEFAULT_PROGRAM_LEVEL_SETTINGS: ProgramLevelSetting[] = [
 ];
 
 export function mergeProgramLevelSettings(settings: ProgramLevelSetting[] = []) {
-  return DEFAULT_PROGRAM_LEVEL_SETTINGS.map((fallback) => {
+  const mergedDefaults = DEFAULT_PROGRAM_LEVEL_SETTINGS.map((fallback) => {
     const saved = settings.find((setting) => setting.level === fallback.level);
     return {
       ...fallback,
@@ -36,7 +36,15 @@ export function mergeProgramLevelSettings(settings: ProgramLevelSetting[] = []) 
       ageRange: saved?.ageRange?.trim() || fallback.ageRange,
       description: saved?.description?.trim() || fallback.description,
     };
-  }).sort((a, b) => a.sortOrder - b.sortOrder);
+  });
+
+  const customSettings = settings.filter(
+    (setting) => !DEFAULT_PROGRAM_LEVEL_SETTINGS.some((fallback) => fallback.level === setting.level)
+  );
+
+  return [...mergedDefaults, ...customSettings]
+    .filter((setting) => setting.level && setting.displayName)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName));
 }
 
 export function getProgramLevelSetting(
@@ -59,4 +67,14 @@ export function getProgramLevelLabel(settings: ProgramLevelSetting[] | undefined
 
 export function formatProgramLevelList(settings: ProgramLevelSetting[] | undefined, levels: ProgramLevel[]) {
   return levels.map((level) => getProgramLevelLabel(settings, level)).join(', ');
+}
+
+export function createProgramLevelCode(displayName: string) {
+  const base = displayName
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return base || `LEVEL_${Date.now()}`;
 }

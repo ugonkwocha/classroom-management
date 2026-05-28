@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCourses, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Course, ProgramLevel } from '@/types';
+import { Course } from '@/types';
 import { Modal } from '@/components/ui';
 import { PERMISSIONS } from '@/lib/permissions';
 import { getProgramLevelLabel } from '@/lib/program-levels';
@@ -74,7 +74,7 @@ export function CoursesManagement() {
     );
   }
 
-  const levelCount = (level: ProgramLevel) => courses.filter((course) => course.programLevels.includes(level)).length;
+  const levelCount = (level: string) => courses.filter((course) => course.programLevels.includes(level)).length;
 
   return (
     <div className="space-y-6">
@@ -86,27 +86,23 @@ export function CoursesManagement() {
           <p className="text-sm font-medium text-slate-500">Total Courses</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{courses.length}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <FiTarget className="h-5 w-5" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'CREATORS')}</p>
-          <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('CREATORS')}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-yellow-50 text-yellow-600">
-            <FiLayers className="h-5 w-5" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'INNOVATORS')}</p>
-          <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('INNOVATORS')}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
-            <FiLayers className="h-5 w-5" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, 'INVENTORS')}</p>
-          <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount('INVENTORS')}</p>
-        </div>
+        {settings.slice(0, 3).map((setting, index) => {
+          const accents = [
+            'bg-emerald-50 text-emerald-600',
+            'bg-yellow-50 text-yellow-600',
+            'bg-rose-50 text-rose-600',
+          ];
+          const Icon = index === 0 ? FiTarget : FiLayers;
+          return (
+            <div key={setting.level} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${accents[index] || 'bg-blue-50 text-blue-600'}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-medium text-slate-500">{getProgramLevelLabel(settings, setting.level)}</p>
+              <p className="mt-1 text-3xl font-bold text-slate-950">{levelCount(setting.level)}</p>
+            </div>
+          );
+        })}
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Course, ProgramLevel } from '@/types';
 import { Input, Button } from '@/components/ui';
 import { useProgramLevelSettings } from '@/lib/hooks';
-import { PROGRAM_LEVELS, getProgramLevelLabel, getProgramLevelSetting } from '@/lib/program-levels';
+import { getProgramLevelLabel, getProgramLevelSetting } from '@/lib/program-levels';
 
 interface CourseFormProps {
   onSubmit: (course: Omit<Course, 'id' | 'createdAt'>) => void;
@@ -84,24 +84,24 @@ export function CourseForm({ onSubmit, onCancel, initialData, isLoading = false 
           Available for Program Levels
         </label>
         <div className="space-y-2">
-          {PROGRAM_LEVELS.map((level) => (
+          {settings.map((setting) => (
             <label
-              key={level}
+              key={setting.level}
               className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition ${
-                formData.programLevels.includes(level)
+                formData.programLevels.includes(setting.level)
                   ? 'border-blue-200 bg-blue-50'
                   : 'border-slate-200 bg-white hover:bg-slate-50'
               }`}
             >
               <input
                 type="checkbox"
-                checked={formData.programLevels.includes(level)}
-                onChange={() => toggleProgramLevel(level)}
+                checked={formData.programLevels.includes(setting.level)}
+                onChange={() => toggleProgramLevel(setting.level)}
                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <div>
-                <p className="font-bold text-slate-950">{getProgramLevelLabel(settings, level)}</p>
-                <p className="text-xs text-slate-500">{getProgramLevelSetting(settings, level).ageRange}</p>
+                <p className="font-bold text-slate-950">{getProgramLevelLabel(settings, setting.level)}</p>
+                <p className="text-xs text-slate-500">{getProgramLevelSetting(settings, setting.level).ageRange}</p>
               </div>
             </label>
           ))}

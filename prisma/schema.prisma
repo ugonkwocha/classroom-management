@@ -92,7 +92,7 @@ model Course {
   id                String   @id @default(cuid())
   name              String   @unique
   description       String?
-  programLevels     ProgramLevel[] // Array: Creators, Innovators, Inventors
+  programLevels     String[] // Stable program level codes
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -102,15 +102,9 @@ model Course {
   @@index([name])
 }
 
-enum ProgramLevel {
-  CREATORS
-  INNOVATORS
-  INVENTORS
-}
-
 model ProgramLevelSetting {
   id                String       @id @default(cuid())
-  level             ProgramLevel @unique
+  level             String       @unique
   displayName       String
   ageRange          String?
   description       String?
@@ -212,7 +206,7 @@ model Class {
   name              String
   courseId          String
   programId         String
-  programLevel      ProgramLevel
+  programLevel      String
   batch             Int
   slot              String
   schedule          String

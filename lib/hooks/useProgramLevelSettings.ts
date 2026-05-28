@@ -43,10 +43,29 @@ export function useProgramLevelSettings() {
     return updated;
   };
 
+  const addProgramLevelSetting = async (
+    data: Pick<ProgramLevelSetting, 'displayName'> & Partial<Pick<ProgramLevelSetting, 'ageRange' | 'description'>>
+  ) => {
+    const res = await fetchWithAuth('/api/program-levels', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const responseData = await res.json().catch(() => null);
+      throw new Error(responseData?.error || 'Failed to add program level');
+    }
+
+    const created = await res.json();
+    await mutate();
+    return created;
+  };
+
   return {
     settings,
     isLoaded: !isLoading && !error,
     error,
+    addProgramLevelSetting,
     updateProgramLevelSetting,
   };
 }

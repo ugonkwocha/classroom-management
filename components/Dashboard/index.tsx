@@ -414,12 +414,11 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
         })
       ).length;
 
-    return {
-      CREATORS: getFilteredStudents('CREATORS'),
-      INNOVATORS: getFilteredStudents('INNOVATORS'),
-      INVENTORS: getFilteredStudents('INVENTORS'),
-    };
-  }, [activeClasses, selectedProgram, students]);
+    return settings.reduce<Record<string, number>>((acc, setting) => {
+      acc[setting.level] = getFilteredStudents(setting.level);
+      return acc;
+    }, {});
+  }, [activeClasses, selectedProgram, settings, students]);
 
   const filteredStudentsCount = selectedProgram
     ? students.filter((student) =>

@@ -1,4 +1,4 @@
-export type ProgramLevel = 'CREATORS' | 'INNOVATORS' | 'INVENTORS';
+export type ProgramLevel = string;
 export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
 export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
