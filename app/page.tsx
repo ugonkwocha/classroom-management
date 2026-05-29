@@ -325,7 +325,7 @@ function HomeContent() {
         </header>
 
         <div className="px-4 py-6 sm:px-6 lg:px-8">
-          {!isHydrated ? (
+          {!isHydrated || isLoading ? (
             <div className="flex min-h-[50vh] items-center justify-center">
               <div className="text-center">
                 <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />

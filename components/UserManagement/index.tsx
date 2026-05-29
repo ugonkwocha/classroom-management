@@ -22,7 +22,7 @@ function canResetUserPassword(actorRole: UserRole | undefined, targetRole: UserR
 }
 
 export function UserManagement() {
-  const { hasPermission, user } = useAuth();
+  const { hasPermission, isLoading: isAuthLoading, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -253,22 +253,22 @@ export function UserManagement() {
       user.email.toLowerCase().includes(filter.toLowerCase())
   );
 
-  if (!canReadUsers || !canManageUsers || allowedInviteRoles.length === 0) {
-    return (
-      <div className="rounded-2xl border border-rose-100 bg-rose-50 px-6 py-14 text-center">
-        <p className="text-base font-bold text-rose-700">You do not have permission to invite users.</p>
-        <p className="mt-2 text-sm text-rose-600">Superadmins can invite admins and staff. Admins can invite staff.</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  if (isAuthLoading || isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
           <p className="text-sm text-slate-600">Loading users...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!canReadUsers || !canManageUsers || allowedInviteRoles.length === 0) {
+    return (
+      <div className="rounded-2xl border border-rose-100 bg-rose-50 px-6 py-14 text-center">
+        <p className="text-base font-bold text-rose-700">You do not have permission to invite users.</p>
+        <p className="mt-2 text-sm text-rose-600">Superadmins can invite admins and staff. Admins can invite staff.</p>
       </div>
     );
   }
