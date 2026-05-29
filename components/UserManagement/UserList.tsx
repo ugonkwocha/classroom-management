@@ -2,17 +2,27 @@
 
 import { User } from '@/types';
 import { Badge } from '@/components/ui';
-import { FiEdit3, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiEdit3, FiKey, FiTrash2, FiUser } from 'react-icons/fi';
 
 interface UserListProps {
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (id: string) => void;
+  onPasswordReset: (user: User) => void;
   canEdit?: boolean;
   canDelete?: boolean;
+  canResetPassword?: (user: User) => boolean;
 }
 
-export function UserList({ users, onEdit, onDelete, canEdit = true, canDelete = true }: UserListProps) {
+export function UserList({
+  users,
+  onEdit,
+  onDelete,
+  onPasswordReset,
+  canEdit = true,
+  canDelete = true,
+  canResetPassword = () => false,
+}: UserListProps) {
   if (users.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
@@ -71,6 +81,17 @@ export function UserList({ users, onEdit, onDelete, canEdit = true, canDelete = 
                       aria-label={`Edit ${user.firstName} ${user.lastName}`}
                     >
                       <FiEdit3 className="h-4 w-4" />
+                    </button>
+                  )}
+                  {canResetPassword(user) && (
+                    <button
+                      type="button"
+                      onClick={() => onPasswordReset(user)}
+                      className="rounded-xl border border-blue-100 bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"
+                      title="Send password reset"
+                      aria-label={`Send password reset to ${user.firstName} ${user.lastName}`}
+                    >
+                      <FiKey className="h-4 w-4" />
                     </button>
                   )}
                   {canDelete && (

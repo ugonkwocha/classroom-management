@@ -34,6 +34,13 @@ interface UserInvitationEmailParams {
   expiresAt: string;
 }
 
+interface PasswordResetEmailParams {
+  recipient: EmailRecipient;
+  requestedByName: string;
+  resetUrl: string;
+  expiresAt: string;
+}
+
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || (process.env.RESEND_API_KEY ? 'resend' : 'disabled');
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL;
@@ -357,6 +364,127 @@ export async function sendUserInvitationEmail(params: UserInvitationEmailParams)
     };
   } catch (error) {
     console.error('[Email] User invitation delivery error:', {
+      recipient: params.recipient.email,
+      error,
+    });
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unexpected email delivery error',
+    };
+  }
+}
+
+function buildPasswordResetEmail(params: PasswordResetEmailParams) {
+  const safeName = escapeHtml(params.recipient.name || 'there');
+  const safeRequestedByName = escapeHtml(params.requestedByName);
+  const safeResetUrl = escapeHtml(params.resetUrl);
+  const safeExpiresAt = escapeHtml(params.expiresAt);
+
+  const subject = 'Reset your 9jacodekids Academy password';
+  const html = `
+    <div style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+        <div style="background:#06244a;border-radius:18px;padding:24px;color:#ffffff;">
+          <div style="font-size:22px;font-weight:800;letter-spacing:.2px;">9jacodekids Academy</div>
+          <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Class Management System</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;margin-top:18px;padding:28px;">
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#0f172a;">Reset your password</h1>
+          <p style="margin:0 0 18px;color:#475569;font-size:15px;line-height:1.65;">
+            Hello ${safeName}, ${safeRequestedByName} requested a password reset for your 9jacodekids Academy account.
+          </p>
+          <p style="margin:0 0 22px;color:#475569;font-size:15px;line-height:1.65;">
+            Use the button below to choose a new password. This link expires on ${safeExpiresAt}.
+          </p>
+          <a href="${safeResetUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Reset Password</a>
+          <p style="margin:18px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+            Reset link: <a href="${safeResetUrl}" style="color:#2563eb;">${safeResetUrl}</a>
+          </p>
+          <p style="margin:18px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
+            If you were not expecting this reset, contact your academy administrator.
+          </p>
+        </div>
+
+        <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
+          Sent by 9jacodekids Academy.
+        </p>
+      </div>
+    </div>
+  `;
+
+  const text = [
+    '9jacodekids Academy',
+    '',
+    `Hello ${params.recipient.name || 'there'},`,
+    `${params.requestedByName} requested a password reset for your 9jacodekids Academy account.`,
+    '',
+    `Reset password: ${params.resetUrl}`,
+    `Expires: ${params.expiresAt}`,
+    '',
+    'If you were not expecting this reset, contact your academy administrator.',
+  ].join('\n');
+
+  return { subject, html, text };
+}
+
+export async function sendPasswordResetEmail(params: PasswordResetEmailParams): Promise<EmailResponse> {
+  if (EMAIL_PROVIDER !== 'resend') {
+    console.warn('[Email] Password reset email delivery is disabled. EMAIL_PROVIDER is not set to resend.', {
+      provider: EMAIL_PROVIDER,
+      recipient: params.recipient.email,
+    });
+
+    return {
+      success: false,
+      error: `Email delivery disabled. Password reset not sent to ${params.recipient.email}.`,
+    };
+  }
+
+  if (!resend || !EMAIL_FROM) {
+    console.warn('[Email] Resend is not fully configured for password resets.', {
+      hasApiKey: !!RESEND_API_KEY,
+      hasFrom: !!EMAIL_FROM,
+      recipient: params.recipient.email,
+    });
+
+    return {
+      success: false,
+      error: `Resend is not configured. Password reset not sent to ${params.recipient.email}.`,
+    };
+  }
+
+  const email = buildPasswordResetEmail(params);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [params.recipient.email],
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
+    });
+
+    if (error) {
+      console.error('[Email] Password reset delivery failed:', {
+        recipient: params.recipient.email,
+        error,
+      });
+
+      return {
+        success: false,
+        error: typeof error === 'string' ? error : error.message || 'Resend delivery failed',
+      };
+    }
+
+    return {
+      success: true,
+      messageId: data?.id,
+    };
+  } catch (error) {
+    console.error('[Email] Password reset delivery error:', {
       recipient: params.recipient.email,
       error,
     });

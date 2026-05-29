@@ -22,6 +22,8 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   sentInvitations UserInvitation[] @relation("UserInvitations")
+  requestedPasswordResets PasswordResetToken[] @relation("PasswordResetRequests")
+  passwordResetTokens PasswordResetToken[] @relation("UserPasswordResetTokens")
 
   @@index([email])
 }
@@ -58,6 +60,24 @@ enum InvitationStatus {
   ACCEPTED
   REVOKED
   EXPIRED
+}
+
+model PasswordResetToken {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User      @relation("PasswordResetRequests", fields: [requestedById], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([requestedById])
+  @@index([expiresAt])
+  @@index([usedAt])
 }
 
 // ==================== Teachers ====================

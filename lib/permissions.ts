@@ -7,6 +7,7 @@ export const PERMISSIONS = {
   READ_USERS: 'READ_USERS',
   UPDATE_USER: 'UPDATE_USER',
   DELETE_USER: 'DELETE_USER',
+  RESET_USER_PASSWORD: 'RESET_USER_PASSWORD',
 
   // Students (Staff can create/manage, others can view)
   CREATE_STUDENT: 'CREATE_STUDENT',
@@ -80,6 +81,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.READ_USERS,
     PERMISSIONS.UPDATE_USER,
     PERMISSIONS.DELETE_USER,
+    PERMISSIONS.RESET_USER_PASSWORD,
     PERMISSIONS.CREATE_STUDENT,
     PERMISSIONS.READ_STUDENTS,
     PERMISSIONS.UPDATE_STUDENT,
@@ -126,6 +128,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     // User invitations - staff only
     PERMISSIONS.CREATE_USER,
     PERMISSIONS.READ_USERS,
+    PERMISSIONS.RESET_USER_PASSWORD,
     // Students - full
     PERMISSIONS.CREATE_STUDENT,
     PERMISSIONS.READ_STUDENTS,

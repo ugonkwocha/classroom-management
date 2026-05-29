@@ -15,6 +15,12 @@ function getInvitableRoles(role?: UserRole): UserRole[] {
   return [];
 }
 
+function canResetUserPassword(actorRole: UserRole | undefined, targetRole: UserRole): boolean {
+  if (actorRole === 'SUPERADMIN') return targetRole === 'ADMIN' || targetRole === 'STAFF';
+  if (actorRole === 'ADMIN') return targetRole === 'STAFF';
+  return false;
+}
+
 export function UserManagement() {
   const { hasPermission, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -151,6 +157,37 @@ export function UserManagement() {
       setUsers(users.filter((u) => u.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const handlePasswordReset = async (targetUser: User) => {
+    if (!window.confirm(`Send a password reset link to ${targetUser.email}?`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setNotice('');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/${targetUser.id}/password-reset`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send password reset');
+      }
+
+      setNotice(
+        data.emailDelivery?.success
+          ? `Password reset link sent to ${targetUser.email}.`
+          : `Password reset was created, but the email could not be sent: ${data.emailDelivery?.error || 'unknown email error'}`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send password reset');
     }
   };
 
@@ -324,8 +361,10 @@ export function UserManagement() {
               setIsFormModalOpen(true);
             }}
             onDelete={handleDelete}
+            onPasswordReset={handlePasswordReset}
             canEdit={canEditUsers}
             canDelete={canDeleteUsers}
+            canResetPassword={(targetUser) => targetUser.isActive && canResetUserPassword(user?.role, targetUser.role)}
           />
         </div>
       </section>
