@@ -83,6 +83,55 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
+    const teacherId = data.teacherId || null;
+    const batch = Number(data.batch);
+
+    if (teacherId) {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: teacherId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          qualifiedCourses: true,
+        },
+      });
+
+      if (!teacher || teacher.status !== 'ACTIVE') {
+        return NextResponse.json(
+          { error: 'Selected tutor is not active or does not exist' },
+          { status: 400 }
+        );
+      }
+
+      if (!teacher.qualifiedCourses.includes(data.courseId)) {
+        return NextResponse.json(
+          { error: 'Selected tutor is not qualified to teach this course' },
+          { status: 400 }
+        );
+      }
+
+      const conflictingClass = await prisma.class.findFirst({
+        where: {
+          teacherId,
+          programId: data.programId,
+          batch,
+          slot: data.slot,
+          isArchived: false,
+        },
+        select: { name: true },
+      });
+
+      if (conflictingClass) {
+        return NextResponse.json(
+          {
+            error: `Selected tutor is already assigned to "${conflictingClass.name}" at this batch and time slot.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const classData = await prisma.class.create({
       data: {
@@ -90,12 +139,12 @@ export async function POST(request: NextRequest) {
         courseId: data.courseId,
         programId: data.programId,
         programLevel: data.programLevel,
-        batch: data.batch,
+        batch,
         slot: data.slot,
         schedule: data.schedule,
         capacity: data.capacity,
         students: data.students || [],
-        teacherId: data.teacherId,
+        teacherId,
         meetLink: data.meetLink || null,
         isArchived: false,
       },

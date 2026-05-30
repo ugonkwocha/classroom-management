@@ -87,6 +87,26 @@ export async function PUT(
 
   try {
     const data = await request.json();
+    const existingClass = await prisma.class.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        courseId: true,
+        programId: true,
+        batch: true,
+        slot: true,
+        teacherId: true,
+        isArchived: true,
+      },
+    });
+
+    if (!existingClass) {
+      return NextResponse.json(
+        { error: 'Class not found' },
+        { status: 404 }
+      );
+    }
+
     const updateData: any = {};
 
     if (Object.prototype.hasOwnProperty.call(data, 'name')) updateData.name = data.name;
@@ -105,6 +125,63 @@ export async function PUT(
       updateData.meetLink = data.meetLink?.trim() || null;
     }
     if (Object.prototype.hasOwnProperty.call(data, 'isArchived')) updateData.isArchived = data.isArchived;
+
+    const finalTeacherId = Object.prototype.hasOwnProperty.call(updateData, 'teacherId')
+      ? updateData.teacherId
+      : existingClass.teacherId;
+    const finalCourseId = updateData.courseId ?? existingClass.courseId;
+    const finalProgramId = updateData.programId ?? existingClass.programId;
+    const finalBatch = Number(updateData.batch ?? existingClass.batch);
+    const finalSlot = updateData.slot ?? existingClass.slot;
+    const finalIsArchived = Object.prototype.hasOwnProperty.call(updateData, 'isArchived')
+      ? updateData.isArchived
+      : existingClass.isArchived;
+
+    if (finalTeacherId && !finalIsArchived) {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: finalTeacherId },
+        select: {
+          id: true,
+          status: true,
+          qualifiedCourses: true,
+        },
+      });
+
+      if (!teacher || teacher.status !== 'ACTIVE') {
+        return NextResponse.json(
+          { error: 'Selected tutor is not active or does not exist' },
+          { status: 400 }
+        );
+      }
+
+      if (!teacher.qualifiedCourses.includes(finalCourseId)) {
+        return NextResponse.json(
+          { error: 'Selected tutor is not qualified to teach this course' },
+          { status: 400 }
+        );
+      }
+
+      const conflictingClass = await prisma.class.findFirst({
+        where: {
+          teacherId: finalTeacherId,
+          programId: finalProgramId,
+          batch: finalBatch,
+          slot: finalSlot,
+          isArchived: false,
+          id: { not: id },
+        },
+        select: { name: true },
+      });
+
+      if (conflictingClass) {
+        return NextResponse.json(
+          {
+            error: `Selected tutor is already assigned to "${conflictingClass.name}" at this batch and time slot.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const classData = await prisma.class.update({
       where: { id: id },

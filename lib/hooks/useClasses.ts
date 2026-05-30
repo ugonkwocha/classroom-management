@@ -33,6 +33,9 @@ export function useClasses() {
         body: JSON.stringify(classData),
       });
       const newClass = await res.json();
+      if (!res.ok) {
+        throw new Error(newClass.error || `API error: ${res.status}`);
+      }
       await mutate();
       return newClass;
     } catch (error) {
@@ -48,6 +51,9 @@ export function useClasses() {
         body: JSON.stringify(updates),
       });
       const updatedClass = await res.json();
+      if (!res.ok) {
+        throw new Error(updatedClass.error || `API error: ${res.status}`);
+      }
       await mutate();
       return updatedClass;
     } catch (error) {

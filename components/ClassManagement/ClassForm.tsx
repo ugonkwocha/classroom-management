@@ -6,6 +6,7 @@ import { Input, Select, Button } from '@/components/ui';
 import { useCourses, usePrograms, useClasses, useTeachers, useProgramLevelSettings } from '@/lib/hooks';
 import { formatProgramLevelList, getProgramLevelLabel } from '@/lib/program-levels';
 import { generateClassNameWithNextSuffix } from '@/lib/utils';
+import { findTeacherScheduleConflict } from '@/lib/class-scheduling';
 
 interface ClassFormProps {
   onSubmit: (classData: Omit<Class, 'id' | 'createdAt'>) => void;
@@ -73,6 +74,24 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
     return '';
   }, [selectedCourse, selectedProgram, formData.batch, formData.slot, classes, initialData, isDuplicate]);
 
+  const teacherScheduleCandidate = {
+    id: initialData && !isDuplicate ? initialData.id : 'new-class',
+    teacherId: formData.teacherId || undefined,
+    programId: formData.programId,
+    batch: parseInt(formData.batch),
+    slot: formData.slot,
+    isArchived: false,
+  };
+
+  const teacherHasConflict = (teacherId: string) =>
+    Boolean(
+      findTeacherScheduleConflict(
+        classes,
+        { ...teacherScheduleCandidate, teacherId },
+        initialData && !isDuplicate ? initialData.id : undefined
+      )
+    );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
@@ -124,19 +143,15 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
           return;
         }
 
-        // Check if teacher is available at this time slot
-        const conflictingClass = classes.find(
-          (cls) =>
-            cls.teacherId === formData.teacherId &&
-            cls.programId === formData.programId &&
-            cls.batch === parseInt(formData.batch) &&
-            cls.slot === formData.slot &&
-            (!initialData || cls.id !== initialData.id) // Exclude current class being edited
+        const conflictingClass = findTeacherScheduleConflict(
+          classes,
+          teacherScheduleCandidate,
+          initialData && !isDuplicate ? initialData.id : undefined
         );
 
         if (conflictingClass) {
           setErrors({
-            form: 'Selected teacher is already assigned to another class at this time slot',
+            form: `Selected teacher is already assigned to "${conflictingClass.name}" at this batch and time slot.`,
           });
           return;
         }
@@ -269,13 +284,19 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
               .filter((t) => t.status === 'ACTIVE' && t.qualifiedCourses.includes(formData.courseId))
               .map((t) => ({
                 value: t.id,
-                label: `${t.firstName} ${t.lastName}`,
+                label: `${t.firstName} ${t.lastName}${teacherHasConflict(t.id) ? ' (busy this batch/time)' : ''}`,
               })),
           ]}
           value={formData.teacherId}
           onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
           error={errors.teacherId}
         />
+      )}
+
+      {selectedCourse && formData.programId && formData.batch && formData.slot && (
+        <p className="text-xs leading-5 text-slate-500">
+          Tutors marked busy are already assigned to another active class in this same program, batch, and time slot.
+        </p>
       )}
 
       <Input
