@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import type { ComponentType } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
+  FiAlertTriangle,
   FiBarChart2,
   FiBell,
   FiBookOpen,
   FiCalendar,
+  FiCheckCircle,
   FiClipboard,
+  FiCreditCard,
   FiDollarSign,
   FiGrid,
   FiHome,
   FiLayers,
+  FiLink,
   FiLogOut,
+  FiMail,
   FiMenu,
   FiSearch,
   FiSettings,
@@ -26,6 +31,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
+import type { Class, Family, Student, UserInvitation } from '@/types';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -60,6 +66,16 @@ type NavItem = {
   disabled?: boolean;
 };
 
+type OperationalAlert = {
+  id: string;
+  title: string;
+  detail: string;
+  count: number;
+  tab: Tab;
+  priority: 'high' | 'medium' | 'low';
+  icon: ComponentType<{ className?: string }>;
+};
+
 const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   dashboard: { title: 'Dashboard', subtitle: 'Overview of your academy' },
   students: { title: 'Students', subtitle: 'Manage learners and parent records' },
@@ -90,6 +106,255 @@ function ComingSoonPanel({ title, description }: { title: string; description: s
   );
 }
 
+function buildOperationalAlerts({
+  students,
+  classes,
+  families,
+  invitations,
+  canReadUsers,
+}: {
+  students: Student[];
+  classes: Class[];
+  families: Family[];
+  invitations: UserInvitation[];
+  canReadUsers: boolean;
+}): OperationalAlert[] {
+  const activeClasses = classes.filter((classItem) => !classItem.isArchived);
+  const activeEnrollments = students.flatMap((student) =>
+    (student.programEnrollments || student.enrollments || []).map((enrollment) => ({
+      ...enrollment,
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
+    }))
+  );
+
+  const assignmentCount = activeEnrollments.filter(
+    (enrollment) => enrollment.status !== 'COMPLETED' && enrollment.status !== 'DROPPED' && !enrollment.classId
+  ).length;
+
+  const pendingPaymentCount = activeEnrollments.filter(
+    (enrollment) => enrollment.status !== 'DROPPED' && enrollment.paymentStatus === 'PENDING'
+  ).length;
+
+  const closeToFullCount = activeClasses.filter((classItem) => {
+    const filled = classItem.students?.length || 0;
+    const remaining = classItem.capacity - filled;
+    return classItem.capacity > 0 && remaining > 0 && remaining <= 2;
+  }).length;
+
+  const missingMeetLinkCount = activeClasses.filter((classItem) => !classItem.meetLink).length;
+  const missingTutorCount = activeClasses.filter((classItem) => !classItem.teacherId).length;
+  const needsReviewCount = families.filter((family) =>
+    family.guardians?.some((guardian) => guardian.needsReview)
+  ).length;
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recentRegistrationCount = students.filter((student) => {
+    const createdAt = student.createdAt ? new Date(student.createdAt).getTime() : 0;
+    return createdAt >= sevenDaysAgo;
+  }).length;
+
+  const alerts: OperationalAlert[] = [
+    {
+      id: 'students-needing-assignment',
+      title: 'Students needing assignment',
+      detail: `${assignmentCount} enrollment${assignmentCount === 1 ? '' : 's'} waiting for a class`,
+      count: assignmentCount,
+      tab: 'enrollments',
+      priority: 'high',
+      icon: FiClipboard,
+    },
+    {
+      id: 'pending-payments',
+      title: 'Pending payments',
+      detail: `${pendingPaymentCount} enrollment${pendingPaymentCount === 1 ? '' : 's'} still pending payment`,
+      count: pendingPaymentCount,
+      tab: 'enrollments',
+      priority: 'high',
+      icon: FiCreditCard,
+    },
+    {
+      id: 'missing-meet-links',
+      title: 'Classes missing Meet links',
+      detail: `${missingMeetLinkCount} active class${missingMeetLinkCount === 1 ? '' : 'es'} need meeting links`,
+      count: missingMeetLinkCount,
+      tab: 'classes',
+      priority: 'medium',
+      icon: FiLink,
+    },
+    {
+      id: 'missing-tutors',
+      title: 'Classes without tutors',
+      detail: `${missingTutorCount} active class${missingTutorCount === 1 ? '' : 'es'} need tutor assignment`,
+      count: missingTutorCount,
+      tab: 'classes',
+      priority: 'medium',
+      icon: FiUserCheck,
+    },
+    {
+      id: 'classes-close-to-full',
+      title: 'Classes close to full',
+      detail: `${closeToFullCount} class${closeToFullCount === 1 ? '' : 'es'} have two or fewer seats left`,
+      count: closeToFullCount,
+      tab: 'classes',
+      priority: 'medium',
+      icon: FiAlertTriangle,
+    },
+    {
+      id: 'families-needing-review',
+      title: 'Family records need review',
+      detail: `${needsReviewCount} famil${needsReviewCount === 1 ? 'y has' : 'ies have'} guardian details to review`,
+      count: needsReviewCount,
+      tab: 'families',
+      priority: 'low',
+      icon: FiUsers,
+    },
+    {
+      id: 'recent-registrations',
+      title: 'Recent registrations',
+      detail: `${recentRegistrationCount} student${recentRegistrationCount === 1 ? '' : 's'} added in the last 7 days`,
+      count: recentRegistrationCount,
+      tab: 'students',
+      priority: 'low',
+      icon: FiUser,
+    },
+  ];
+
+  if (canReadUsers) {
+    const pendingInviteCount = invitations.filter((invitation) => invitation.status === 'PENDING').length;
+    alerts.push({
+      id: 'pending-invitations',
+      title: 'Pending invitations',
+      detail: `${pendingInviteCount} team invite${pendingInviteCount === 1 ? '' : 's'} not accepted yet`,
+      count: pendingInviteCount,
+      tab: 'users',
+      priority: 'low',
+      icon: FiMail,
+    });
+  }
+
+  const priorityRank = { high: 0, medium: 1, low: 2 };
+  return alerts
+    .filter((alert) => alert.count > 0)
+    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || b.count - a.count);
+}
+
+function OperationalAlertsBell({
+  alerts,
+  isLoading,
+  onNavigate,
+}: {
+  alerts: OperationalAlert[];
+  isLoading: boolean;
+  onNavigate: (tab: Tab) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const totalCount = alerts.reduce((sum, alert) => sum + alert.count, 0);
+  const visibleAlerts = alerts.slice(0, 5);
+
+  const priorityStyles: Record<OperationalAlert['priority'], string> = {
+    high: 'bg-rose-50 text-rose-600',
+    medium: 'bg-amber-50 text-amber-600',
+    low: 'bg-blue-50 text-blue-600',
+  };
+
+  const handleNavigate = (tab: Tab) => {
+    setIsOpen(false);
+    onNavigate(tab);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((value) => !value)}
+        className="relative rounded-xl border border-slate-200 bg-white p-3 text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+        aria-label="Notifications"
+        aria-expanded={isOpen}
+      >
+        <FiBell className="h-5 w-5" />
+        {totalCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+            {totalCount > 99 ? '99+' : totalCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-14 z-50 w-[min(92vw,26rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-slate-950">Operational alerts</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {totalCount > 0 ? `${totalCount} item${totalCount === 1 ? '' : 's'} need attention` : 'Everything looks clear'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+              aria-label="Close notifications"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="max-h-[24rem] overflow-y-auto p-2">
+            {isLoading ? (
+              <div className="px-4 py-8 text-center text-sm font-medium text-slate-500">
+                Checking academy operations...
+              </div>
+            ) : visibleAlerts.length > 0 ? (
+              <div className="space-y-1">
+                {visibleAlerts.map((alert) => {
+                  const Icon = alert.icon;
+
+                  return (
+                    <button
+                      key={alert.id}
+                      type="button"
+                      onClick={() => handleNavigate(alert.tab)}
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-slate-50"
+                    >
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${priorityStyles[alert.priority]}`}>
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-slate-950">{alert.title}</span>
+                        <span className="mt-1 block text-xs leading-5 text-slate-500">{alert.detail}</span>
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        {alert.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center">
+                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <FiCheckCircle className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-bold text-slate-950">No active alerts</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">Payments, classes, assignments, and invites look clear.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-100 p-3">
+            <button
+              type="button"
+              onClick={() => handleNavigate('dashboard')}
+              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+            >
+              View dashboard
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -98,6 +363,10 @@ function HomeContent() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
+  const [areAlertsLoading, setAreAlertsLoading] = useState(false);
+  const hasLoadedAlertsRef = useRef(false);
+  const canReadUsers = hasPermission(PERMISSIONS.READ_USERS);
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
@@ -112,7 +381,7 @@ function HomeContent() {
     { id: 'classes', label: 'Classes', icon: FiCalendar },
     { id: 'teachers', label: 'Teachers', icon: FiUserCheck },
     ...(user?.role === 'SUPERADMIN' ? [{ id: 'pricing' as Tab, label: 'Pricing', icon: FiDollarSign }] : []),
-    ...(hasPermission(PERMISSIONS.READ_USERS) ? [{ id: 'users' as Tab, label: 'Users', icon: FiUsers }] : []),
+    ...(canReadUsers ? [{ id: 'users' as Tab, label: 'Users', icon: FiUsers }] : []),
     { id: 'reports', label: 'Reports', icon: FiBarChart2, disabled: true },
     { id: 'settings', label: 'Settings', icon: FiSettings, disabled: true },
   ];
@@ -152,6 +421,77 @@ function HomeContent() {
       setActiveTab('students');
     }
   }, [searchParams, isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) {
+      setAlerts([]);
+      setAreAlertsLoading(false);
+      hasLoadedAlertsRef.current = false;
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadAlerts = async () => {
+      if (!hasLoadedAlertsRef.current) {
+        setAreAlertsLoading(true);
+      }
+
+      try {
+        const requests: Promise<Response>[] = [
+          fetch('/api/students'),
+          fetch('/api/classes?archived=false'),
+          fetch('/api/families'),
+        ];
+
+        if (canReadUsers) {
+          requests.push(fetch('/api/users/invitations'));
+        }
+
+        const [studentsResponse, classesResponse, familiesResponse, invitationsResponse] = await Promise.all(requests);
+
+        const failedCoreRequest = !studentsResponse.ok || !classesResponse.ok || !familiesResponse.ok;
+        const failedInviteRequest = canReadUsers && (!invitationsResponse || !invitationsResponse.ok);
+
+        if (failedCoreRequest || failedInviteRequest) {
+          throw new Error('Failed to load operational alerts');
+        }
+
+        const [students, classes, families] = await Promise.all([
+          studentsResponse.json() as Promise<Student[]>,
+          classesResponse.json() as Promise<Class[]>,
+          familiesResponse.json() as Promise<Family[]>,
+        ]);
+
+        const invitations =
+          canReadUsers && invitationsResponse
+            ? ((await invitationsResponse.json()) as UserInvitation[])
+            : [];
+
+        if (!isMounted) return;
+
+        setAlerts(buildOperationalAlerts({ students, classes, families, invitations, canReadUsers }));
+        hasLoadedAlertsRef.current = true;
+      } catch (error) {
+        console.warn('Failed to load operational alerts:', error);
+        if (isMounted) {
+          setAlerts([]);
+        }
+      } finally {
+        if (isMounted) {
+          setAreAlertsLoading(false);
+        }
+      }
+    };
+
+    loadAlerts();
+    const intervalId = window.setInterval(loadAlerts, 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [canReadUsers, isAuthenticated, isLoading]);
 
   const handleTabChange = (tab: Tab) => {
     const navItem = navItems.find((item) => item.id === tab);
@@ -289,16 +629,11 @@ function HomeContent() {
               <span className="ml-3 text-xs text-slate-400">⌘K</span>
             </div>
 
-            <button
-              type="button"
-              className="relative rounded-xl border border-slate-200 bg-white p-3 text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
-              aria-label="Notifications"
-            >
-              <FiBell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                3
-              </span>
-            </button>
+            <OperationalAlertsBell
+              alerts={alerts}
+              isLoading={areAlertsLoading}
+              onNavigate={handleTabChange}
+            />
 
             {user && (
               <div className="hidden items-center gap-3 border-l border-slate-200 pl-4 sm:flex">
