@@ -25,8 +25,9 @@ function canManageInvitation(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const sessionUser = await getActiveSessionUser(request);
 
@@ -37,7 +38,7 @@ export async function PATCH(
     checkPermission(sessionUser.role, PERMISSIONS.CREATE_USER);
 
     const invitation = await prisma.userInvitation.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       select: {
         id: true,
         role: true,
@@ -55,7 +56,7 @@ export async function PATCH(
     }
 
     const revokedInvitation = await prisma.userInvitation.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { status: 'REVOKED' },
       select: {
         id: true,
@@ -84,8 +85,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const sessionUser = await getActiveSessionUser(request);
 
@@ -96,7 +98,7 @@ export async function DELETE(
     checkPermission(sessionUser.role, PERMISSIONS.CREATE_USER);
 
     const invitation = await prisma.userInvitation.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       select: {
         id: true,
         role: true,
@@ -114,7 +116,7 @@ export async function DELETE(
     }
 
     await prisma.userInvitation.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

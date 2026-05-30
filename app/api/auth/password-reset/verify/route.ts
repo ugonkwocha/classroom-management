@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPasswordResetToken } from '@/lib/password-resets';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'auth:password-reset-verify',
+      limit: 30,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const token = request.nextUrl.searchParams.get('token');
 
     if (!token) {

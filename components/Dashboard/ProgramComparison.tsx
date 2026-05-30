@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import type { Student, Program, Class } from '@/types';
 
@@ -58,7 +58,7 @@ export function ProgramComparison({
   }, [programs, yearFilter, typeFilter]);
 
   // Helper function to calculate metrics for a program (reuses logic from Dashboard)
-  const getProgramMetrics = (programId: string): ProgramMetrics | null => {
+  const getProgramMetrics = useCallback((programId: string): ProgramMetrics | null => {
     const program = programs.find((p) => p.id === programId);
     if (!program) return null;
 
@@ -96,7 +96,7 @@ export function ProgramComparison({
       classCount: programClasses.length,
       batches: program.batches,
     };
-  };
+  }, [classes, programs, students]);
 
   // Calculate comparison metrics
   const calculateComparison = (current: number, baseline: number): { value: number; percentage: number; isBetter: boolean } => {
@@ -115,7 +115,7 @@ export function ProgramComparison({
     return selectedPrograms
       .map((id) => getProgramMetrics(id))
       .filter((m): m is ProgramMetrics => m !== null);
-  }, [selectedPrograms, students, programs, classes]);
+  }, [selectedPrograms, getProgramMetrics]);
 
   const baselineMetrics = comparisonData.length > 0 ? comparisonData[0] : null;
 

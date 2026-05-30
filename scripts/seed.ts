@@ -29,7 +29,7 @@ async function main() {
           isActive: true,
         },
       });
-      console.log('✅ Superadmin user created: admin@9jacodekids.com (password: Admin@123)');
+      console.log('✅ Superadmin user created: admin@9jacodekids.com');
     } else {
       console.log('ℹ️  Superadmin user already exists');
     }

@@ -1,21 +1,15 @@
 /**
- * Enhanced fetch function that automatically includes JWT token from localStorage
- * Ensures all API calls are properly authenticated
+ * Enhanced fetch function that relies on the secure HttpOnly session cookie.
+ * The legacy localStorage token cleanup remains for users upgrading from older builds.
  */
 export function fetchWithAuth(
   url: string,
   options?: RequestInit
 ): Promise<Response> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options?.headers || {}),
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   return fetch(url, {
     ...options,

@@ -6,8 +6,9 @@ import { primaryGuardianLegacyData, studentFamilyInclude } from '@/lib/family-se
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -34,7 +35,7 @@ export async function PUT(
 
     const primary = family?.guardians.find((guardian) => guardian.isPrimary) || family?.guardians[0] || null;
     const student = await prisma.student.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         familyId: familyId || null,
         ...(primary ? primaryGuardianLegacyData(primary) : {}),

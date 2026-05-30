@@ -5,8 +5,9 @@ import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -29,7 +30,7 @@ export async function GET(
 
   try {
     const program = await prisma.program.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         classes: {
           include: {
@@ -66,8 +67,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -92,7 +94,7 @@ export async function PUT(
     const data = await request.json();
 
     const program = await prisma.program.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: data.name,
         type: data.type,
@@ -120,8 +122,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -144,7 +147,7 @@ export async function DELETE(
 
   try {
     await prisma.program.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

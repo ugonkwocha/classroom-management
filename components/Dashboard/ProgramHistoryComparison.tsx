@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import type { Student, Program, Class } from '@/types';
 
@@ -58,7 +58,7 @@ export function ProgramHistoryComparison({
   }, [selectedProgramId, programs]);
 
   // Helper function to calculate metrics for a program in a specific year
-  const getProgramYearMetrics = (programName: string, year: number): ProgramYearMetrics | null => {
+  const getProgramYearMetrics = useCallback((programName: string, year: number): ProgramYearMetrics | null => {
     const program = programs.find((p) => p.name === programName && p.year === year);
     if (!program) return null;
 
@@ -92,7 +92,7 @@ export function ProgramHistoryComparison({
       classCount: programClasses.length,
       batches: program.batches,
     };
-  };
+  }, [classes, programs, students]);
 
   // Calculate growth metrics
   const calculateGrowth = (current: number, baseline: number): GrowthIndicator => {
@@ -115,7 +115,7 @@ export function ProgramHistoryComparison({
     return availableYears
       .map((year) => getProgramYearMetrics(program.name, year))
       .filter((m): m is ProgramYearMetrics => m !== null);
-  }, [selectedProgramId, availableYears, students, programs, classes]);
+  }, [selectedProgramId, availableYears, programs, getProgramYearMetrics]);
 
   const baselineMetrics = historyData.length > 0 ? historyData[0] : null;
   const selectedProgram = programs.find((p) => p.id === selectedProgramId);

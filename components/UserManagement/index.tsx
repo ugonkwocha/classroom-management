@@ -49,18 +49,9 @@ export function UserManagement() {
   const fetchAccessData = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
       const [usersResponse, invitationsResponse] = await Promise.all([
-        fetch('/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
-        fetch('/api/users/invitations', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
+        fetch('/api/users'),
+        fetch('/api/users/invitations'),
       ]);
 
       if (!usersResponse.ok) {
@@ -86,14 +77,12 @@ export function UserManagement() {
     try {
       setError('');
       setNotice('');
-      const token = localStorage.getItem('authToken');
 
       if (editingUser) {
         const response = await fetch(`/api/users/${editingUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(userData),
         });
@@ -109,7 +98,6 @@ export function UserManagement() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(userData),
         });
@@ -142,12 +130,8 @@ export function UserManagement() {
 
     try {
       setError('');
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/users/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -168,12 +152,8 @@ export function UserManagement() {
     try {
       setError('');
       setNotice('');
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/users/${targetUser.id}/password-reset`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
       const data = await response.json();
 
@@ -199,12 +179,8 @@ export function UserManagement() {
     try {
       setError('');
       setNotice('');
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/users/invitations/${invitation.id}`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -227,12 +203,8 @@ export function UserManagement() {
     try {
       setError('');
       setNotice('');
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/users/invitations/${invitation.id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {

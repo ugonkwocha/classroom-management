@@ -1,6 +1,6 @@
 # Multi-stage build for 9jacodekids Academy Enrollment System
 # Stage 1: Build stage
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN npm run build
 RUN npm prune --omit=dev && npm cache clean --force
 
 # Stage 2: Production runtime
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -50,6 +50,8 @@ COPY scripts/init-db.js ./scripts/init-db.js
 COPY scripts/seed-admin.js ./scripts/seed-admin.js
 COPY scripts/backfill-families.js ./scripts/backfill-families.js
 
+RUN chown -R node:node /app
+
 # Expose port
 EXPOSE 3000
 
@@ -58,4 +60,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
 # Start with npm - which will run the init script first
+USER node
 CMD ["npm", "start"]

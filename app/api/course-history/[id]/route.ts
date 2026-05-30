@@ -5,8 +5,9 @@ import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -29,7 +30,7 @@ export async function GET(
 
   try {
     const history = await prisma.courseHistory.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         student: true,
       },
@@ -54,8 +55,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -80,7 +82,7 @@ export async function PUT(
     const data = await request.json();
 
     const history = await prisma.courseHistory.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         completionStatus: data.completionStatus,
         endDate: data.endDate ? new Date(data.endDate) : null,
@@ -103,8 +105,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -127,7 +130,7 @@ export async function DELETE(
 
   try {
     await prisma.courseHistory.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

@@ -12,8 +12,9 @@ function guardianKey(guardian: { emailNormalized?: string | null; phoneNormalize
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -27,7 +28,7 @@ export async function POST(
 
   try {
     const { sourceFamilyId } = await request.json();
-    const destinationFamilyId = params.id;
+    const destinationFamilyId = id;
 
     if (!sourceFamilyId || sourceFamilyId === destinationFamilyId) {
       return NextResponse.json({ error: 'Choose a different source family to merge' }, { status: 400 });

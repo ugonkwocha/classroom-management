@@ -10,12 +10,21 @@ import {
   getPasswordResetExpiry,
   hashPasswordResetToken,
 } from '@/lib/password-resets';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'users:send-password-reset',
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {
@@ -26,7 +35,7 @@ export async function POST(
 
     const [targetUser, requestedBy] = await Promise.all([
       prisma.user.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         select: {
           id: true,
           email: true,

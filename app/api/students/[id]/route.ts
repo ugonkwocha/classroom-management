@@ -12,8 +12,9 @@ import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -36,7 +37,7 @@ export async function GET(
 
   try {
     const student = await prisma.student.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ...studentFamilyInclude,
         enrollments: {
@@ -68,8 +69,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -95,7 +97,7 @@ export async function PUT(
 
     // Get the current student to check for changes
     const currentStudent = await prisma.student.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!currentStudent) {
@@ -163,7 +165,7 @@ export async function PUT(
       const primaryGuardian = getPrimaryGuardian(family);
 
       return tx.student.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -207,8 +209,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -231,7 +234,7 @@ export async function DELETE(
 
   try {
     await prisma.student.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

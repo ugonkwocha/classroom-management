@@ -4,6 +4,8 @@ import { User, UserRole } from '@/types';
 import prisma from '@/lib/prisma';
 
 const JWT_EXPIRY = '12h';
+export const AUTH_COOKIE_NAME = 'academy_session';
+export const JWT_MAX_AGE_SECONDS = 12 * 60 * 60;
 const BCRYPT_ROUNDS = 10;
 
 function getJwtSecret(): string {
@@ -26,11 +28,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 // JWT token generation and verification
-export function generateToken(user: Pick<User, 'id' | 'email' | 'role'>): string {
+export function generateToken(user: Pick<User, 'id' | 'email' | 'role'> & { tokenVersion?: number }): string {
   const payload = {
     userId: user.id,
     email: user.email,
     role: user.role,
+    tokenVersion: user.tokenVersion || 0,
   };
 
   return jwt.sign(payload, getJwtSecret(), {
@@ -42,6 +45,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: UserRole;
+  tokenVersion?: number;
   iat: number;
   exp: number;
 }
@@ -66,9 +70,20 @@ export function getTokenFromHeader(authHeader: string | null): string | null {
   return parts[1];
 }
 
+function getTokenFromCookieHeader(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').map((cookie) => cookie.trim());
+  const sessionCookie = cookies.find((cookie) => cookie.startsWith(`${AUTH_COOKIE_NAME}=`));
+
+  if (!sessionCookie) return null;
+
+  return decodeURIComponent(sessionCookie.slice(AUTH_COOKIE_NAME.length + 1));
+}
+
 export function getSessionUser(request: Request): TokenPayload | null {
   const authHeader = request.headers.get('authorization');
-  const token = getTokenFromHeader(authHeader);
+  const token = getTokenFromHeader(authHeader) || getTokenFromCookieHeader(request.headers.get('cookie'));
 
   if (!token) {
     return null;
@@ -91,10 +106,11 @@ export async function getActiveSessionUser(request: Request): Promise<TokenPaylo
       email: true,
       role: true,
       isActive: true,
+      tokenVersion: true,
     },
   });
 
-  if (!user?.isActive) {
+  if (!user?.isActive || (sessionUser.tokenVersion || 0) !== user.tokenVersion) {
     return null;
   }
 

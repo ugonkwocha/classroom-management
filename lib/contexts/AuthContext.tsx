@@ -51,21 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setUser(null);
-        localStorage.removeItem(AUTH_LAST_ACTIVITY_KEY);
-        if (setLoading) {
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/auth/me');
 
       if (response.ok) {
         const userData = await response.json();
@@ -87,12 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state on mount only
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      refreshUser(true);
-    } else {
-      setIsLoading(false);
-    }
+    refreshUser(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -112,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const { token, user: userData } = await response.json();
-      localStorage.setItem('authToken', token);
+      localStorage.removeItem('authToken');
       markActivity(true);
       setUser(userData);
       return { token, user: userData };
@@ -121,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    void fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
     localStorage.removeItem('authToken');
     localStorage.removeItem(AUTH_LAST_ACTIVITY_KEY);
     setShowIdleWarning(false);

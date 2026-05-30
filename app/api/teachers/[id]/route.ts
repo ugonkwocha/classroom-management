@@ -5,8 +5,9 @@ import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -29,7 +30,7 @@ export async function GET(
 
   try {
     const teacher = await prisma.teacher.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         classes: {
           include: {
@@ -60,8 +61,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -86,7 +88,7 @@ export async function PUT(
     const data = await request.json();
 
     const teacher = await prisma.teacher.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -114,8 +116,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -138,7 +141,7 @@ export async function DELETE(
 
   try {
     await prisma.teacher.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

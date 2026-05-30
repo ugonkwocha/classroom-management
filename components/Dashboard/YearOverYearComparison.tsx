@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import type { Student, Program, Class } from '@/types';
 
@@ -40,7 +40,7 @@ export function YearOverYearComparison({
   }, [programs]);
 
   // Calculate metrics for a specific year
-  const getYearMetrics = (year: number): YearMetrics => {
+  const getYearMetrics = useCallback((year: number): YearMetrics => {
     const yearPrograms = programs.filter((p) => p.year === year);
     const yearClasses = classes.filter((c) =>
       yearPrograms.some((p) => p.id === c.programId)
@@ -76,7 +76,7 @@ export function YearOverYearComparison({
       programCount: yearPrograms.length,
       classCount: yearClasses.length,
     };
-  };
+  }, [classes, programs, students]);
 
   // Calculate growth metrics
   const calculateGrowth = (current: number, baseline: number): GrowthIndicator => {
@@ -94,7 +94,7 @@ export function YearOverYearComparison({
   const comparisonData = useMemo(() => {
     if (selectedYears.length === 0) return [];
     return selectedYears.map((year) => getYearMetrics(year));
-  }, [selectedYears, students, programs, classes]);
+  }, [selectedYears, getYearMetrics]);
 
   // Get baseline year (first selected year)
   const baselineMetrics = comparisonData.length > 0 ? comparisonData[0] : null;

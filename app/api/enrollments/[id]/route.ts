@@ -6,8 +6,9 @@ import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -30,7 +31,7 @@ export async function GET(
 
   try {
     const enrollment = await prisma.programEnrollment.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         student: true,
         program: true,
@@ -57,8 +58,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -81,11 +83,11 @@ export async function PUT(
 
   try {
     const data = await request.json();
-    console.log('[PUT /api/enrollments/:id] Updating enrollment:', params.id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
+    console.log('[PUT /api/enrollments/:id] Updating enrollment:', id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
 
     const enrollment = await prisma.$transaction(async (tx) => {
       const currentEnrollment = await tx.programEnrollment.findUnique({
-        where: { id: params.id },
+        where: { id: id },
       });
 
       if (!currentEnrollment) {
@@ -126,7 +128,7 @@ export async function PUT(
 
         const assignedCount = await tx.programEnrollment.count({
           where: {
-            id: { not: params.id },
+            id: { not: id },
             classId: effectiveClassId,
             status: 'ASSIGNED',
           },
@@ -151,7 +153,7 @@ export async function PUT(
       }
 
       const updatedEnrollment = await tx.programEnrollment.update({
-        where: { id: params.id },
+        where: { id: id },
         data: updateData,
         include: {
           student: true,
@@ -210,8 +212,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
 
   if (!sessionUser) {
@@ -234,7 +237,7 @@ export async function DELETE(
 
   try {
     await prisma.programEnrollment.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

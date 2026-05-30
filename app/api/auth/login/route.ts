@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { verifyPassword, generateToken } from '@/lib/auth';
+import { AUTH_COOKIE_NAME, JWT_MAX_AGE_SECONDS, verifyPassword, generateToken } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'auth:login',
+      limit: 8,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -47,9 +55,10 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role as any,
+      tokenVersion: user.tokenVersion,
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       user: {
         id: user.id,
@@ -59,6 +68,18 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+
+    response.cookies.set({
+      name: AUTH_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: JWT_MAX_AGE_SECONDS,
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

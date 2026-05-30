@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getActiveSessionUser, hashPassword } from '@/lib/auth';
+import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const sessionUser = await getActiveSessionUser(request);
 
@@ -22,7 +23,7 @@ export async function GET(
     checkPermission(sessionUser.role, PERMISSIONS.READ_USERS);
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       select: {
         id: true,
         email: true,
@@ -69,8 +70,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const sessionUser = await getActiveSessionUser(request);
 
@@ -87,7 +89,7 @@ export async function PUT(
     const { email, firstName, lastName, role, isActive } = body;
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!user) {
@@ -97,8 +99,41 @@ export async function PUT(
       );
     }
 
+    const isSelfSensitiveChange = id === sessionUser.userId && (
+      (role && role !== user.role) ||
+      isActive === false
+    );
+
+    if (isSelfSensitiveChange) {
+      return NextResponse.json(
+        { error: 'You cannot change your own role or deactivate your own account' },
+        { status: 400 }
+      );
+    }
+
+    const wouldRemoveSuperadminAccess = user.role === 'SUPERADMIN' && (
+      (role && role !== 'SUPERADMIN') ||
+      isActive === false
+    );
+
+    if (wouldRemoveSuperadminAccess) {
+      const activeSuperadminCount = await prisma.user.count({
+        where: {
+          role: 'SUPERADMIN',
+          isActive: true,
+        },
+      });
+
+      if (activeSuperadminCount <= 1) {
+        return NextResponse.json(
+          { error: 'At least one active superadmin must remain on the platform' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(email && { email }),
         ...(firstName && { firstName }),
@@ -138,8 +173,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const sessionUser = await getActiveSessionUser(request);
 
@@ -153,7 +189,7 @@ export async function DELETE(
     checkPermission(sessionUser.role, PERMISSIONS.DELETE_USER);
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!user) {
@@ -163,8 +199,31 @@ export async function DELETE(
       );
     }
 
+    if (id === sessionUser.userId) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account' },
+        { status: 400 }
+      );
+    }
+
+    if (user.role === 'SUPERADMIN' && user.isActive) {
+      const activeSuperadminCount = await prisma.user.count({
+        where: {
+          role: 'SUPERADMIN',
+          isActive: true,
+        },
+      });
+
+      if (activeSuperadminCount <= 1) {
+        return NextResponse.json(
+          { error: 'At least one active superadmin must remain on the platform' },
+          { status: 400 }
+        );
+      }
+    }
+
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

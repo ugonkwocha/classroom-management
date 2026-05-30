@@ -11,6 +11,7 @@ import {
   hashInvitationToken,
   normalizeInviteEmail,
 } from '@/lib/user-invitations';
+import { rateLimit } from '@/lib/rate-limit';
 import type { UserRole } from '@/types';
 
 const invitationSelect = {
@@ -69,6 +70,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'users:create-invitation',
+      limit: 20,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const sessionUser = await getActiveSessionUser(request);
 
     if (!sessionUser) {

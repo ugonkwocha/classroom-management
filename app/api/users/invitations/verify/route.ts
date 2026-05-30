@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashInvitationToken } from '@/lib/user-invitations';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'users:verify-invite',
+      limit: 30,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const token = request.nextUrl.searchParams.get('token');
 
     if (!token) {

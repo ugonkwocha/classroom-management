@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { hashInvitationToken } from '@/lib/user-invitations';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const limitedResponse = rateLimit(request, {
+      keyPrefix: 'users:accept-invite',
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (limitedResponse) return limitedResponse;
+
     const body = await request.json();
     const token = String(body.token || '');
     const password = String(body.password || '');

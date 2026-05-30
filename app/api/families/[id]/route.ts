@@ -6,8 +6,9 @@ import { familyInclude, normalizeGuardianInput, primaryGuardianLegacyData } from
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -21,7 +22,7 @@ export async function GET(
 
   try {
     const family = await prisma.family.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: familyInclude,
     });
 
@@ -35,8 +36,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -52,7 +54,7 @@ export async function PUT(
     const data = await request.json();
     const family = await prisma.$transaction(async (tx) => {
       await tx.family.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
           ...(data.isArchived !== undefined ? { isArchived: Boolean(data.isArchived) } : {}),
@@ -64,24 +66,24 @@ export async function PUT(
         const primaryCount = normalizedGuardians.filter((guardian: any) => guardian.isPrimary).length;
         if (primaryCount === 0 && normalizedGuardians.length > 0) normalizedGuardians[0].isPrimary = true;
 
-        await tx.parentGuardian.deleteMany({ where: { familyId: params.id } });
+        await tx.parentGuardian.deleteMany({ where: { familyId: id } });
         await tx.parentGuardian.createMany({
           data: normalizedGuardians.map((guardian: any) => ({
             ...guardian,
-            familyId: params.id,
+            familyId: id,
           })),
         });
 
         const primary = normalizedGuardians.find((guardian: any) => guardian.isPrimary) || normalizedGuardians[0];
         if (primary) {
           await tx.student.updateMany({
-            where: { familyId: params.id },
+            where: { familyId: id },
             data: primaryGuardianLegacyData(primary),
           });
         }
       }
 
-      return tx.family.findUnique({ where: { id: params.id }, include: familyInclude });
+      return tx.family.findUnique({ where: { id: id }, include: familyInclude });
     });
 
     return NextResponse.json(family);
@@ -96,8 +98,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -110,7 +113,7 @@ export async function DELETE(
   }
 
   try {
-    const studentCount = await prisma.student.count({ where: { familyId: params.id } });
+    const studentCount = await prisma.student.count({ where: { familyId: id } });
     if (studentCount > 0) {
       return NextResponse.json(
         { error: 'Only empty families can be deleted. Move or delete students first.' },
@@ -119,10 +122,10 @@ export async function DELETE(
     }
 
     await prisma.family.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
-    return NextResponse.json({ success: true, deletedFamilyId: params.id });
+    return NextResponse.json({ success: true, deletedFamilyId: id });
   } catch (error) {
     console.error('Error deleting family:', error);
     return NextResponse.json({ error: 'Failed to delete family' }, { status: 500 });

@@ -12,9 +12,10 @@ interface RevenueForecastProps {
 
 export function RevenueForecast({ students, programs, classes }: RevenueForecastProps) {
   const AVERAGE_PRICE = 58000; // Average of the three pricing options
-  const today = new Date();
 
   const forecastData = useMemo(() => {
+    const today = new Date();
+
     // Get only upcoming programs (start date in the future)
     const upcomingPrograms = programs.filter((p) => {
       if (!p.startDate) return false;
