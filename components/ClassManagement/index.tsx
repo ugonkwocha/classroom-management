@@ -82,12 +82,12 @@ export function ClassManagement() {
     if (studentCount >= classData.capacity) return 'Full';
     if (!classData.teacherId || !classData.meetLink) return 'Pending';
     if (studentCount > 0) return 'Active';
-    return 'Available';
+    return 'Ready';
   };
 
   const statusStyles: Record<string, string> = {
     Active: 'border-emerald-100 bg-emerald-50 text-emerald-700',
-    Available: 'border-blue-100 bg-blue-50 text-blue-700',
+    Ready: 'border-blue-100 bg-blue-50 text-blue-700',
     Full: 'border-rose-100 bg-rose-50 text-rose-700',
     Pending: 'border-amber-100 bg-amber-50 text-amber-700',
     Archived: 'border-slate-200 bg-slate-100 text-slate-600',

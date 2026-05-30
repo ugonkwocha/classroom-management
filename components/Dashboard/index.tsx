@@ -41,7 +41,7 @@ interface DashboardProps {
 }
 
 type Accent = 'blue' | 'green' | 'yellow' | 'purple' | 'red' | 'orange';
-type ClassStatus = 'Active' | 'Available' | 'Full' | 'Pending';
+type ClassStatus = 'Active' | 'Ready' | 'Full' | 'Pending';
 
 const accentStyles: Record<Accent, { icon: string; line: string; soft: string }> = {
   blue: {
@@ -78,7 +78,7 @@ const accentStyles: Record<Accent, { icon: string; line: string; soft: string }>
 
 const statusStyles: Record<ClassStatus, string> = {
   Active: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  Available: 'bg-blue-50 text-blue-700 border-blue-100',
+  Ready: 'bg-blue-50 text-blue-700 border-blue-100',
   Full: 'bg-rose-50 text-rose-700 border-rose-100',
   Pending: 'bg-amber-50 text-amber-700 border-amber-100',
 };
@@ -325,7 +325,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
     if (enrolled >= classItem.capacity) return 'Full';
     if (!classItem.teacherId || !classItem.meetLink) return 'Pending';
     if (enrolled > 0) return 'Active';
-    return 'Available';
+    return 'Ready';
   };
 
   const totalStudents = students.length;
