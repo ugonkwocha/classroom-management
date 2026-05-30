@@ -135,8 +135,11 @@ function buildOperationalAlerts({
     (enrollment) => enrollment.status !== 'DROPPED' && enrollment.paymentStatus === 'PENDING'
   ).length;
 
+  const classEnrollmentCount = (classId: string) =>
+    activeEnrollments.filter((enrollment) => enrollment.classId === classId && enrollment.status === 'ASSIGNED').length;
+
   const closeToFullCount = activeClasses.filter((classItem) => {
-    const filled = classItem.students?.length || 0;
+    const filled = classEnrollmentCount(classItem.id);
     const remaining = classItem.capacity - filled;
     return classItem.capacity > 0 && remaining > 0 && remaining <= 2;
   }).length;
@@ -193,7 +196,7 @@ function buildOperationalAlerts({
     {
       id: 'classes-close-to-full',
       title: 'Classes close to full',
-      detail: `${closeToFullCount} class${closeToFullCount === 1 ? '' : 'es'} have two or fewer seats left`,
+      detail: `${closeToFullCount} class${closeToFullCount === 1 ? ' has' : 'es have'} two or fewer seats left`,
       count: closeToFullCount,
       tab: 'classes',
       priority: 'medium',
