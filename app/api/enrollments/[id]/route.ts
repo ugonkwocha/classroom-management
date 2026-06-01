@@ -214,7 +214,10 @@ export async function PUT(
 
     if (shouldSendAssignmentNotification && notificationStudentId && notificationClassId) {
       try {
-        emailNotification = await sendEnrollmentAssignmentNotification(notificationStudentId, notificationClassId);
+        emailNotification = await sendEnrollmentAssignmentNotification(notificationStudentId, notificationClassId, {
+          enrollmentId: enrollment.id,
+          triggeredById: sessionUser.userId,
+        });
       } catch (emailError) {
         console.error('[PUT /api/enrollments/:id] Assignment saved, but email notification failed:', emailError);
         emailNotification = {

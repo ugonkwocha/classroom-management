@@ -62,6 +62,10 @@ export const PERMISSIONS = {
   // Dashboard (all can view)
   VIEW_DASHBOARD: 'VIEW_DASHBOARD',
 
+  // Email logs and delivery monitoring (Admin+)
+  READ_EMAIL_LOGS: 'READ_EMAIL_LOGS',
+  RESEND_EMAIL: 'RESEND_EMAIL',
+
   // Waitlist (all can manage)
   MANAGE_WAITLIST: 'MANAGE_WAITLIST',
 
@@ -117,6 +121,8 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.UPDATE_COURSE_HISTORY,
     PERMISSIONS.DELETE_COURSE_HISTORY,
     PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.READ_EMAIL_LOGS,
+    PERMISSIONS.RESEND_EMAIL,
     PERMISSIONS.MANAGE_WAITLIST,
     // Revenue and Pricing
     PERMISSIONS.VIEW_REVENUE,
@@ -172,6 +178,8 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.DELETE_COURSE_HISTORY,
     // Dashboard - yes
     PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.READ_EMAIL_LOGS,
+    PERMISSIONS.RESEND_EMAIL,
     // Waitlist - yes
     PERMISSIONS.MANAGE_WAITLIST,
     // Revenue and Pricing

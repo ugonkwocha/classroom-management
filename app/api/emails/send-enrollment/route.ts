@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const notification = await sendEnrollmentAssignmentNotification(studentId, classId);
+    const notification = await sendEnrollmentAssignmentNotification(studentId, classId, {
+      triggeredById: sessionUser.userId,
+    });
 
     return NextResponse.json({
       success: notification.success,

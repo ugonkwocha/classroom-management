@@ -6,6 +6,8 @@ export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
 export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
 export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
+export type EmailEventType = 'CLASS_ASSIGNMENT' | 'TEACHER_ASSIGNMENT' | 'USER_INVITATION' | 'PASSWORD_RESET';
+export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
 
 export interface User {
   id: string;
@@ -28,6 +30,28 @@ export interface UserInvitation {
   expiresAt: string;
   acceptedAt?: string | null;
   invitedBy?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailLog {
+  id: string;
+  eventType: EmailEventType;
+  status: EmailLogStatus;
+  recipientEmail: string;
+  recipientName?: string | null;
+  recipientRole?: string | null;
+  subject?: string | null;
+  provider: string;
+  providerMessageId?: string | null;
+  error?: string | null;
+  studentId?: string | null;
+  classId?: string | null;
+  enrollmentId?: string | null;
+  triggeredById?: string | null;
+  payload?: unknown;
+  sentAt?: string | null;
+  deliveredAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

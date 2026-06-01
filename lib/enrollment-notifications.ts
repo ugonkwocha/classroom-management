@@ -8,6 +8,12 @@ type NotificationRecipient = {
   source: 'guardian' | 'legacy-parent' | 'student';
 };
 
+type NotificationOptions = {
+  enrollmentId?: string | null;
+  triggeredById?: string | null;
+  resendOfLogId?: string | null;
+};
+
 function normalizeEmail(value: string | null | undefined) {
   return (value || '').trim().toLowerCase();
 }
@@ -23,7 +29,77 @@ function dedupeRecipients(recipients: NotificationRecipient[]) {
   });
 }
 
-export async function sendEnrollmentAssignmentNotification(studentId: string, classId: string) {
+function getAssignmentSubject(studentName: string) {
+  return studentName ? `Class details for ${studentName}` : 'Class assignment details';
+}
+
+async function createEmailLogs({
+  recipients,
+  recipientRole,
+  subject,
+  studentId,
+  classId,
+  options,
+  payload,
+}: {
+  recipients: NotificationRecipient[];
+  recipientRole: 'parent' | 'student';
+  subject: string;
+  studentId: string;
+  classId: string;
+  options?: NotificationOptions;
+  payload: Record<string, unknown>;
+}) {
+  return Promise.all(
+    recipients.map((recipient) =>
+      prisma.emailLog.create({
+        data: {
+          eventType: 'CLASS_ASSIGNMENT',
+          status: 'QUEUED',
+          recipientEmail: recipient.email,
+          recipientName: recipient.name,
+          recipientRole,
+          subject,
+          studentId,
+          classId,
+          enrollmentId: options?.enrollmentId || null,
+          triggeredById: options?.triggeredById || null,
+          payload: {
+            ...payload,
+            recipientSource: recipient.source,
+            resendOfLogId: options?.resendOfLogId || null,
+          },
+        },
+      })
+    )
+  );
+}
+
+async function updateEmailLogsWithResults(
+  logs: { id: string }[],
+  results: Awaited<ReturnType<typeof sendClassAssignmentEmail>>
+) {
+  await Promise.all(
+    logs.map((log, index) => {
+      const result = results[index];
+      return prisma.emailLog.update({
+        where: { id: log.id },
+        data: {
+          status: result?.success ? 'SENT' : 'FAILED',
+          providerMessageId: result?.messageId || null,
+          error: result?.success ? null : result?.error || 'Email delivery failed',
+          sentAt: result?.success ? new Date() : null,
+        },
+      });
+    })
+  );
+}
+
+export async function sendEnrollmentAssignmentNotification(
+  studentId: string,
+  classId: string,
+  options: NotificationOptions = {}
+) {
   const [student, classData] = await Promise.all([
     prisma.student.findUnique({
       where: { id: studentId },
@@ -110,6 +186,36 @@ export async function sendEnrollmentAssignmentNotification(studentId: string, cl
     enrollmentDate,
     studentName,
   };
+  const subject = getAssignmentSubject(studentName);
+  const logPayload = {
+    className: classData.name,
+    courseName: classData.course.name,
+    programName: classData.program.name,
+    batch: classData.batch,
+    slot: classData.slot,
+    schedule: classData.schedule,
+    meetLink: classData.meetLink || null,
+  };
+
+  const parentLogs = await createEmailLogs({
+    recipients: parentRecipients,
+    recipientRole: 'parent',
+    subject,
+    studentId,
+    classId,
+    options,
+    payload: logPayload,
+  });
+
+  const studentLogs = await createEmailLogs({
+    recipients: studentRecipients,
+    recipientRole: 'student',
+    subject,
+    studentId,
+    classId,
+    options,
+    payload: logPayload,
+  });
 
   const parentEmailResults =
     parentRecipients.length > 0
@@ -128,6 +234,11 @@ export async function sendEnrollmentAssignmentNotification(studentId: string, cl
           recipientType: 'student',
         })
       : [];
+
+  await Promise.all([
+    updateEmailLogsWithResults(parentLogs, parentEmailResults),
+    updateEmailLogsWithResults(studentLogs, studentEmailResults),
+  ]);
 
   const successfulParentEmails = parentEmailResults.filter((result) => result.success).length;
   const failedParentEmails = parentEmailResults.filter((result) => !result.success).length;

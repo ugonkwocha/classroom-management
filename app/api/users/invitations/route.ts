@@ -13,6 +13,7 @@ import {
 } from '@/lib/user-invitations';
 import { rateLimit } from '@/lib/rate-limit';
 import type { UserRole } from '@/types';
+import { logEmailDelivery } from '@/lib/email-logs';
 
 const invitationSelect = {
   id: true,
@@ -160,6 +161,22 @@ export async function POST(request: NextRequest) {
         month: 'long',
         day: 'numeric',
       }),
+    });
+
+    await logEmailDelivery({
+      eventType: 'USER_INVITATION',
+      recipientEmail: email,
+      recipientName: `${firstName} ${lastName}`.trim(),
+      recipientRole: role,
+      subject: 'Your 9jacodekids Academy invitation',
+      providerMessageId: emailDelivery.messageId,
+      error: emailDelivery.error,
+      success: emailDelivery.success,
+      triggeredById: inviter.id,
+      payload: {
+        invitationId: invitation.id,
+        expiresAt: expiresAt.toISOString(),
+      },
     });
 
     return NextResponse.json({ invitation, emailDelivery }, { status: 201 });

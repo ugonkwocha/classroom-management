@@ -31,7 +31,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
-import type { Class, Family, Student, UserInvitation } from '@/types';
+import type { Class, EmailLog, Family, Student, UserInvitation } from '@/types';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -43,6 +43,7 @@ import { UserManagement } from '@/components/UserManagement';
 import { PricingPage } from '@/components/PricingManagement';
 import { FamiliesManagement } from '@/components/FamiliesManagement';
 import { EnrollmentManagement } from '@/components/EnrollmentManagement';
+import { EmailLogsManagement } from '@/components/EmailLogsManagement';
 
 type Tab =
   | 'dashboard'
@@ -55,6 +56,7 @@ type Tab =
   | 'classes'
   | 'teachers'
   | 'pricing'
+  | 'emails'
   | 'users'
   | 'reports'
   | 'settings';
@@ -87,6 +89,7 @@ const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   classes: { title: 'Classes', subtitle: 'Manage sessions, tutors, and meeting links' },
   teachers: { title: 'Teachers', subtitle: 'Manage tutors and assignments' },
   pricing: { title: 'Pricing', subtitle: 'Maintain tuition and discount options' },
+  emails: { title: 'Email Logs', subtitle: 'Track failed, sent, and retried notifications' },
   users: { title: 'Users', subtitle: 'Manage admin access and permissions' },
   reports: { title: 'Reports', subtitle: 'Review academy performance summaries' },
   settings: { title: 'Settings', subtitle: 'Configure academy management preferences' },
@@ -111,13 +114,17 @@ function buildOperationalAlerts({
   classes,
   families,
   invitations,
+  emailLogs,
   canReadUsers,
+  canReadEmailLogs,
 }: {
   students: Student[];
   classes: Class[];
   families: Family[];
   invitations: UserInvitation[];
+  emailLogs: EmailLog[];
   canReadUsers: boolean;
+  canReadEmailLogs: boolean;
 }): OperationalAlert[] {
   const activeClasses = classes.filter((classItem) => !classItem.isArchived);
   const activeEnrollments = students.flatMap((student) =>
@@ -231,6 +238,19 @@ function buildOperationalAlerts({
       count: pendingInviteCount,
       tab: 'users',
       priority: 'low',
+      icon: FiMail,
+    });
+  }
+
+  if (canReadEmailLogs) {
+    const failedEmailCount = emailLogs.filter((log) => log.status === 'FAILED' || log.status === 'BOUNCED').length;
+    alerts.unshift({
+      id: 'failed-emails',
+      title: 'Failed emails',
+      detail: `${failedEmailCount} email${failedEmailCount === 1 ? '' : 's'} need review or resend`,
+      count: failedEmailCount,
+      tab: 'emails',
+      priority: 'high',
       icon: FiMail,
     });
   }
@@ -370,6 +390,7 @@ function HomeContent() {
   const [areAlertsLoading, setAreAlertsLoading] = useState(false);
   const hasLoadedAlertsRef = useRef(false);
   const canReadUsers = hasPermission(PERMISSIONS.READ_USERS);
+  const canReadEmailLogs = hasPermission(PERMISSIONS.READ_EMAIL_LOGS);
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
@@ -384,6 +405,7 @@ function HomeContent() {
     { id: 'classes', label: 'Classes', icon: FiCalendar },
     { id: 'teachers', label: 'Teachers', icon: FiUserCheck },
     ...(user?.role === 'SUPERADMIN' ? [{ id: 'pricing' as Tab, label: 'Pricing', icon: FiDollarSign }] : []),
+    ...(canReadEmailLogs ? [{ id: 'emails' as Tab, label: 'Email Logs', icon: FiMail }] : []),
     ...(canReadUsers ? [{ id: 'users' as Tab, label: 'Users', icon: FiUsers }] : []),
     { id: 'reports', label: 'Reports', icon: FiBarChart2, disabled: true },
     { id: 'settings', label: 'Settings', icon: FiSettings, disabled: true },
@@ -409,6 +431,7 @@ function HomeContent() {
       'classes',
       'teachers',
       'pricing',
+      'emails',
       'users',
       'reports',
       'settings',
@@ -441,22 +464,25 @@ function HomeContent() {
       }
 
       try {
-        const requests: Promise<Response>[] = [
+        const [
+          studentsResponse,
+          classesResponse,
+          familiesResponse,
+          invitationsResponse,
+          emailLogsResponse,
+        ] = await Promise.all([
           fetch('/api/students'),
           fetch('/api/classes?archived=false'),
           fetch('/api/families'),
-        ];
-
-        if (canReadUsers) {
-          requests.push(fetch('/api/users/invitations'));
-        }
-
-        const [studentsResponse, classesResponse, familiesResponse, invitationsResponse] = await Promise.all(requests);
+          canReadUsers ? fetch('/api/users/invitations') : Promise.resolve(null),
+          canReadEmailLogs ? fetch('/api/email-logs?take=200') : Promise.resolve(null),
+        ]);
 
         const failedCoreRequest = !studentsResponse.ok || !classesResponse.ok || !familiesResponse.ok;
         const failedInviteRequest = canReadUsers && (!invitationsResponse || !invitationsResponse.ok);
+        const failedEmailLogsRequest = canReadEmailLogs && (!emailLogsResponse || !emailLogsResponse.ok);
 
-        if (failedCoreRequest || failedInviteRequest) {
+        if (failedCoreRequest || failedInviteRequest || failedEmailLogsRequest) {
           throw new Error('Failed to load operational alerts');
         }
 
@@ -470,10 +496,22 @@ function HomeContent() {
           canReadUsers && invitationsResponse
             ? ((await invitationsResponse.json()) as UserInvitation[])
             : [];
+        const emailLogData =
+          canReadEmailLogs && emailLogsResponse
+            ? ((await emailLogsResponse.json()) as { logs?: EmailLog[] })
+            : { logs: [] };
 
         if (!isMounted) return;
 
-        setAlerts(buildOperationalAlerts({ students, classes, families, invitations, canReadUsers }));
+        setAlerts(buildOperationalAlerts({
+          students,
+          classes,
+          families,
+          invitations,
+          emailLogs: emailLogData.logs || [],
+          canReadUsers,
+          canReadEmailLogs,
+        }));
         hasLoadedAlertsRef.current = true;
       } catch (error) {
         console.warn('Failed to load operational alerts:', error);
@@ -494,7 +532,7 @@ function HomeContent() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [canReadUsers, isAuthenticated, isLoading]);
+  }, [canReadEmailLogs, canReadUsers, isAuthenticated, isLoading]);
 
   const handleTabChange = (tab: Tab) => {
     const navItem = navItems.find((item) => item.id === tab);
@@ -691,6 +729,7 @@ function HomeContent() {
               {activeTab === 'classes' && <ClassManagement />}
               {activeTab === 'teachers' && <TeachersManagement />}
               {activeTab === 'pricing' && <PricingPage />}
+              {activeTab === 'emails' && canReadEmailLogs && <EmailLogsManagement />}
               {activeTab === 'users' && <UserManagement />}
               {activeTab === 'reports' && (
                 <ComingSoonPanel

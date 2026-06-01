@@ -3,6 +3,7 @@ import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { sendClassAssignmentEmail } from '@/lib/email';
 import prisma from '@/lib/prisma';
+import { logEmailDelivery } from '@/lib/email-logs';
 
 interface SendTeacherAssignmentEmailRequest {
   classId: string;
@@ -82,6 +83,25 @@ export async function POST(request: NextRequest) {
 
     const successfulTeacherEmails = emailResults.filter((result) => result.success).length;
     const failedTeacherEmails = emailResults.filter((result) => !result.success).length;
+    const result = emailResults[0];
+
+    await logEmailDelivery({
+      eventType: 'TEACHER_ASSIGNMENT',
+      recipientEmail: classData.teacher.email,
+      recipientName: `${classData.teacher.firstName} ${classData.teacher.lastName}`,
+      recipientRole: 'teacher',
+      subject: `Class assignment: ${classData.name}`,
+      providerMessageId: result?.messageId,
+      error: result?.error,
+      success: Boolean(result?.success),
+      classId: classData.id,
+      triggeredById: sessionUser.userId,
+      payload: {
+        className: classData.name,
+        courseName: classData.course.name,
+        programName: classData.program.name,
+      },
+    });
 
     return NextResponse.json({
       success: true,

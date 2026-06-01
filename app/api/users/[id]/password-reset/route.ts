@@ -11,6 +11,7 @@ import {
   hashPasswordResetToken,
 } from '@/lib/password-resets';
 import { rateLimit } from '@/lib/rate-limit';
+import { logEmailDelivery } from '@/lib/email-logs';
 
 export async function POST(
   request: NextRequest,
@@ -113,6 +114,22 @@ export async function POST(
         hour: 'numeric',
         minute: '2-digit',
       }),
+    });
+
+    await logEmailDelivery({
+      eventType: 'PASSWORD_RESET',
+      recipientEmail: targetUser.email,
+      recipientName: `${targetUser.firstName} ${targetUser.lastName}`.trim(),
+      recipientRole: targetUser.role,
+      subject: 'Reset your 9jacodekids Academy password',
+      providerMessageId: emailDelivery.messageId,
+      error: emailDelivery.error,
+      success: emailDelivery.success,
+      triggeredById: requestedBy.id,
+      payload: {
+        targetUserId: targetUser.id,
+        expiresAt: expiresAt.toISOString(),
+      },
     });
 
     return NextResponse.json({ success: true, emailDelivery });

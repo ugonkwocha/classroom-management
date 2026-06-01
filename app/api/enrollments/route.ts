@@ -144,7 +144,10 @@ export async function POST(request: NextRequest) {
 
     if (enrollment.status === 'ASSIGNED' && enrollment.classId) {
       try {
-        emailNotification = await sendEnrollmentAssignmentNotification(enrollment.studentId, enrollment.classId);
+        emailNotification = await sendEnrollmentAssignmentNotification(enrollment.studentId, enrollment.classId, {
+          enrollmentId: enrollment.id,
+          triggeredById: sessionUser.userId,
+        });
       } catch (emailError) {
         console.error('[POST /api/enrollments] Enrollment created, but email notification failed:', emailError);
         emailNotification = {
