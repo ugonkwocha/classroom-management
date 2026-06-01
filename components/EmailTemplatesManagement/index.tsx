@@ -35,7 +35,7 @@ type FormState = {
 
 const defaultBody = `Hello {{studentName}},
 
-Please prepare for {{courseName}} before {{className}}.
+Here is how to prepare for {{courseName}} before {{className}}.
 
 - Join with this Google Meet link: {{meetLink}}
 - Be ready for {{schedule}}
@@ -234,7 +234,7 @@ export function EmailTemplatesManagement() {
 
   const handleDelete = async (row: EmailTemplateRow) => {
     if (!row.template) return;
-    if (!window.confirm(`Delete the preparation template for ${row.course.name}?`)) return;
+    if (!window.confirm(`Delete the assignment email template for ${row.course.name}?`)) return;
 
     setMessage(null);
     try {
@@ -259,15 +259,15 @@ export function EmailTemplatesManagement() {
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <FiMail className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Configured templates</p>
+          <p className="text-sm font-medium text-slate-500">Configured emails</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{configuredCount}</p>
-          <p className="mt-2 text-sm text-slate-500">Courses with saved instructions</p>
+          <p className="mt-2 text-sm text-slate-500">Courses with assignment content</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <FiCheckCircle className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Active templates</p>
+          <p className="text-sm font-medium text-slate-500">Active emails</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{activeCount}</p>
           <p className="mt-2 text-sm text-slate-500">Ready for new assignments</p>
         </div>
@@ -290,8 +290,8 @@ export function EmailTemplatesManagement() {
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-950">Course Preparation Templates</h2>
-            <p className="mt-1 text-sm text-slate-500">Each course needs one active template before students can be assigned.</p>
+            <h2 className="text-base font-bold text-slate-950">Course Assignment Emails</h2>
+            <p className="mt-1 text-sm text-slate-500">Each course needs one active email template for class details and preparation instructions.</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -409,7 +409,7 @@ export function EmailTemplatesManagement() {
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">{editingTemplate ? 'Edit Template' : 'Create Template'}</h2>
-                <p className="mt-1 text-sm text-slate-500">Use placeholders to personalize the preparation email.</p>
+                <p className="mt-1 text-sm text-slate-500">Use placeholders to personalize the class assignment email.</p>
               </div>
               <button
                 type="button"
@@ -462,7 +462,7 @@ export function EmailTemplatesManagement() {
                     placeholder="Write the preparation instructions..."
                     required
                   />
-                  <p className="mt-2 text-xs text-slate-500">Use blank lines for paragraphs and lines starting with - for bullets. URLs become clickable automatically.</p>
+                  <p className="mt-2 text-xs text-slate-500">This content appears below the class details and Meet link. Use blank lines for paragraphs and lines starting with - for bullets.</p>
                 </div>
 
                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
@@ -521,7 +521,7 @@ export function EmailTemplatesManagement() {
                     <p className="mt-1 text-sm text-blue-100">Class Management System</p>
                   </div>
                   <div className="mt-5">
-                    <p className="text-sm text-slate-500">Hello Ada,</p>
+                  <p className="text-sm text-slate-500">Class details and Meet link appear above this section in the final email.</p>
                     <h3 className="mt-2 text-xl font-bold leading-tight text-slate-950">{previewSubject || 'Email subject preview'}</h3>
                     <div className="mt-4" dangerouslySetInnerHTML={{ __html: previewBody }} />
                   </div>

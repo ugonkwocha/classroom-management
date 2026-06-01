@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { sendClassAssignmentEmail, sendPreparationInstructionsEmail } from '@/lib/email';
+import { sendClassAssignmentEmail } from '@/lib/email';
 import { formatGuardianName } from '@/lib/family-utils';
 import { renderTemplateText } from '@/lib/email-template-rendering';
 import { MISSING_PREPARATION_TEMPLATE_ERROR } from '@/lib/course-email-template-requirements';
@@ -14,7 +14,6 @@ type NotificationOptions = {
   enrollmentId?: string | null;
   triggeredById?: string | null;
   resendOfLogId?: string | null;
-  mode?: 'all' | 'class-details-only' | 'preparation-only';
   recipientEmail?: string | null;
 };
 
@@ -41,7 +40,6 @@ async function createEmailLogs({
   recipients,
   recipientRole,
   subject,
-  eventType,
   studentId,
   classId,
   options,
@@ -50,7 +48,6 @@ async function createEmailLogs({
   recipients: NotificationRecipient[];
   recipientRole: 'parent' | 'student';
   subject: string;
-  eventType: 'CLASS_ASSIGNMENT' | 'PREPARATION_INSTRUCTIONS';
   studentId: string;
   classId: string;
   options?: NotificationOptions;
@@ -60,7 +57,7 @@ async function createEmailLogs({
     recipients.map((recipient) =>
       prisma.emailLog.create({
         data: {
-          eventType,
+          eventType: 'CLASS_ASSIGNMENT',
           status: 'QUEUED',
           recipientEmail: recipient.email,
           recipientName: recipient.name,
@@ -200,23 +197,19 @@ export async function sendEnrollmentAssignmentNotification(
     enrollmentDate,
     studentName,
   };
-  const subject = getAssignmentSubject(studentName);
-  const mode = options.mode || 'all';
-  const shouldSendClassDetails = mode !== 'preparation-only';
-  const shouldSendPreparation = mode !== 'class-details-only';
   const preparationTemplate = classData.course.emailTemplate;
 
-  if (shouldSendPreparation && !preparationTemplate?.isActive) {
+  if (!preparationTemplate?.isActive) {
     return {
       success: false,
       error: MISSING_PREPARATION_TEMPLATE_ERROR,
       recipients: [],
-      emailsSent: { parents: 0, students: 0, preparationParents: 0, preparationStudents: 0 },
-      emailsFailed: { parents: 0, students: 0, preparationParents: 0, preparationStudents: 0 },
+      emailsSent: { parents: 0, students: 0 },
+      emailsFailed: { parents: 0, students: 0 },
     };
   }
 
-  const preparationContext = {
+  const templateContext = {
     studentName,
     courseName: classData.course.name,
     className: classData.name,
@@ -225,9 +218,7 @@ export async function sendEnrollmentAssignmentNotification(
     tutorFirstName: classData.teacher?.firstName || 'your tutor',
     meetLink: classData.meetLink || 'Meet link will be shared by the academy team.',
   };
-  const preparationSubject = preparationTemplate
-    ? renderTemplateText(preparationTemplate.subject, preparationContext)
-    : '';
+  const subject = renderTemplateText(preparationTemplate.subject, templateContext) || getAssignmentSubject(studentName);
   const logPayload = {
     className: classData.name,
     courseName: classData.course.name,
@@ -236,49 +227,54 @@ export async function sendEnrollmentAssignmentNotification(
     slot: classData.slot,
     schedule: classData.schedule,
     meetLink: classData.meetLink || null,
+    templateId: preparationTemplate.id,
   };
 
-  const parentLogs = shouldSendClassDetails
-    ? await createEmailLogs({
-        recipients: parentRecipients,
-        recipientRole: 'parent',
-        subject,
-        eventType: 'CLASS_ASSIGNMENT',
-        studentId,
-        classId,
-        options,
-        payload: logPayload,
-      })
-    : [];
+  const parentLogs = await createEmailLogs({
+    recipients: parentRecipients,
+    recipientRole: 'parent',
+    subject,
+    studentId,
+    classId,
+    options,
+    payload: logPayload,
+  });
 
-  const studentLogs = shouldSendClassDetails
-    ? await createEmailLogs({
-        recipients: studentRecipients,
-        recipientRole: 'student',
-        subject,
-        eventType: 'CLASS_ASSIGNMENT',
-        studentId,
-        classId,
-        options,
-        payload: logPayload,
-      })
-    : [];
+  const studentLogs = await createEmailLogs({
+    recipients: studentRecipients,
+    recipientRole: 'student',
+    subject,
+    studentId,
+    classId,
+    options,
+    payload: logPayload,
+  });
 
   const parentEmailResults =
-    shouldSendClassDetails && parentRecipients.length > 0
+    parentRecipients.length > 0
       ? await sendClassAssignmentEmail({
           recipients: parentRecipients,
           ...sharedEmailParams,
           recipientType: 'parent',
+          template: {
+            subject: preparationTemplate.subject,
+            body: preparationTemplate.body,
+            context: templateContext,
+          },
         })
       : [];
 
   const studentEmailResults =
-    shouldSendClassDetails && studentRecipients.length > 0
+    studentRecipients.length > 0
       ? await sendClassAssignmentEmail({
           recipients: studentRecipients,
           ...sharedEmailParams,
           recipientType: 'student',
+          template: {
+            subject: preparationTemplate.subject,
+            body: preparationTemplate.body,
+            context: templateContext,
+          },
         })
       : [];
 
@@ -287,77 +283,12 @@ export async function sendEnrollmentAssignmentNotification(
     updateEmailLogsWithResults(studentLogs, studentEmailResults),
   ]);
 
-  const preparationPayload = {
-    ...logPayload,
-    templateId: preparationTemplate?.id || null,
-    eventLabel: 'Preparation instructions',
-  };
-
-  const preparationParentLogs = shouldSendPreparation
-    ? await createEmailLogs({
-        recipients: parentRecipients,
-        recipientRole: 'parent',
-        subject: preparationSubject,
-        eventType: 'PREPARATION_INSTRUCTIONS',
-        studentId,
-        classId,
-        options,
-        payload: preparationPayload,
-      })
-    : [];
-
-  const preparationStudentLogs = shouldSendPreparation
-    ? await createEmailLogs({
-        recipients: studentRecipients,
-        recipientRole: 'student',
-        subject: preparationSubject,
-        eventType: 'PREPARATION_INSTRUCTIONS',
-        studentId,
-        classId,
-        options,
-        payload: preparationPayload,
-      })
-    : [];
-
-  const preparationParentResults =
-    shouldSendPreparation && preparationTemplate && parentRecipients.length > 0
-      ? await sendPreparationInstructionsEmail({
-          recipients: parentRecipients,
-          subject: preparationTemplate.subject,
-          body: preparationTemplate.body,
-          context: preparationContext,
-        })
-      : [];
-
-  const preparationStudentResults =
-    shouldSendPreparation && preparationTemplate && studentRecipients.length > 0
-      ? await sendPreparationInstructionsEmail({
-          recipients: studentRecipients,
-          subject: preparationTemplate.subject,
-          body: preparationTemplate.body,
-          context: preparationContext,
-        })
-      : [];
-
-  await Promise.all([
-    updateEmailLogsWithResults(preparationParentLogs, preparationParentResults),
-    updateEmailLogsWithResults(preparationStudentLogs, preparationStudentResults),
-  ]);
-
   const successfulParentEmails = parentEmailResults.filter((result) => result.success).length;
   const failedParentEmails = parentEmailResults.filter((result) => !result.success).length;
   const successfulStudentEmails = studentEmailResults.filter((result) => result.success).length;
   const failedStudentEmails = studentEmailResults.filter((result) => !result.success).length;
-  const successfulPreparationParentEmails = preparationParentResults.filter((result) => result.success).length;
-  const failedPreparationParentEmails = preparationParentResults.filter((result) => !result.success).length;
-  const successfulPreparationStudentEmails = preparationStudentResults.filter((result) => result.success).length;
-  const failedPreparationStudentEmails = preparationStudentResults.filter((result) => !result.success).length;
   const hasParentRecipient = parentRecipients.length > 0;
-  const hasAnyFailure =
-    failedParentEmails > 0 ||
-    failedStudentEmails > 0 ||
-    failedPreparationParentEmails > 0 ||
-    failedPreparationStudentEmails > 0;
+  const hasAnyFailure = failedParentEmails > 0 || failedStudentEmails > 0;
 
   if (!hasParentRecipient) {
     console.warn('[EnrollmentNotification] No parent/guardian recipient found.', {
@@ -374,21 +305,13 @@ export async function sendEnrollmentAssignmentNotification(
       classId,
       parentEmailResults,
       studentEmailResults,
-      preparationParentResults,
-      preparationStudentResults,
     });
   }
 
   const targetedRecipientSuccess = recipientEmail
-    ? mode === 'preparation-only'
-      ? successfulPreparationParentEmails + successfulPreparationStudentEmails > 0
-      : successfulParentEmails + successfulStudentEmails > 0
+    ? successfulParentEmails + successfulStudentEmails > 0
     : null;
-  const parentRequirementMet = !hasParentRecipient
-    ? false
-    : mode === 'preparation-only'
-    ? successfulPreparationParentEmails > 0
-    : successfulParentEmails > 0;
+  const parentRequirementMet = hasParentRecipient && successfulParentEmails > 0;
   const deliveryRequirementMet = targetedRecipientSuccess ?? parentRequirementMet;
 
   return {
@@ -401,20 +324,14 @@ export async function sendEnrollmentAssignmentNotification(
     emailsSent: {
       parents: successfulParentEmails,
       students: successfulStudentEmails,
-      preparationParents: successfulPreparationParentEmails,
-      preparationStudents: successfulPreparationStudentEmails,
     },
     emailsFailed: {
       parents: failedParentEmails,
       students: failedStudentEmails,
-      preparationParents: failedPreparationParentEmails,
-      preparationStudents: failedPreparationStudentEmails,
     },
     providerResults: {
       parents: parentEmailResults,
       students: studentEmailResults,
-      preparationParents: preparationParentResults,
-      preparationStudents: preparationStudentResults,
     },
   };
 }

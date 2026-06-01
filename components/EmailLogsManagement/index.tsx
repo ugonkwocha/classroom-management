@@ -273,7 +273,7 @@ export function EmailLogsManagement() {
                       {log.sentAt && <p className="mt-1 text-xs text-emerald-600">Sent {formatDate(log.sentAt)}</p>}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {(log.eventType === 'CLASS_ASSIGNMENT' || log.eventType === 'PREPARATION_INSTRUCTIONS') && (
+                      {log.eventType === 'CLASS_ASSIGNMENT' && (
                         <button
                           type="button"
                           onClick={() => handleResend(log)}

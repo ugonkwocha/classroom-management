@@ -1,5 +1,5 @@
 export const MISSING_PREPARATION_TEMPLATE_ERROR =
-  'This course needs an active preparation email template before students can be assigned. Create or activate the template in Email Templates.';
+  'This course needs an active assignment email template before students can be assigned. Create or activate the template in Email Templates.';
 
 type PrismaLike = {
   class: {

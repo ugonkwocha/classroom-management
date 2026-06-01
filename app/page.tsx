@@ -92,7 +92,7 @@ const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   classes: { title: 'Classes', subtitle: 'Manage sessions, tutors, and meeting links' },
   teachers: { title: 'Tutors', subtitle: 'Manage tutors and assignments' },
   pricing: { title: 'Pricing', subtitle: 'Maintain tuition and discount options' },
-  'email-templates': { title: 'Email Templates', subtitle: 'Manage course preparation instructions' },
+  'email-templates': { title: 'Email Templates', subtitle: 'Manage course assignment emails' },
   emails: { title: 'Email Logs', subtitle: 'Track failed, sent, and retried notifications' },
   users: { title: 'Users', subtitle: 'Manage admin access and permissions' },
   reports: { title: 'Reports', subtitle: 'Review academy performance summaries' },

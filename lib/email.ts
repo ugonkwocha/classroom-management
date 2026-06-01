@@ -23,13 +23,11 @@ interface ClassAssignmentEmailParams {
   enrollmentDate: string;
   recipientType: 'teacher' | 'student' | 'parent';
   studentName?: string;
-}
-
-interface PreparationInstructionsEmailParams {
-  recipients: EmailRecipient[];
-  subject: string;
-  body: string;
-  context: PreparationTemplateContext;
+  template?: {
+    subject: string;
+    body: string;
+    context: PreparationTemplateContext;
+  };
 }
 
 interface EmailResponse {
@@ -77,6 +75,11 @@ function getSubject(params: ClassAssignmentEmailParams): string {
     return `Tutor assignment: ${params.className}`;
   }
 
+  if (params.template) {
+    const subject = renderTemplateText(params.template.subject, params.template.context).trim();
+    if (subject) return subject;
+  }
+
   return params.studentName
     ? `Class details for ${params.studentName}`
     : `Class details for ${params.className}`;
@@ -105,6 +108,10 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
   const safeIntro = escapeHtml(getIntro(params, recipient));
   const safeEnrollmentDate = escapeHtml(params.enrollmentDate);
   const safeStudentName = escapeHtml(params.studentName);
+  const templateSubject = params.template ? renderTemplateText(params.template.subject, params.template.context) : '';
+  const templateBody = params.template ? renderTemplateText(params.template.body, params.template.context) : '';
+  const safeTemplateSubject = escapeHtml(templateSubject);
+  const templateBodyHtml = templateBody ? formatSafeRichTextHtml(templateBody) : '';
 
   const meetLinkHtml = params.meetLink
     ? `<a href="${safeMeetLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Join Google Meet</a>`
@@ -160,6 +167,15 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
               ? `<p style="margin:18px 0 0;color:#475569;font-size:13px;line-height:1.6;">Meet link: <a href="${safeMeetLink}" style="color:#2563eb;">${safeMeetLink}</a></p>`
               : ''
           }
+
+          ${
+            params.template
+              ? `<div style="margin-top:26px;border-top:1px solid #e2e8f0;padding-top:22px;">
+                  <h2 style="margin:0 0 12px;font-size:20px;line-height:1.35;color:#0f172a;">${safeTemplateSubject}</h2>
+                  ${templateBodyHtml}
+                </div>`
+              : ''
+          }
         </div>
 
         <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
@@ -183,42 +199,12 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
     `Tutor: ${params.instructorName || 'To be assigned'}`,
     `Assigned On: ${params.enrollmentDate}`,
     params.meetLink ? `Google Meet: ${params.meetLink}` : 'Google Meet: Link will be shared by the academy team.',
+    params.template ? '' : '',
+    params.template ? renderTemplateText(params.template.subject, params.template.context) : '',
+    params.template ? templateBody : '',
   ].join('\n');
 
   return { subject: getSubject(params), html, text };
-}
-
-function buildPreparationInstructionsEmail(params: PreparationInstructionsEmailParams, recipient: EmailRecipient) {
-  const subject = renderTemplateText(params.subject, params.context);
-  const body = renderTemplateText(params.body, params.context);
-  const safeSubject = escapeHtml(subject);
-  const safeName = escapeHtml(recipient.name || 'there');
-  const htmlBody = formatSafeRichTextHtml(body);
-
-  const html = `
-    <div style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Arial,sans-serif;color:#0f172a;">
-      <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
-        <div style="background:#06244a;border-radius:18px;padding:24px;color:#ffffff;">
-          <div style="font-size:22px;font-weight:800;letter-spacing:.2px;">9jacodekids Academy</div>
-          <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Class Management System</div>
-        </div>
-
-        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;margin-top:18px;padding:28px;">
-          <p style="margin:0 0 10px;color:#64748b;font-size:14px;line-height:1.6;">Hello ${safeName},</p>
-          <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;color:#0f172a;">${safeSubject}</h1>
-          ${htmlBody}
-        </div>
-
-        <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
-          Sent by 9jacodekids Academy.
-        </p>
-      </div>
-    </div>
-  `;
-
-  const text = [`Hello ${recipient.name || 'there'},`, '', subject, '', body].join('\n');
-
-  return { subject, html, text };
 }
 
 export async function sendClassAssignmentEmail(
@@ -318,98 +304,6 @@ export async function sendClassAssignmentEmail(
   );
 
   return responses;
-}
-
-export async function sendPreparationInstructionsEmail(
-  params: PreparationInstructionsEmailParams
-): Promise<EmailResponse[]> {
-  if (!params.recipients || params.recipients.length === 0) {
-    console.warn('[Email] No preparation email recipients provided');
-    return [{ success: false, error: 'No recipients provided' }];
-  }
-
-  if (EMAIL_PROVIDER !== 'resend') {
-    console.warn('[Email] Preparation email delivery is disabled. EMAIL_PROVIDER is not set to resend.', {
-      provider: EMAIL_PROVIDER,
-      courseName: params.context.courseName,
-      recipientCount: params.recipients.length,
-    });
-
-    return params.recipients.map((recipient) => ({
-      success: false,
-      error: `Email delivery disabled. Message not sent to ${recipient.email}.`,
-    }));
-  }
-
-  if (!resend || !EMAIL_FROM) {
-    console.warn('[Email] Resend is not fully configured for preparation emails.', {
-      hasApiKey: !!RESEND_API_KEY,
-      hasFrom: !!EMAIL_FROM,
-      courseName: params.context.courseName,
-    });
-
-    return params.recipients.map((recipient) => ({
-      success: false,
-      error: `Resend is not configured. Message not sent to ${recipient.email}.`,
-    }));
-  }
-
-  return Promise.all(
-    params.recipients.map(async (recipient) => {
-      const email = buildPreparationInstructionsEmail(params, recipient);
-
-      for (let attempt = 1; attempt <= EMAIL_DELIVERY_ATTEMPTS; attempt += 1) {
-        try {
-          const { data, error } = await resend.emails.send({
-            from: EMAIL_FROM,
-            to: [recipient.email],
-            subject: email.subject,
-            html: email.html,
-            text: email.text,
-            ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
-          });
-
-          if (error) {
-            const errorMessage = typeof error === 'string' ? error : error.message || 'Resend delivery failed';
-            console.error('[Email] Preparation email delivery failed:', {
-              recipient: recipient.email,
-              attempt,
-              error,
-            });
-
-            if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
-              return { success: false, error: errorMessage };
-            }
-          } else {
-            return {
-              success: true,
-              messageId: data?.id,
-            };
-          }
-        } catch (error) {
-          console.error('[Email] Preparation email delivery error:', {
-            recipient: recipient.email,
-            attempt,
-            error,
-          });
-
-          if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
-            return {
-              success: false,
-              error: error instanceof Error ? error.message : 'Unexpected email delivery error',
-            };
-          }
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, attempt * 400));
-      }
-
-      return {
-        success: false,
-        error: 'Email delivery failed after retries',
-      };
-    })
-  );
 }
 
 function buildUserInvitationEmail(params: UserInvitationEmailParams) {

@@ -66,7 +66,7 @@ export const PERMISSIONS = {
   READ_EMAIL_LOGS: 'READ_EMAIL_LOGS',
   RESEND_EMAIL: 'RESEND_EMAIL',
 
-  // Course preparation email templates (Admin+)
+  // Course assignment email templates (Admin+)
   READ_EMAIL_TEMPLATES: 'READ_EMAIL_TEMPLATES',
   CREATE_EMAIL_TEMPLATE: 'CREATE_EMAIL_TEMPLATE',
   UPDATE_EMAIL_TEMPLATE: 'UPDATE_EMAIL_TEMPLATE',
