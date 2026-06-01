@@ -1,4 +1,5 @@
 export const PREPARATION_TEMPLATE_PLACEHOLDERS = [
+  '{{parentName}}',
   '{{studentName}}',
   '{{courseName}}',
   '{{className}}',
@@ -6,9 +7,11 @@ export const PREPARATION_TEMPLATE_PLACEHOLDERS = [
   '{{schedule}}',
   '{{tutorFirstName}}',
   '{{meetLink}}',
+  '{{meetButton}}',
 ] as const;
 
 export type PreparationTemplateContext = {
+  parentName: string;
   studentName: string;
   courseName: string;
   className: string;
@@ -16,6 +19,7 @@ export type PreparationTemplateContext = {
   schedule: string;
   tutorFirstName: string;
   meetLink: string;
+  meetButton: string;
 };
 
 function escapeHtml(value: string): string {
@@ -40,7 +44,28 @@ export function renderTemplateText(template: string, context: PreparationTemplat
   }, template);
 }
 
-export function formatSafeRichTextHtml(value: string): string {
+function buildMeetButtonHtml(url: string): string {
+  const safeUrl = escapeHtml(url);
+  return `<a href="${safeUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Join Google Meet</a>`;
+}
+
+function renderTemplateForHtml(template: string, context: PreparationTemplateContext, buttonToken: string): string {
+  return PREPARATION_TEMPLATE_PLACEHOLDERS.reduce((result, placeholder) => {
+    if (placeholder === '{{meetButton}}') {
+      return result.split(placeholder).join(buttonToken);
+    }
+
+    const key = placeholder.slice(2, -2) as keyof PreparationTemplateContext;
+    return result.split(placeholder).join(context[key] || '');
+  }, template);
+}
+
+function renderInlineHtml(value: string, meetButtonHtml?: string, buttonToken?: string): string {
+  const rendered = autoLinkUrls(escapeHtml(value));
+  return meetButtonHtml && buttonToken ? rendered.split(buttonToken).join(meetButtonHtml) : rendered;
+}
+
+export function formatSafeRichTextHtml(value: string, options?: { meetButtonHtml?: string; buttonToken?: string }): string {
   const lines = value.replace(/\r\n/g, '\n').split('\n');
   const blocks: string[] = [];
   let paragraph: string[] = [];
@@ -48,7 +73,9 @@ export function formatSafeRichTextHtml(value: string): string {
 
   const flushParagraph = () => {
     if (paragraph.length === 0) return;
-    const content = paragraph.map((line) => autoLinkUrls(escapeHtml(line))).join('<br>');
+    const content = paragraph
+      .map((line) => renderInlineHtml(line, options?.meetButtonHtml, options?.buttonToken))
+      .join('<br>');
     blocks.push(`<p style="margin:0 0 14px;color:#475569;font-size:15px;line-height:1.7;">${content}</p>`);
     paragraph = [];
   };
@@ -57,7 +84,7 @@ export function formatSafeRichTextHtml(value: string): string {
     if (bullets.length === 0) return;
     blocks.push(
       `<ul style="margin:0 0 14px 18px;padding:0;color:#475569;font-size:15px;line-height:1.7;">${bullets
-        .map((line) => `<li style="margin:4px 0;">${autoLinkUrls(escapeHtml(line))}</li>`)
+        .map((line) => `<li style="margin:4px 0;">${renderInlineHtml(line, options?.meetButtonHtml, options?.buttonToken)}</li>`)
         .join('')}</ul>`
     );
     bullets = [];
@@ -87,4 +114,15 @@ export function formatSafeRichTextHtml(value: string): string {
   flushBullets();
 
   return blocks.join('') || '<p style="margin:0;color:#475569;font-size:15px;line-height:1.7;">No instructions provided.</p>';
+}
+
+export function renderTemplateHtml(template: string, context: PreparationTemplateContext): string {
+  const buttonToken = '__9CK_MEET_BUTTON__';
+  const value = renderTemplateForHtml(template, context, buttonToken);
+  const meetButtonHtml = context.meetLink ? buildMeetButtonHtml(context.meetLink) : undefined;
+
+  return formatSafeRichTextHtml(value, {
+    meetButtonHtml,
+    buttonToken,
+  });
 }

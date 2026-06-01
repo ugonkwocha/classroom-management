@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import {
-  formatSafeRichTextHtml,
+  renderTemplateHtml,
   renderTemplateText,
   type PreparationTemplateContext,
 } from '@/lib/email-template-rendering';
@@ -98,6 +98,44 @@ function getIntro(params: ClassAssignmentEmailParams, recipient: EmailRecipient)
 }
 
 function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient: EmailRecipient) {
+  if (params.template) {
+    const context = {
+      ...params.template.context,
+      parentName:
+        params.recipientType === 'parent'
+          ? recipient.name || params.template.context.parentName || 'Parent/Guardian'
+          : params.template.context.parentName || 'Parent/Guardian',
+    };
+    const subject = renderTemplateText(params.template.subject, context).trim() || getSubject(params);
+    const safeSubject = escapeHtml(subject);
+    const htmlBody = renderTemplateHtml(params.template.body, context);
+    const textBody = renderTemplateText(params.template.body, context);
+
+    const html = `
+      <div style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+        <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+          <div style="background:#06244a;border-radius:18px;padding:24px;color:#ffffff;">
+            <div style="font-size:22px;font-weight:800;letter-spacing:.2px;">9jacodekids Academy</div>
+            <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Class Management System</div>
+          </div>
+
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;margin-top:18px;padding:28px;">
+            <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;color:#0f172a;">${safeSubject}</h1>
+            ${htmlBody}
+          </div>
+
+          <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
+            Sent by 9jacodekids Academy.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const text = ['9jacodekids Academy', '', subject, '', textBody].join('\n');
+
+    return { subject, html, text };
+  }
+
   const safeClassName = escapeHtml(params.className);
   const safeCourseName = escapeHtml(params.courseName);
   const safeProgramName = escapeHtml(params.programName);
@@ -108,10 +146,6 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
   const safeIntro = escapeHtml(getIntro(params, recipient));
   const safeEnrollmentDate = escapeHtml(params.enrollmentDate);
   const safeStudentName = escapeHtml(params.studentName);
-  const templateSubject = params.template ? renderTemplateText(params.template.subject, params.template.context) : '';
-  const templateBody = params.template ? renderTemplateText(params.template.body, params.template.context) : '';
-  const safeTemplateSubject = escapeHtml(templateSubject);
-  const templateBodyHtml = templateBody ? formatSafeRichTextHtml(templateBody) : '';
 
   const meetLinkHtml = params.meetLink
     ? `<a href="${safeMeetLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Join Google Meet</a>`
@@ -168,14 +202,6 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
               : ''
           }
 
-          ${
-            params.template
-              ? `<div style="margin-top:26px;border-top:1px solid #e2e8f0;padding-top:22px;">
-                  <h2 style="margin:0 0 12px;font-size:20px;line-height:1.35;color:#0f172a;">${safeTemplateSubject}</h2>
-                  ${templateBodyHtml}
-                </div>`
-              : ''
-          }
         </div>
 
         <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
@@ -199,9 +225,6 @@ function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient
     `Tutor: ${params.instructorName || 'To be assigned'}`,
     `Assigned On: ${params.enrollmentDate}`,
     params.meetLink ? `Google Meet: ${params.meetLink}` : 'Google Meet: Link will be shared by the academy team.',
-    params.template ? '' : '',
-    params.template ? renderTemplateText(params.template.subject, params.template.context) : '',
-    params.template ? templateBody : '',
   ].join('\n');
 
   return { subject: getSubject(params), html, text };

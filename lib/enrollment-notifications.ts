@@ -210,6 +210,7 @@ export async function sendEnrollmentAssignmentNotification(
   }
 
   const templateContext = {
+    parentName: parentRecipients[0]?.name || 'Parent/Guardian',
     studentName,
     courseName: classData.course.name,
     className: classData.name,
@@ -217,6 +218,7 @@ export async function sendEnrollmentAssignmentNotification(
     schedule: classData.schedule,
     tutorFirstName: classData.teacher?.firstName || 'your tutor',
     meetLink: classData.meetLink || 'Meet link will be shared by the academy team.',
+    meetButton: classData.meetLink || 'Meet link will be shared by the academy team.',
   };
   const subject = renderTemplateText(preparationTemplate.subject, templateContext) || getAssignmentSubject(studentName);
   const logPayload = {

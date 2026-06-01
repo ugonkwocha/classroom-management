@@ -16,7 +16,7 @@ import {
 import type { Course, CourseEmailTemplate } from '@/types';
 import {
   PREPARATION_TEMPLATE_PLACEHOLDERS,
-  formatSafeRichTextHtml,
+  renderTemplateHtml,
   renderTemplateText,
   type PreparationTemplateContext,
 } from '@/lib/email-template-rendering';
@@ -33,18 +33,28 @@ type FormState = {
   isActive: boolean;
 };
 
-const defaultBody = `Hello {{studentName}},
+const defaultBody = `Hello {{parentName}},
 
-Here is how to prepare for {{courseName}} before {{className}}.
+{{studentName}} has been assigned to {{className}}.
 
-- Join with this Google Meet link: {{meetLink}}
-- Be ready for {{schedule}}
-- Your tutor is {{tutorFirstName}}
+Course: {{courseName}}
+Program: {{programName}}
+Schedule: {{schedule}}
+Tutor: {{tutorFirstName}}
+
+{{meetButton}}
+
+Please prepare for class with the instructions below:
+
+- Join a few minutes early
+- Keep your device charged
+- Use a quiet learning space
 
 We look forward to seeing you in class.`;
 
 function sampleContext(courseName: string): PreparationTemplateContext {
   return {
+    parentName: 'Gloria Johnson',
     studentName: 'Ada Johnson',
     courseName,
     className: `${courseName || 'Scratch 101'} - SUMMER 2026 - Batch 1 - Morning 9am - 11am-A`,
@@ -52,6 +62,7 @@ function sampleContext(courseName: string): PreparationTemplateContext {
     schedule: 'Morning 9am - 11am',
     tutorFirstName: 'Joy',
     meetLink: 'https://meet.google.com/abc-defg-hij',
+    meetButton: 'https://meet.google.com/abc-defg-hij',
   };
 }
 
@@ -139,7 +150,7 @@ export function EmailTemplatesManagement() {
   const selectedCourse = items.find((item) => item.course.id === form.courseId)?.course;
   const previewContext = sampleContext(selectedCourse?.name || '');
   const previewSubject = renderTemplateText(form.subject, previewContext);
-  const previewBody = formatSafeRichTextHtml(renderTemplateText(form.body, previewContext));
+  const previewBody = renderTemplateHtml(form.body, previewContext);
   const configuredCount = items.filter((item) => item.template).length;
   const activeCount = items.filter((item) => item.template?.isActive).length;
   const missingCount = items.filter((item) => !item.template || !item.template.isActive).length;
@@ -291,7 +302,7 @@ export function EmailTemplatesManagement() {
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-950">Course Assignment Emails</h2>
-            <p className="mt-1 text-sm text-slate-500">Each course needs one active email template for class details and preparation instructions.</p>
+            <p className="mt-1 text-sm text-slate-500">Each course needs one active email template. Place the Meet button wherever it should appear.</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -459,10 +470,12 @@ export function EmailTemplatesManagement() {
                     onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
                     rows={13}
                     className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                    placeholder="Write the preparation instructions..."
+                    placeholder="Write the assignment email..."
                     required
                   />
-                  <p className="mt-2 text-xs text-slate-500">This content appears below the class details and Meet link. Use blank lines for paragraphs and lines starting with - for bullets.</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Use {'{{meetButton}}'} wherever the blue Google Meet button should appear. Blank lines create paragraphs; lines starting with - create bullets.
+                  </p>
                 </div>
 
                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
@@ -521,8 +534,7 @@ export function EmailTemplatesManagement() {
                     <p className="mt-1 text-sm text-blue-100">Class Management System</p>
                   </div>
                   <div className="mt-5">
-                  <p className="text-sm text-slate-500">Class details and Meet link appear above this section in the final email.</p>
-                    <h3 className="mt-2 text-xl font-bold leading-tight text-slate-950">{previewSubject || 'Email subject preview'}</h3>
+                    <h3 className="text-xl font-bold leading-tight text-slate-950">{previewSubject || 'Email subject preview'}</h3>
                     <div className="mt-4" dangerouslySetInnerHTML={{ __html: previewBody }} />
                   </div>
                 </div>
