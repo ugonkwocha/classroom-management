@@ -30,9 +30,9 @@ export async function POST(
       return NextResponse.json({ error: 'Email log not found' }, { status: 404 });
     }
 
-    if (log.eventType !== 'CLASS_ASSIGNMENT') {
+    if (log.eventType !== 'CLASS_ASSIGNMENT' && log.eventType !== 'PREPARATION_INSTRUCTIONS') {
       return NextResponse.json(
-        { error: 'Only class assignment emails can be resent from this screen for now' },
+        { error: 'Only class assignment and preparation instruction emails can be resent from this screen for now' },
         { status: 400 }
       );
     }
@@ -48,6 +48,8 @@ export async function POST(
       enrollmentId: log.enrollmentId,
       triggeredById: sessionUser.userId,
       resendOfLogId: log.id,
+      recipientEmail: log.recipientEmail,
+      mode: log.eventType === 'PREPARATION_INSTRUCTIONS' ? 'preparation-only' : 'class-details-only',
     });
 
     if (notification.success) {

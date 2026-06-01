@@ -119,8 +119,25 @@ model Course {
 
   // Relations
   classes           Class[]
+  emailTemplate     CourseEmailTemplate?
 
   @@index([name])
+}
+
+model CourseEmailTemplate {
+  id                String   @id @default(cuid())
+  courseId          String   @unique
+  subject           String
+  body              String
+  isActive          Boolean  @default(true)
+  updatedById       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@index([updatedById])
 }
 
 model ProgramLevelSetting {
@@ -365,6 +382,7 @@ model EmailLog {
 
 enum EmailEventType {
   CLASS_ASSIGNMENT
+  PREPARATION_INSTRUCTIONS
   TEACHER_ASSIGNMENT
   USER_INVITATION
   PASSWORD_RESET

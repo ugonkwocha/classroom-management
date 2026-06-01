@@ -14,6 +14,7 @@ import {
   FiClipboard,
   FiCreditCard,
   FiDollarSign,
+  FiEdit3,
   FiGrid,
   FiHome,
   FiLayers,
@@ -44,6 +45,7 @@ import { PricingPage } from '@/components/PricingManagement';
 import { FamiliesManagement } from '@/components/FamiliesManagement';
 import { EnrollmentManagement } from '@/components/EnrollmentManagement';
 import { EmailLogsManagement } from '@/components/EmailLogsManagement';
+import { EmailTemplatesManagement } from '@/components/EmailTemplatesManagement';
 
 type Tab =
   | 'dashboard'
@@ -56,6 +58,7 @@ type Tab =
   | 'classes'
   | 'teachers'
   | 'pricing'
+  | 'email-templates'
   | 'emails'
   | 'users'
   | 'reports'
@@ -89,6 +92,7 @@ const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   classes: { title: 'Classes', subtitle: 'Manage sessions, tutors, and meeting links' },
   teachers: { title: 'Tutors', subtitle: 'Manage tutors and assignments' },
   pricing: { title: 'Pricing', subtitle: 'Maintain tuition and discount options' },
+  'email-templates': { title: 'Email Templates', subtitle: 'Manage course preparation instructions' },
   emails: { title: 'Email Logs', subtitle: 'Track failed, sent, and retried notifications' },
   users: { title: 'Users', subtitle: 'Manage admin access and permissions' },
   reports: { title: 'Reports', subtitle: 'Review academy performance summaries' },
@@ -391,6 +395,7 @@ function HomeContent() {
   const hasLoadedAlertsRef = useRef(false);
   const canReadUsers = hasPermission(PERMISSIONS.READ_USERS);
   const canReadEmailLogs = hasPermission(PERMISSIONS.READ_EMAIL_LOGS);
+  const canReadEmailTemplates = hasPermission(PERMISSIONS.READ_EMAIL_TEMPLATES);
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
@@ -405,6 +410,7 @@ function HomeContent() {
     { id: 'classes', label: 'Classes', icon: FiCalendar },
     { id: 'teachers', label: 'Tutors', icon: FiUserCheck },
     ...(user?.role === 'SUPERADMIN' ? [{ id: 'pricing' as Tab, label: 'Pricing', icon: FiDollarSign }] : []),
+    ...(canReadEmailTemplates ? [{ id: 'email-templates' as Tab, label: 'Email Templates', icon: FiEdit3 }] : []),
     ...(canReadEmailLogs ? [{ id: 'emails' as Tab, label: 'Email Logs', icon: FiMail }] : []),
     ...(canReadUsers ? [{ id: 'users' as Tab, label: 'Users', icon: FiUsers }] : []),
     { id: 'reports', label: 'Reports', icon: FiBarChart2, disabled: true },
@@ -431,6 +437,7 @@ function HomeContent() {
       'classes',
       'teachers',
       'pricing',
+      'email-templates',
       'emails',
       'users',
       'reports',
@@ -729,6 +736,7 @@ function HomeContent() {
               {activeTab === 'classes' && <ClassManagement />}
               {activeTab === 'teachers' && <TeachersManagement />}
               {activeTab === 'pricing' && <PricingPage />}
+              {activeTab === 'email-templates' && canReadEmailTemplates && <EmailTemplatesManagement />}
               {activeTab === 'emails' && canReadEmailLogs && <EmailLogsManagement />}
               {activeTab === 'users' && <UserManagement />}
               {activeTab === 'reports' && (

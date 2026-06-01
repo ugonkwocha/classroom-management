@@ -4,6 +4,7 @@ import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
+import { ensureClassHasActivePreparationTemplate, MISSING_PREPARATION_TEMPLATE_ERROR } from '@/lib/course-email-template-requirements';
 
 export async function GET(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);
@@ -121,6 +122,10 @@ export async function POST(request: NextRequest) {
     const status = data.status;
     const classId = status === 'ASSIGNED' ? data.classId || null : data.classId;
 
+    if (status === 'ASSIGNED' && classId) {
+      await ensureClassHasActivePreparationTemplate(prisma, classId);
+    }
+
     const enrollment = await prisma.programEnrollment.create({
       data: {
         studentId: data.studentId,
@@ -162,8 +167,11 @@ export async function POST(request: NextRequest) {
     console.error('Error creating enrollment:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to create enrollment', details: errorMessage },
-      { status: 500 }
+      {
+        error: errorMessage === MISSING_PREPARATION_TEMPLATE_ERROR ? errorMessage : 'Failed to create enrollment',
+        details: errorMessage,
+      },
+      { status: errorMessage === MISSING_PREPARATION_TEMPLATE_ERROR ? 400 : 500 }
     );
   }
 }

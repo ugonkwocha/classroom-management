@@ -4,7 +4,13 @@ import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 
 const VALID_STATUSES = ['QUEUED', 'SENT', 'FAILED', 'DELIVERED', 'BOUNCED'] as const;
-const VALID_EVENT_TYPES = ['CLASS_ASSIGNMENT', 'TEACHER_ASSIGNMENT', 'USER_INVITATION', 'PASSWORD_RESET'] as const;
+const VALID_EVENT_TYPES = [
+  'CLASS_ASSIGNMENT',
+  'PREPARATION_INSTRUCTIONS',
+  'TEACHER_ASSIGNMENT',
+  'USER_INVITATION',
+  'PASSWORD_RESET',
+] as const;
 
 export async function GET(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);

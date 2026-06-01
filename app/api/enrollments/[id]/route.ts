@@ -4,6 +4,7 @@ import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
+import { ensureClassHasActivePreparationTemplate } from '@/lib/course-email-template-requirements';
 
 export async function GET(
   request: NextRequest,
@@ -137,6 +138,8 @@ export async function PUT(
         if (targetClass.batch !== nextBatchNumber) {
           throw new Error('Selected class does not match this enrollment batch');
         }
+
+        await ensureClassHasActivePreparationTemplate(tx, effectiveClassId);
 
         const assignedCount = await tx.programEnrollment.count({
           where: {

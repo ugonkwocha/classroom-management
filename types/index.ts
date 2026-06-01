@@ -6,7 +6,12 @@ export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
 export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
 export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
-export type EmailEventType = 'CLASS_ASSIGNMENT' | 'TEACHER_ASSIGNMENT' | 'USER_INVITATION' | 'PASSWORD_RESET';
+export type EmailEventType =
+  | 'CLASS_ASSIGNMENT'
+  | 'PREPARATION_INSTRUCTIONS'
+  | 'TEACHER_ASSIGNMENT'
+  | 'USER_INVITATION'
+  | 'PASSWORD_RESET';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
 
 export interface User {
@@ -61,7 +66,20 @@ export interface Course {
   name: string;
   description: string;
   programLevels: ProgramLevel[];
+  emailTemplate?: CourseEmailTemplate | null;
   createdAt: string;
+}
+
+export interface CourseEmailTemplate {
+  id: string;
+  courseId: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+  updatedById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  course?: Course;
 }
 
 export interface ProgramLevelSetting {

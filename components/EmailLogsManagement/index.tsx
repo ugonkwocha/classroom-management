@@ -28,6 +28,7 @@ const statusStyles: Record<EmailLogStatus, string> = {
 
 const eventLabels: Record<EmailEventType, string> = {
   CLASS_ASSIGNMENT: 'Class assignment',
+  PREPARATION_INSTRUCTIONS: 'Preparation instructions',
   TEACHER_ASSIGNMENT: 'Tutor assignment',
   USER_INVITATION: 'User invitation',
   PASSWORD_RESET: 'Password reset',
@@ -168,7 +169,7 @@ export function EmailLogsManagement() {
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-950">Email Delivery Log</h2>
-            <p className="mt-1 text-sm text-slate-500">Track class assignment emails and provider responses.</p>
+            <p className="mt-1 text-sm text-slate-500">Track class details, preparation instructions, and provider responses.</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -203,6 +204,7 @@ export function EmailLogsManagement() {
             >
               <option value="all">All events</option>
               <option value="CLASS_ASSIGNMENT">Class assignment</option>
+              <option value="PREPARATION_INSTRUCTIONS">Preparation instructions</option>
               <option value="TEACHER_ASSIGNMENT">Tutor assignment</option>
               <option value="USER_INVITATION">User invitation</option>
               <option value="PASSWORD_RESET">Password reset</option>
@@ -271,7 +273,7 @@ export function EmailLogsManagement() {
                       {log.sentAt && <p className="mt-1 text-xs text-emerald-600">Sent {formatDate(log.sentAt)}</p>}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {log.eventType === 'CLASS_ASSIGNMENT' && (
+                      {(log.eventType === 'CLASS_ASSIGNMENT' || log.eventType === 'PREPARATION_INSTRUCTIONS') && (
                         <button
                           type="button"
                           onClick={() => handleResend(log)}

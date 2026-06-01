@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 type EmailLogInput = {
-  eventType: 'CLASS_ASSIGNMENT' | 'TEACHER_ASSIGNMENT' | 'USER_INVITATION' | 'PASSWORD_RESET';
+  eventType: 'CLASS_ASSIGNMENT' | 'PREPARATION_INSTRUCTIONS' | 'TEACHER_ASSIGNMENT' | 'USER_INVITATION' | 'PASSWORD_RESET';
   recipientEmail: string;
   recipientName?: string;
   recipientRole?: string;
