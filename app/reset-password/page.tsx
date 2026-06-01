@@ -1,13 +1,15 @@
 import { PasswordResetForm } from '@/components/PasswordReset/PasswordResetForm';
 
-export default function ResetPasswordPage({
+export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
+  const params = await searchParams;
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <PasswordResetForm token={searchParams.token || ''} />
+      <PasswordResetForm token={params.token || ''} />
     </main>
   );
 }
