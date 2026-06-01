@@ -179,9 +179,7 @@ export async function sendEnrollmentAssignmentNotification(
     batch: classData.batch,
     slot: classData.slot,
     schedule: classData.schedule,
-    instructorName: classData.teacher
-      ? `${classData.teacher.firstName} ${classData.teacher.lastName}`
-      : undefined,
+    instructorName: classData.teacher?.firstName || undefined,
     meetLink: classData.meetLink || undefined,
     enrollmentDate,
     studentName,
