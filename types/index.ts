@@ -13,6 +13,9 @@ export type EmailEventType =
   | 'USER_INVITATION'
   | 'PASSWORD_RESET';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
+export type RegistrationImportSource = 'FLUENT_FORM_IMPORT' | 'EXISTING_FAMILY';
+export type ConfirmedRegistrationImportStatus = 'PROCESSED' | 'NEEDS_REVIEW' | 'FAILED';
+export type CrmSyncStatus = 'PENDING' | 'SYNCED' | 'FAILED' | 'SKIPPED';
 
 export interface User {
   id: string;
@@ -105,6 +108,22 @@ export interface Program {
   createdAt: string;
 }
 
+export interface FluentFormMapping {
+  id: string;
+  formId: string;
+  formName: string;
+  programId: string;
+  defaultBatch: number;
+  defaultPriceType: PriceType;
+  leadTag?: string | null;
+  paidTag: string;
+  removeLeadTagOnPaid: boolean;
+  isActive: boolean;
+  program?: Program;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Course history entry for tracking courses student has taken
 export interface CourseHistory {
   id: string;
@@ -132,6 +151,8 @@ export interface ProgramEnrollment {
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'COMPLETED'; // Program-specific payment status
   priceType?: PriceType; // Pricing option selected
   priceAmount?: number; // Amount paid in Naira
+  program?: Program;
+  class?: Class | null;
 }
 
 // Pricing option for enrollment
@@ -176,6 +197,95 @@ export interface Family {
   isArchived: boolean;
   guardians: ParentGuardian[];
   students?: Student[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentProof {
+  id: string;
+  importId?: string | null;
+  paymentRecordId?: string | null;
+  enrollmentId?: string | null;
+  originalName: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+  note?: string | null;
+  uploadedById: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EnrollmentPaymentRecord {
+  id: string;
+  source: RegistrationImportSource;
+  familyId: string;
+  studentId: string;
+  enrollmentId: string;
+  importId?: string | null;
+  amountConfirmed: number;
+  paymentProofNote?: string | null;
+  crmSyncStatus: CrmSyncStatus;
+  crmContactId?: string | null;
+  crmTag?: string | null;
+  crmError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  student?: Student;
+  enrollment?: ProgramEnrollment;
+}
+
+export interface ConfirmedRegistrationImportChild {
+  id: string;
+  importId: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  phoneCountryCode?: string | null;
+  dateOfBirth?: string | null;
+  courseId?: string | null;
+  programId: string;
+  batchNumber: number;
+  priceType: PriceType;
+  priceAmount: number;
+  studentId?: string | null;
+  enrollmentId?: string | null;
+  student?: Student | null;
+  program?: Program;
+  course?: Course | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConfirmedRegistrationImport {
+  id: string;
+  source: RegistrationImportSource;
+  sourceFormId?: string | null;
+  sourceSubmissionId?: string | null;
+  formMappingId?: string | null;
+  parentFirstName: string;
+  parentLastName: string;
+  parentEmail?: string | null;
+  parentPhone?: string | null;
+  parentPhoneCountryCode?: string | null;
+  programId: string;
+  defaultBatch: number;
+  expectedAmount?: number | null;
+  confirmedAmount: number;
+  paymentProofNote?: string | null;
+  status: ConfirmedRegistrationImportStatus;
+  crmSyncStatus: CrmSyncStatus;
+  crmContactId?: string | null;
+  crmTag?: string | null;
+  crmError?: string | null;
+  familyId?: string | null;
+  family?: Family | null;
+  program?: Program;
+  children?: ConfirmedRegistrationImportChild[];
+  paymentRecords?: EnrollmentPaymentRecord[];
+  paymentProofs?: PaymentProof[];
   createdAt: string;
   updatedAt: string;
 }

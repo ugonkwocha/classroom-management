@@ -22,6 +22,7 @@ import {
   FiLogOut,
   FiMail,
   FiMenu,
+  FiRefreshCw,
   FiSearch,
   FiSettings,
   FiTarget,
@@ -32,7 +33,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
-import type { Class, EmailLog, Family, Student, UserInvitation } from '@/types';
+import type { Class, ConfirmedRegistrationImport, EmailLog, Family, Student, UserInvitation } from '@/types';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -46,11 +47,13 @@ import { FamiliesManagement } from '@/components/FamiliesManagement';
 import { EnrollmentManagement } from '@/components/EnrollmentManagement';
 import { EmailLogsManagement } from '@/components/EmailLogsManagement';
 import { EmailTemplatesManagement } from '@/components/EmailTemplatesManagement';
+import { ConfirmedRegistrationsManagement } from '@/components/ConfirmedRegistrationsManagement';
 
 type Tab =
   | 'dashboard'
   | 'students'
   | 'families'
+  | 'confirmed-registrations'
   | 'enrollments'
   | 'courses'
   | 'program-levels'
@@ -85,6 +88,7 @@ const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
   dashboard: { title: 'Dashboard', subtitle: 'Overview of your academy' },
   students: { title: 'Students', subtitle: 'Manage learners and parent records' },
   families: { title: 'Families', subtitle: 'Manage households, guardians, and sibling groups' },
+  'confirmed-registrations': { title: 'Confirmed Registrations', subtitle: 'Import paid customers and re-enroll existing families' },
   enrollments: { title: 'Enrollments', subtitle: 'Track student enrollment activity' },
   courses: { title: 'Courses', subtitle: 'Manage course catalog' },
   'program-levels': { title: 'Program Levels', subtitle: 'Manage level availability across courses' },
@@ -119,16 +123,20 @@ function buildOperationalAlerts({
   families,
   invitations,
   emailLogs,
+  confirmedImports,
   canReadUsers,
   canReadEmailLogs,
+  canReadConfirmedRegistrations,
 }: {
   students: Student[];
   classes: Class[];
   families: Family[];
   invitations: UserInvitation[];
   emailLogs: EmailLog[];
+  confirmedImports: ConfirmedRegistrationImport[];
   canReadUsers: boolean;
   canReadEmailLogs: boolean;
+  canReadConfirmedRegistrations: boolean;
 }): OperationalAlert[] {
   const activeClasses = classes.filter((classItem) => !classItem.isArchived);
   const activeEnrollments = students.flatMap((student) =>
@@ -256,6 +264,19 @@ function buildOperationalAlerts({
       tab: 'emails',
       priority: 'high',
       icon: FiMail,
+    });
+  }
+
+  if (canReadConfirmedRegistrations) {
+    const failedCrmImportCount = confirmedImports.filter((item) => item.crmSyncStatus === 'FAILED').length;
+    alerts.unshift({
+      id: 'failed-crm-sync',
+      title: 'FluentCRM sync failures',
+      detail: `${failedCrmImportCount} paid import${failedCrmImportCount === 1 ? '' : 's'} need CRM sync retry`,
+      count: failedCrmImportCount,
+      tab: 'confirmed-registrations',
+      priority: 'high',
+      icon: FiRefreshCw,
     });
   }
 
@@ -396,12 +417,14 @@ function HomeContent() {
   const canReadUsers = hasPermission(PERMISSIONS.READ_USERS);
   const canReadEmailLogs = hasPermission(PERMISSIONS.READ_EMAIL_LOGS);
   const canReadEmailTemplates = hasPermission(PERMISSIONS.READ_EMAIL_TEMPLATES);
+  const canReadConfirmedRegistrations = hasPermission(PERMISSIONS.READ_CONFIRMED_REGISTRATIONS);
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
-    { id: 'students', label: 'Students', icon: FiUsers },
-    { id: 'families', label: 'Families', icon: FiHome },
-    { id: 'enrollments', label: 'Enrollments', icon: FiClipboard },
+  { id: 'students', label: 'Students', icon: FiUsers },
+  { id: 'families', label: 'Families', icon: FiHome },
+    { id: 'confirmed-registrations', label: 'Confirmed Registrations', icon: FiCreditCard },
+  { id: 'enrollments', label: 'Enrollments', icon: FiClipboard },
     { id: 'courses', label: 'Courses', icon: FiBookOpen },
     ...(hasPermission(PERMISSIONS.UPDATE_COURSE)
       ? [{ id: 'program-levels' as Tab, label: 'Program Levels', icon: FiTarget }]
@@ -430,6 +453,7 @@ function HomeContent() {
       'dashboard',
       'students',
       'families',
+      'confirmed-registrations',
       'enrollments',
       'courses',
       'program-levels',
@@ -477,19 +501,22 @@ function HomeContent() {
           familiesResponse,
           invitationsResponse,
           emailLogsResponse,
+          confirmedRegistrationsResponse,
         ] = await Promise.all([
           fetch('/api/students'),
           fetch('/api/classes?archived=false'),
           fetch('/api/families'),
           canReadUsers ? fetch('/api/users/invitations') : Promise.resolve(null),
           canReadEmailLogs ? fetch('/api/email-logs?take=200') : Promise.resolve(null),
+          canReadConfirmedRegistrations ? fetch('/api/confirmed-registrations') : Promise.resolve(null),
         ]);
 
         const failedCoreRequest = !studentsResponse.ok || !classesResponse.ok || !familiesResponse.ok;
         const failedInviteRequest = canReadUsers && (!invitationsResponse || !invitationsResponse.ok);
         const failedEmailLogsRequest = canReadEmailLogs && (!emailLogsResponse || !emailLogsResponse.ok);
+        const failedConfirmedRegistrationsRequest = canReadConfirmedRegistrations && (!confirmedRegistrationsResponse || !confirmedRegistrationsResponse.ok);
 
-        if (failedCoreRequest || failedInviteRequest || failedEmailLogsRequest) {
+        if (failedCoreRequest || failedInviteRequest || failedEmailLogsRequest || failedConfirmedRegistrationsRequest) {
           throw new Error('Failed to load operational alerts');
         }
 
@@ -507,6 +534,10 @@ function HomeContent() {
           canReadEmailLogs && emailLogsResponse
             ? ((await emailLogsResponse.json()) as { logs?: EmailLog[] })
             : { logs: [] };
+        const confirmedImports =
+          canReadConfirmedRegistrations && confirmedRegistrationsResponse
+            ? ((await confirmedRegistrationsResponse.json()) as ConfirmedRegistrationImport[])
+            : [];
 
         if (!isMounted) return;
 
@@ -516,8 +547,10 @@ function HomeContent() {
           families,
           invitations,
           emailLogs: emailLogData.logs || [],
+          confirmedImports,
           canReadUsers,
           canReadEmailLogs,
+          canReadConfirmedRegistrations,
         }));
         hasLoadedAlertsRef.current = true;
       } catch (error) {
@@ -539,7 +572,7 @@ function HomeContent() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [canReadEmailLogs, canReadUsers, isAuthenticated, isLoading]);
+  }, [canReadConfirmedRegistrations, canReadEmailLogs, canReadUsers, isAuthenticated, isLoading]);
 
   const handleTabChange = (tab: Tab) => {
     const navItem = navItems.find((item) => item.id === tab);
@@ -729,6 +762,7 @@ function HomeContent() {
               )}
               {activeTab === 'students' && <StudentManagement selectedStudentId={selectedStudentId} />}
               {activeTab === 'families' && <FamiliesManagement />}
+              {activeTab === 'confirmed-registrations' && <ConfirmedRegistrationsManagement />}
               {activeTab === 'enrollments' && <EnrollmentManagement />}
               {activeTab === 'courses' && <CoursesManagement />}
               {activeTab === 'program-levels' && <ProgramLevelsManagement />}

@@ -91,6 +91,18 @@ RUN_DATABASE_SEED="false"
 ALLOW_START_WITH_DB_INIT_FAILURE="false"
 ```
 
+Optional paid-registration import variables:
+
+```env
+WORDPRESS_CONFIRMED_REGISTRATIONS_ENDPOINT="https://example.com/wp-json/9ck/v1/confirmed-registrations/search"
+WORDPRESS_BASE_URL="https://example.com"
+WORDPRESS_API_USER="wordpress-api-user"
+WORDPRESS_API_PASSWORD="wordpress-application-password"
+PAYMENT_PROOF_STORAGE_DIR="/app/storage/payment-proofs"
+FLUENTCRM_SYNC_ENDPOINT="https://example.com/wp-json/9ck/v1/fluentcrm/sync-paid-customer"
+FLUENTCRM_SYNC_SECRET="shared-secret-for-sync-endpoint"
+```
+
 To create or reset the default superadmin during staging setup, temporarily set:
 
 ```env
@@ -101,7 +113,7 @@ SEED_ADMIN_PASSWORD="choose-a-temporary-password"
 
 After the account is created, set `RUN_DATABASE_SEED` back to `false` and redeploy.
 
-Email delivery is currently disabled until a new provider is selected.
+Paid registration imports use Fluent Form mappings in the CMS. Unpaid WordPress/Fluent Forms submissions are not saved in the CMS.
 
 ## Project Structure
 
