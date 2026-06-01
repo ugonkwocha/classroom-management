@@ -99,8 +99,16 @@ function getIntro(params: ClassAssignmentEmailParams, recipient: EmailRecipient)
 
 function buildClassAssignmentEmail(params: ClassAssignmentEmailParams, recipient: EmailRecipient) {
   if (params.template) {
+    const recipientRole: PreparationTemplateContext['recipientRole'] =
+      params.recipientType === 'student' ? 'student' : 'parent';
+    const recipientName =
+      recipientRole === 'student'
+        ? recipient.name || params.studentName || 'Student'
+        : recipient.name || params.template.context.parentName || 'Parent/Guardian';
     const context = {
       ...params.template.context,
+      recipientName,
+      recipientRole,
       parentName:
         params.recipientType === 'parent'
           ? recipient.name || params.template.context.parentName || 'Parent/Guardian'

@@ -210,6 +210,8 @@ export async function sendEnrollmentAssignmentNotification(
   }
 
   const templateContext = {
+    recipientName: parentRecipients[0]?.name || 'Parent/Guardian',
+    recipientRole: 'parent' as const,
     parentName: parentRecipients[0]?.name || 'Parent/Guardian',
     studentName,
     courseName: classData.course.name,
@@ -220,7 +222,18 @@ export async function sendEnrollmentAssignmentNotification(
     meetLink: classData.meetLink || 'Meet link will be shared by the academy team.',
     meetButton: classData.meetLink || 'Meet link will be shared by the academy team.',
   };
-  const subject = renderTemplateText(preparationTemplate.subject, templateContext) || getAssignmentSubject(studentName);
+  const parentSubjectContext = {
+    ...templateContext,
+    recipientName: parentRecipients[0]?.name || templateContext.parentName,
+    recipientRole: 'parent' as const,
+  };
+  const studentSubjectContext = {
+    ...templateContext,
+    recipientName: studentName || 'Student',
+    recipientRole: 'student' as const,
+  };
+  const parentSubject = renderTemplateText(preparationTemplate.subject, parentSubjectContext) || getAssignmentSubject(studentName);
+  const studentSubject = renderTemplateText(preparationTemplate.subject, studentSubjectContext) || getAssignmentSubject(studentName);
   const logPayload = {
     className: classData.name,
     courseName: classData.course.name,
@@ -235,7 +248,7 @@ export async function sendEnrollmentAssignmentNotification(
   const parentLogs = await createEmailLogs({
     recipients: parentRecipients,
     recipientRole: 'parent',
-    subject,
+    subject: parentSubject,
     studentId,
     classId,
     options,
@@ -245,7 +258,7 @@ export async function sendEnrollmentAssignmentNotification(
   const studentLogs = await createEmailLogs({
     recipients: studentRecipients,
     recipientRole: 'student',
-    subject,
+    subject: studentSubject,
     studentId,
     classId,
     options,

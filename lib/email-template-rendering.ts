@@ -1,4 +1,6 @@
 export const PREPARATION_TEMPLATE_PLACEHOLDERS = [
+  '{{recipientName}}',
+  '{{recipientRole}}',
   '{{parentName}}',
   '{{studentName}}',
   '{{courseName}}',
@@ -11,6 +13,8 @@ export const PREPARATION_TEMPLATE_PLACEHOLDERS = [
 ] as const;
 
 export type PreparationTemplateContext = {
+  recipientName: string;
+  recipientRole: 'parent' | 'student';
   parentName: string;
   studentName: string;
   courseName: string;
@@ -37,11 +41,17 @@ function autoLinkUrls(value: string): string {
   });
 }
 
+function renderRecipientBlocks(template: string, context: PreparationTemplateContext): string {
+  return template
+    .replace(/\{\{#parent\}\}([\s\S]*?)\{\{\/parent\}\}/g, context.recipientRole === 'parent' ? '$1' : '')
+    .replace(/\{\{#student\}\}([\s\S]*?)\{\{\/student\}\}/g, context.recipientRole === 'student' ? '$1' : '');
+}
+
 export function renderTemplateText(template: string, context: PreparationTemplateContext): string {
   return PREPARATION_TEMPLATE_PLACEHOLDERS.reduce((result, placeholder) => {
     const key = placeholder.slice(2, -2) as keyof PreparationTemplateContext;
     return result.split(placeholder).join(context[key] || '');
-  }, template);
+  }, renderRecipientBlocks(template, context));
 }
 
 function buildMeetButtonHtml(url: string): string {
@@ -57,7 +67,7 @@ function renderTemplateForHtml(template: string, context: PreparationTemplateCon
 
     const key = placeholder.slice(2, -2) as keyof PreparationTemplateContext;
     return result.split(placeholder).join(context[key] || '');
-  }, template);
+  }, renderRecipientBlocks(template, context));
 }
 
 function renderInlineHtml(value: string, meetButtonHtml?: string, buttonToken?: string): string {

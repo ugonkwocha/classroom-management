@@ -33,9 +33,17 @@ type FormState = {
   isActive: boolean;
 };
 
-const defaultBody = `Hello {{parentName}},
+const defaultBody = `{{#parent}}
+Hello {{recipientName}},
 
 {{studentName}} has been assigned to {{className}}.
+{{/parent}}
+
+{{#student}}
+Hello {{recipientName}},
+
+You have been assigned to {{className}}.
+{{/student}}
 
 Course: {{courseName}}
 Program: {{programName}}
@@ -54,6 +62,8 @@ We look forward to seeing you in class.`;
 
 function sampleContext(courseName: string): PreparationTemplateContext {
   return {
+    recipientName: 'Gloria Johnson',
+    recipientRole: 'parent',
     parentName: 'Gloria Johnson',
     studentName: 'Ada Johnson',
     courseName,
@@ -104,6 +114,7 @@ export function EmailTemplatesManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CourseEmailTemplate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewAudience, setPreviewAudience] = useState<'parent' | 'student'>('parent');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [form, setForm] = useState<FormState>({
     courseId: '',
@@ -148,7 +159,12 @@ export function EmailTemplatesManagement() {
   }, [items, search]);
 
   const selectedCourse = items.find((item) => item.course.id === form.courseId)?.course;
-  const previewContext = sampleContext(selectedCourse?.name || '');
+  const previewBaseContext = sampleContext(selectedCourse?.name || '');
+  const previewContext = {
+    ...previewBaseContext,
+    recipientName: previewAudience === 'parent' ? previewBaseContext.parentName : previewBaseContext.studentName,
+    recipientRole: previewAudience,
+  };
   const previewSubject = renderTemplateText(form.subject, previewContext);
   const previewBody = renderTemplateHtml(form.body, previewContext);
   const configuredCount = items.filter((item) => item.template).length;
@@ -474,7 +490,7 @@ export function EmailTemplatesManagement() {
                     required
                   />
                   <p className="mt-2 text-xs text-slate-500">
-                    Use {'{{meetButton}}'} wherever the blue Google Meet button should appear. Blank lines create paragraphs; lines starting with - create bullets.
+                    Use {'{{meetButton}}'} wherever the blue Google Meet button should appear. Use {'{{#parent}}...{{/parent}}'} and {'{{#student}}...{{/student}}'} for recipient-specific sections.
                   </p>
                 </div>
 
@@ -504,6 +520,26 @@ export function EmailTemplatesManagement() {
                   </div>
                 </div>
 
+                <div>
+                  <p className="mb-2 text-sm font-bold text-slate-700">Recipient blocks</p>
+                  <div className="grid gap-2 text-xs font-semibold text-slate-600">
+                    <button
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, body: `${current.body}\n\n{{#parent}}\nParent-only message here.\n{{/parent}}` }))}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                    >
+                      Add parent-only section
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, body: `${current.body}\n\n{{#student}}\nStudent-only message here.\n{{/student}}` }))}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                    >
+                      Add student-only section
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row">
                   <button
                     type="submit"
@@ -524,9 +560,25 @@ export function EmailTemplatesManagement() {
               </div>
 
               <div className="border-t border-slate-100 bg-slate-50 p-6 lg:border-l lg:border-t-0">
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-700">
-                  <FiEye className="h-4 w-4 text-blue-600" />
-                  Preview
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <FiEye className="h-4 w-4 text-blue-600" />
+                    Preview
+                  </div>
+                  <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+                    {(['parent', 'student'] as const).map((audience) => (
+                      <button
+                        key={audience}
+                        type="button"
+                        onClick={() => setPreviewAudience(audience)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-bold capitalize transition ${
+                          previewAudience === audience ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {audience}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="rounded-2xl bg-[#06244a] p-4 text-white">
