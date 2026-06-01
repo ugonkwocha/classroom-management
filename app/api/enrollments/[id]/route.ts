@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
+import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
 
 export async function GET(
   request: NextRequest,
@@ -85,6 +86,10 @@ export async function PUT(
     const data = await request.json();
     console.log('[PUT /api/enrollments/:id] Updating enrollment:', id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
 
+    let shouldSendAssignmentNotification = false;
+    let notificationStudentId = '';
+    let notificationClassId = '';
+
     const enrollment = await prisma.$transaction(async (tx) => {
       const currentEnrollment = await tx.programEnrollment.findUnique({
         where: { id: id },
@@ -104,6 +109,13 @@ export async function PUT(
         ? data.status
         : currentEnrollment.status;
       const effectiveClassId = nextStatus === 'ASSIGNED' ? nextClassId : null;
+      shouldSendAssignmentNotification = Boolean(
+        effectiveClassId &&
+        nextStatus === 'ASSIGNED' &&
+        (currentEnrollment.classId !== effectiveClassId || currentEnrollment.status !== 'ASSIGNED')
+      );
+      notificationStudentId = currentEnrollment.studentId;
+      notificationClassId = effectiveClassId || '';
 
       if (effectiveClassId) {
         const targetClass = await tx.class.findUnique({
@@ -198,7 +210,24 @@ export async function PUT(
     });
 
     console.log('[PUT /api/enrollments/:id] Updated enrollment. New classId:', enrollment.classId);
-    return NextResponse.json(enrollment);
+    let emailNotification = null;
+
+    if (shouldSendAssignmentNotification && notificationStudentId && notificationClassId) {
+      try {
+        emailNotification = await sendEnrollmentAssignmentNotification(notificationStudentId, notificationClassId);
+      } catch (emailError) {
+        console.error('[PUT /api/enrollments/:id] Assignment saved, but email notification failed:', emailError);
+        emailNotification = {
+          success: false,
+          error: emailError instanceof Error ? emailError.message : 'Email notification failed',
+        };
+      }
+    }
+
+    return NextResponse.json({
+      ...enrollment,
+      emailNotification,
+    });
   } catch (error) {
     console.error('Error updating enrollment:', error);
     const message = error instanceof Error ? error.message : 'Failed to update enrollment';

@@ -11,7 +11,6 @@ import { AssignmentModal } from './AssignmentModal';
 import { generateId, calculateAge } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
 import { formatPhoneNumberForDisplay } from '@/lib/constants/countries';
-import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -463,40 +462,10 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       });
     }
 
-    // Send enrollment notification emails
-    fetchWithAuth('/api/emails/send-enrollment', {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId,
-        classId,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          console.log('[Email] Enrollment emails sent:', data.emailsSent);
-
-          // Build email notification message
-          const emailParts = [];
-          if (data.emailsSent.parents > 0) emailParts.push(`${data.emailsSent.parents} parent${data.emailsSent.parents > 1 ? 's' : ''}`);
-          if (data.emailsSent.students > 0) emailParts.push(`${data.emailsSent.students} student${data.emailsSent.students > 1 ? 's' : ''}`);
-
-          if (emailParts.length > 0) {
-            const emailSummary = emailParts.join(', ');
-            console.log(`[Email] Notification: Emails sent to ${emailSummary}`);
-          }
-        } else {
-          console.warn('[Email] Failed to send enrollment emails:', data.error);
-        }
-      })
-      .catch((error) => {
-        console.error('[Email] Error sending enrollment emails:', error);
-      });
-
     // Show success message with email notification
     const className = classData?.name || 'Unknown Class';
     const programName = programs.find((p) => p.id === programId)?.name || 'Unknown Program';
-    setSuccessMessage(`✓ Successfully assigned ${student.firstName} ${student.lastName} to ${className} (${programName})\n📧 Parent notification email queued${classData?.meetLink ? ' with Google Meet link' : ''}.`);
+    setSuccessMessage(`✓ Successfully assigned ${student.firstName} ${student.lastName} to ${className} (${programName})\n📧 Parent notification email is now handled by the server${classData?.meetLink ? ' with the Google Meet link' : ''}.`);
     setShowSuccessMessage(true);
     setIsAssignmentModalOpen(false);
 

@@ -45,6 +45,7 @@ const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || (process.env.RESEND_API_KEY
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL;
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || process.env.RESEND_REPLY_TO_EMAIL;
+const EMAIL_DELIVERY_ATTEMPTS = 3;
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
@@ -215,43 +216,59 @@ export async function sendClassAssignmentEmail(
     params.recipients.map(async (recipient) => {
       const email = buildClassAssignmentEmail(params, recipient);
 
-      try {
-        const { data, error } = await resend.emails.send({
-          from: EMAIL_FROM,
-          to: [recipient.email],
-          subject: email.subject,
-          html: email.html,
-          text: email.text,
-          ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
-        });
+      for (let attempt = 1; attempt <= EMAIL_DELIVERY_ATTEMPTS; attempt += 1) {
+        try {
+          const { data, error } = await resend.emails.send({
+            from: EMAIL_FROM,
+            to: [recipient.email],
+            subject: email.subject,
+            html: email.html,
+            text: email.text,
+            ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
+          });
 
-        if (error) {
-          console.error('[Email] Resend delivery failed:', {
+          if (error) {
+            const errorMessage = typeof error === 'string' ? error : error.message || 'Resend delivery failed';
+            console.error('[Email] Resend delivery failed:', {
+              recipient: recipient.email,
+              attempt,
+              error,
+            });
+
+            if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
+              return {
+                success: false,
+                error: errorMessage,
+              };
+            }
+          } else {
+            return {
+              success: true,
+              messageId: data?.id,
+            };
+          }
+        } catch (error) {
+          console.error('[Email] Resend delivery error:', {
             recipient: recipient.email,
+            attempt,
             error,
           });
 
-          return {
-            success: false,
-            error: typeof error === 'string' ? error : error.message || 'Resend delivery failed',
-          };
+          if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Unexpected email delivery error',
+            };
+          }
         }
 
-        return {
-          success: true,
-          messageId: data?.id,
-        };
-      } catch (error) {
-        console.error('[Email] Resend delivery error:', {
-          recipient: recipient.email,
-          error,
-        });
-
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unexpected email delivery error',
-        };
+        await new Promise((resolve) => setTimeout(resolve, attempt * 400));
       }
+
+      return {
+        success: false,
+        error: 'Email delivery failed after retries',
+      };
     })
   );
 

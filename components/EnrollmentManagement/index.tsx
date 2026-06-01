@@ -18,7 +18,6 @@ import {
 import { useClasses, useCourses, usePrograms, useStudents, useTeachers } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
-import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import type { Class, CourseHistory, Program, ProgramEnrollment, Student } from '@/types';
 
@@ -338,21 +337,6 @@ export function EnrollmentManagement() {
     }
   };
 
-  const sendEnrollmentEmail = async (studentId: string, classId: string) => {
-    const response = await fetchWithAuth('/api/emails/send-enrollment', {
-      method: 'POST',
-      body: JSON.stringify({ studentId, classId }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      console.warn('[EnrollmentManagement] Email notification failed:', data.error || response.statusText);
-      return false;
-    }
-
-    return true;
-  };
-
   const executeClassAssignment = async (row: EnrollmentRow, classItem: Class) => {
     try {
       const courseHistoryEntry = buildCourseHistoryEntry(row.student, classItem, row.program);
@@ -366,10 +350,9 @@ export function EnrollmentManagement() {
         { courseHistoryEntry }
       );
 
-      const emailQueued = await sendEnrollmentEmail(row.student.id, classItem.id);
       setMessage({
         type: 'success',
-        text: `${row.student.firstName} ${row.student.lastName} assigned to ${classItem.name}.${emailQueued ? ' Notification email queued.' : ''}`,
+        text: `${row.student.firstName} ${row.student.lastName} assigned to ${classItem.name}. Parent notification email is handled by the server.`,
       });
     } catch {
       // Message is set in applyEnrollmentUpdate.

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
+import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
 
 export async function GET(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);
@@ -117,13 +118,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const status = data.status;
+    const classId = status === 'ASSIGNED' ? data.classId || null : data.classId;
+
     const enrollment = await prisma.programEnrollment.create({
       data: {
         studentId: data.studentId,
         programId: data.programId,
-        classId: data.classId,
+        classId,
         batchNumber: data.batchNumber || 1,
-        status: data.status,
+        status,
         paymentStatus: normalizePaymentStatus(data.paymentStatus || 'PENDING'),
         priceType: data.priceType || 'FULL_PRICE',
         priceAmount: data.priceAmount || 60000,
@@ -136,7 +140,21 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('Successfully created enrollment:', enrollment);
-    return NextResponse.json(enrollment, { status: 201 });
+    let emailNotification = null;
+
+    if (enrollment.status === 'ASSIGNED' && enrollment.classId) {
+      try {
+        emailNotification = await sendEnrollmentAssignmentNotification(enrollment.studentId, enrollment.classId);
+      } catch (emailError) {
+        console.error('[POST /api/enrollments] Enrollment created, but email notification failed:', emailError);
+        emailNotification = {
+          success: false,
+          error: emailError instanceof Error ? emailError.message : 'Email notification failed',
+        };
+      }
+    }
+
+    return NextResponse.json({ ...enrollment, emailNotification }, { status: 201 });
   } catch (error) {
     console.error('Error creating enrollment:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);

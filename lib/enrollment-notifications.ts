@@ -1,0 +1,177 @@
+import prisma from '@/lib/prisma';
+import { sendClassAssignmentEmail } from '@/lib/email';
+import { formatGuardianName } from '@/lib/family-utils';
+
+type NotificationRecipient = {
+  email: string;
+  name?: string;
+  source: 'guardian' | 'legacy-parent' | 'student';
+};
+
+function normalizeEmail(value: string | null | undefined) {
+  return (value || '').trim().toLowerCase();
+}
+
+function dedupeRecipients(recipients: NotificationRecipient[]) {
+  const seen = new Set<string>();
+
+  return recipients.filter((recipient) => {
+    const email = normalizeEmail(recipient.email);
+    if (!email || seen.has(email)) return false;
+    seen.add(email);
+    return true;
+  });
+}
+
+export async function sendEnrollmentAssignmentNotification(studentId: string, classId: string) {
+  const [student, classData] = await Promise.all([
+    prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        family: {
+          include: {
+            guardians: {
+              orderBy: [
+                { isPrimary: 'desc' },
+                { createdAt: 'asc' },
+              ],
+            },
+          },
+        },
+      },
+    }),
+    prisma.class.findUnique({
+      where: { id: classId },
+      include: {
+        course: true,
+        program: true,
+        teacher: true,
+      },
+    }),
+  ]);
+
+  if (!student) {
+    return {
+      success: false,
+      error: 'Student not found for assignment notification',
+      recipients: [],
+      emailsSent: { parents: 0, students: 0 },
+      emailsFailed: { parents: 0, students: 0 },
+    };
+  }
+
+  if (!classData) {
+    return {
+      success: false,
+      error: 'Class not found for assignment notification',
+      recipients: [],
+      emailsSent: { parents: 0, students: 0 },
+      emailsFailed: { parents: 0, students: 0 },
+    };
+  }
+
+  const guardianRecipients: NotificationRecipient[] = (student.family?.guardians || [])
+    .filter((guardian) => guardian.isActive && guardian.email?.trim())
+    .map((guardian) => ({
+      email: guardian.email as string,
+      name: formatGuardianName(guardian.firstName, guardian.lastName) || 'Parent/Guardian',
+      source: 'guardian' as const,
+    }));
+
+  const legacyParentRecipient: NotificationRecipient[] = student.parentEmail?.trim()
+    ? [{ email: student.parentEmail, name: 'Parent/Guardian', source: 'legacy-parent' as const }]
+    : [];
+
+  const parentRecipients = dedupeRecipients([...guardianRecipients, ...legacyParentRecipient]);
+  const studentRecipients = dedupeRecipients(
+    student.email?.trim()
+      ? [{ email: student.email, name: `${student.firstName} ${student.lastName}`.trim(), source: 'student' as const }]
+      : []
+  );
+
+  const studentName = `${student.firstName} ${student.lastName}`.trim();
+  const enrollmentDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const sharedEmailParams = {
+    className: classData.name,
+    courseName: classData.course.name,
+    programName: classData.program.name,
+    batch: classData.batch,
+    slot: classData.slot,
+    schedule: classData.schedule,
+    instructorName: classData.teacher
+      ? `${classData.teacher.firstName} ${classData.teacher.lastName}`
+      : undefined,
+    meetLink: classData.meetLink || undefined,
+    enrollmentDate,
+    studentName,
+  };
+
+  const parentEmailResults =
+    parentRecipients.length > 0
+      ? await sendClassAssignmentEmail({
+          recipients: parentRecipients,
+          ...sharedEmailParams,
+          recipientType: 'parent',
+        })
+      : [];
+
+  const studentEmailResults =
+    studentRecipients.length > 0
+      ? await sendClassAssignmentEmail({
+          recipients: studentRecipients,
+          ...sharedEmailParams,
+          recipientType: 'student',
+        })
+      : [];
+
+  const successfulParentEmails = parentEmailResults.filter((result) => result.success).length;
+  const failedParentEmails = parentEmailResults.filter((result) => !result.success).length;
+  const successfulStudentEmails = studentEmailResults.filter((result) => result.success).length;
+  const failedStudentEmails = studentEmailResults.filter((result) => !result.success).length;
+  const hasParentRecipient = parentRecipients.length > 0;
+  const hasAnyFailure = failedParentEmails > 0 || failedStudentEmails > 0;
+
+  if (!hasParentRecipient) {
+    console.warn('[EnrollmentNotification] No parent/guardian recipient found.', {
+      studentId,
+      studentName,
+      classId,
+      className: classData.name,
+    });
+  }
+
+  if (hasAnyFailure) {
+    console.warn('[EnrollmentNotification] Some assignment emails failed.', {
+      studentId,
+      classId,
+      parentEmailResults,
+      studentEmailResults,
+    });
+  }
+
+  return {
+    success: hasParentRecipient && successfulParentEmails > 0 && !hasAnyFailure,
+    error: !hasParentRecipient ? 'No parent/guardian email is available for this student' : undefined,
+    recipients: [...parentRecipients, ...studentRecipients].map((recipient) => ({
+      email: recipient.email,
+      source: recipient.source,
+    })),
+    emailsSent: {
+      parents: successfulParentEmails,
+      students: successfulStudentEmails,
+    },
+    emailsFailed: {
+      parents: failedParentEmails,
+      students: failedStudentEmails,
+    },
+    providerResults: {
+      parents: parentEmailResults,
+      students: studentEmailResults,
+    },
+  };
+}
