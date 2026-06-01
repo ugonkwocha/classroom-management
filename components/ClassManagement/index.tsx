@@ -110,10 +110,10 @@ export function ClassManagement() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        console.warn('[Email] Failed to send teacher assignment email:', data.error || response.statusText);
+        console.warn('[Email] Failed to send tutor assignment email:', data.error || response.statusText);
       }
     } catch (error) {
-      console.error('[Email] Error sending teacher assignment email:', error);
+      console.error('[Email] Error sending tutor assignment email:', error);
     }
   };
 

@@ -28,7 +28,7 @@ const statusStyles: Record<EmailLogStatus, string> = {
 
 const eventLabels: Record<EmailEventType, string> = {
   CLASS_ASSIGNMENT: 'Class assignment',
-  TEACHER_ASSIGNMENT: 'Teacher assignment',
+  TEACHER_ASSIGNMENT: 'Tutor assignment',
   USER_INVITATION: 'User invitation',
   PASSWORD_RESET: 'Password reset',
 };
@@ -203,7 +203,7 @@ export function EmailLogsManagement() {
             >
               <option value="all">All events</option>
               <option value="CLASS_ASSIGNMENT">Class assignment</option>
-              <option value="TEACHER_ASSIGNMENT">Teacher assignment</option>
+              <option value="TEACHER_ASSIGNMENT">Tutor assignment</option>
               <option value="USER_INVITATION">User invitation</option>
               <option value="PASSWORD_RESET">Password reset</option>
             </select>

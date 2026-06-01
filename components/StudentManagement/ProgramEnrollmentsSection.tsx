@@ -162,7 +162,7 @@ export function ProgramEnrollmentsSection({
                   </div>
                   {classData.teacherId && (
                     <div>
-                      <p className="text-xs text-gray-600">Instructor Assigned</p>
+                      <p className="text-xs text-gray-600">Tutor Assigned</p>
                       <p className="text-sm text-gray-900">✓ Yes</p>
                     </div>
                   )}

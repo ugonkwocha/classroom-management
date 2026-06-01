@@ -101,7 +101,7 @@ export function ProgramDetailsView({ program, onClose }: ProgramDetailsViewProps
         <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
         <input
           type="text"
-          placeholder="Search classes by name, teacher, or level..."
+          placeholder="Search classes by name, tutor, or level..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"

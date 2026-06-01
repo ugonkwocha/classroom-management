@@ -36,7 +36,7 @@ export function useTeachers() {
       await mutate();
       return newTeacher;
     } catch (error) {
-      console.error('Failed to add teacher:', error);
+      console.error('Failed to add tutor:', error);
       throw error;
     }
   };
@@ -51,7 +51,7 @@ export function useTeachers() {
       await mutate();
       return updatedTeacher;
     } catch (error) {
-      console.error('Failed to update teacher:', error);
+      console.error('Failed to update tutor:', error);
       throw error;
     }
   };
@@ -61,7 +61,7 @@ export function useTeachers() {
       await fetchWithAuth(`/api/teachers/${id}`, { method: 'DELETE' });
       await mutate();
     } catch (error) {
-      console.error('Failed to delete teacher:', error);
+      console.error('Failed to delete tutor:', error);
       throw error;
     }
   };

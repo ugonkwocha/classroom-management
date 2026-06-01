@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       recipientEmail: classData.teacher.email,
       recipientName: `${classData.teacher.firstName} ${classData.teacher.lastName}`,
       recipientRole: 'teacher',
-      subject: `Class assignment: ${classData.name}`,
+      subject: `Tutor assignment: ${classData.name}`,
       providerMessageId: result?.messageId,
       error: result?.error,
       success: Boolean(result?.success),
@@ -109,9 +109,9 @@ export async function POST(request: NextRequest) {
       emailsFailed: { teachers: failedTeacherEmails },
     });
   } catch (error) {
-    console.error('Error sending teacher assignment email:', error);
+    console.error('Error sending tutor assignment email:', error);
     return NextResponse.json(
-      { error: 'Failed to send teacher assignment email' },
+      { error: 'Failed to send tutor assignment email' },
       { status: 500 }
     );
   }

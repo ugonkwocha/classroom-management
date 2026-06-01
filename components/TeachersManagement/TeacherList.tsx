@@ -44,10 +44,10 @@ export function TeacherList({
           <FiUserCheck className="h-6 w-6" />
         </div>
         <p className="text-base font-bold text-slate-950">
-          {showUnassignedOnly ? 'No unassigned teachers' : 'No teachers found'}
+          {showUnassignedOnly ? 'No unassigned tutors' : 'No tutors found'}
         </p>
         <p className="mt-1 text-sm text-slate-500">
-          {showUnassignedOnly ? 'Every teacher is currently assigned to at least one class.' : 'Add a teacher to manage class assignments.'}
+          {showUnassignedOnly ? 'Every tutor is currently assigned to at least one class.' : 'Add a tutor to manage class assignments.'}
         </p>
       </div>
     );
@@ -58,7 +58,7 @@ export function TeacherList({
       <table className="w-full min-w-[820px] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
-            <th className="px-5 py-4">Teacher</th>
+            <th className="px-5 py-4">Tutor</th>
             <th className="px-5 py-4">Contact</th>
             <th className="px-5 py-4">Qualifications</th>
             <th className="px-5 py-4">Status</th>

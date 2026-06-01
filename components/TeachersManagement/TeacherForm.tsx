@@ -181,7 +181,7 @@ export function TeacherForm({ onSubmit, onCancel, initialData, isLoading = false
 
       <div className="flex gap-3 pt-4">
         <Button type="submit" variant="primary" className="flex-1" disabled={isLoading}>
-          {initialData ? 'Update Teacher' : 'Create Teacher'}
+          {initialData ? 'Update Tutor' : 'Create Tutor'}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>

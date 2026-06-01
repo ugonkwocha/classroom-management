@@ -37,7 +37,7 @@ export function ClassCard({ classData, onEdit, onDelete, onArchive, onUnarchive,
         <div className="cursor-pointer flex-1" onClick={() => onViewStudents(classData)}>
           <h3 className="font-semibold text-gray-900 hover:text-purple-600 transition-colors">{classData.name}</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
+            Tutor: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
           </p>
         </div>
         <div className="flex gap-2 items-start">

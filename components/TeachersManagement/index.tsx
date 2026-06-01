@@ -30,7 +30,7 @@ export function TeachersManagement() {
   const canEdit = hasPermission(PERMISSIONS.UPDATE_TEACHER);
   const canDelete = hasPermission(PERMISSIONS.DELETE_TEACHER);
 
-  // Get unassigned teachers (teachers with no classes assigned)
+  // Get unassigned tutors (tutors with no classes assigned)
   const assignedTeacherIds = useMemo(() => {
     const assigned = new Set<string>();
     classes.forEach((cls) => {
@@ -46,7 +46,7 @@ export function TeachersManagement() {
     [teachers, assignedTeacherIds]
   );
 
-  // Filter teachers based on tab and search
+  // Filter tutors based on tab and search
   const filteredTeachers = useMemo(() => {
     let result = teachers.filter(
       (teacher) =>
@@ -85,13 +85,13 @@ export function TeachersManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this teacher?')) {
+    if (window.confirm('Are you sure you want to delete this tutor?')) {
       try {
         await deleteTeacher(id);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to delete teacher';
-        console.error('Error deleting teacher:', error);
-        alert(`Error deleting teacher: ${errorMessage}`);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete tutor';
+        console.error('Error deleting tutor:', error);
+        alert(`Error deleting tutor: ${errorMessage}`);
       }
     }
   };
@@ -117,14 +117,14 @@ export function TeachersManagement() {
     return (
       <div className="rounded-2xl border border-rose-100 bg-rose-50 p-5">
         <p className="text-sm font-medium text-rose-700">
-          Unable to load teachers. You may not have permission to view teachers. Please contact an administrator if you believe this is an error.
+          Unable to load tutors. You may not have permission to view tutors. Please contact an administrator if you believe this is an error.
         </p>
       </div>
     );
   }
 
   const tabs = [
-    { key: 'all' as TabType, label: 'All Teachers', count: teachers.length },
+    { key: 'all' as TabType, label: 'All Tutors', count: teachers.length },
     { key: 'active' as TabType, label: 'Active', count: teachers.filter((t) => t.status === 'ACTIVE').length },
     { key: 'inactive' as TabType, label: 'Inactive', count: teachers.filter((t) => t.status === 'INACTIVE').length },
     { key: 'on-leave' as TabType, label: 'On Leave', count: teachers.filter((t) => t.status === 'ON_LEAVE').length },
@@ -138,7 +138,7 @@ export function TeachersManagement() {
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <FiUsers className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Total Teachers</p>
+          <p className="text-sm font-medium text-slate-500">Total Tutors</p>
           <p className="mt-1 text-3xl font-bold text-slate-950">{teachers.length}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -167,15 +167,15 @@ export function TeachersManagement() {
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-950">Teacher Directory</h2>
-            <p className="mt-1 text-sm text-slate-500">Teachers are matched to classes by course qualification and availability.</p>
+            <h2 className="text-base font-bold text-slate-950">Tutor Directory</h2>
+            <p className="mt-1 text-sm text-slate-500">Tutors are matched to classes by course qualification and availability.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex min-w-0 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm sm:w-80">
               <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search teachers..."
+                placeholder="Search tutors..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
@@ -188,7 +188,7 @@ export function TeachersManagement() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
                 <FiPlus className="h-4 w-4" />
-                Add Teacher
+                Add Tutor
               </button>
             )}
           </div>
@@ -234,13 +234,13 @@ export function TeachersManagement() {
             <FiBriefcase className="h-5 w-5" />
           </div>
           <p className="text-sm font-medium leading-6 text-blue-800">
-            Teachers can be assigned to classes based on their course qualifications. The system also checks same-slot conflicts before assignment.
+            Tutors can be assigned to classes based on their course qualifications. The system also checks same-slot conflicts before assignment.
           </p>
         </div>
       </section>
 
       {/* Create/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTeacher ? 'Edit Teacher' : 'Add New Teacher'}>
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTeacher ? 'Edit Tutor' : 'Add New Tutor'}>
         <TeacherForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingTeacher} />
       </Modal>
 

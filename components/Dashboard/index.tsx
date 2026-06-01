@@ -656,7 +656,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
                 <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wide text-slate-400">
                   <th className="px-3 py-3">Class Name</th>
                   <th className="px-3 py-3">Program</th>
-                  <th className="px-3 py-3">Teacher</th>
+                  <th className="px-3 py-3">Tutor</th>
                   <th className="px-3 py-3">Enrolled</th>
                   <th className="px-3 py-3">Capacity</th>
                   <th className="px-3 py-3">Utilization</th>
@@ -723,7 +723,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
             <DashboardButton icon={FiUserPlus} label="Add Student" accent="blue" onClick={() => onNavigate?.('students')} />
             <DashboardButton icon={FiCalendar} label="Create Class" accent="green" onClick={() => onNavigate?.('classes')} />
             <DashboardButton icon={FiUsers} label="Assign Student" accent="purple" onClick={() => onNavigate?.('students')} />
-            <DashboardButton icon={FiUserCheck} label="Add Teacher" accent="orange" onClick={() => onNavigate?.('teachers')} />
+            <DashboardButton icon={FiUserCheck} label="Add Tutor" accent="orange" onClick={() => onNavigate?.('teachers')} />
             <DashboardButton icon={FiLayers} label="Create Program" accent="red" onClick={() => onNavigate?.('programs')} />
             <DashboardButton icon={FiDollarSign} label="Update Pricing" accent="blue" onClick={() => onNavigate?.('pricing')} />
           </div>

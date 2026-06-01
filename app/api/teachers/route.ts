@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(teachers);
   } catch (error) {
-    console.error('Error fetching teachers:', error);
+    console.error('Error fetching tutors:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch teachers' },
+      { error: 'Failed to fetch tutors' },
       { status: 500 }
     );
   }
@@ -91,9 +91,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(teacher, { status: 201 });
   } catch (error) {
-    console.error('Error creating teacher:', error);
+    console.error('Error creating tutor:', error);
     return NextResponse.json(
-      { error: 'Failed to create teacher' },
+      { error: 'Failed to create tutor' },
       { status: 500 }
     );
   }

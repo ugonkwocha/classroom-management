@@ -131,15 +131,15 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
       return;
     }
 
-    // If a teacher is selected, validate:
-    // 1. Teacher is qualified for this course
-    // 2. Teacher is not already teaching at this same time slot in this batch
+    // If a tutor is selected, validate:
+    // 1. Tutor is qualified for this course
+    // 2. Tutor is not already assigned at this same time slot in this batch
     if (formData.teacherId) {
       const selectedTeacher = teachers.find((t) => t.id === formData.teacherId);
       if (selectedTeacher) {
-        // Check if teacher is qualified for this course
+        // Check if tutor is qualified for this course
         if (!selectedTeacher.qualifiedCourses.includes(formData.courseId)) {
-          setErrors({ form: 'Selected teacher is not qualified to teach this course' });
+          setErrors({ form: 'Selected tutor is not qualified to teach this course' });
           return;
         }
 
@@ -151,7 +151,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
 
         if (conflictingClass) {
           setErrors({
-            form: `Selected teacher is already assigned to "${conflictingClass.name}" at this batch and time slot.`,
+            form: `Selected tutor is already assigned to "${conflictingClass.name}" at this batch and time slot.`,
           });
           return;
         }
@@ -277,7 +277,7 @@ export function ClassForm({ onSubmit, onCancel, initialData, isLoading = false, 
 
       {selectedCourse && (
         <Select
-          label="Teacher (Optional)"
+          label="Tutor (Optional)"
           options={[
             { value: '', label: 'Unassigned - Assign later' },
             ...teachers

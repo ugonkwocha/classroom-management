@@ -62,7 +62,7 @@ function escapeHtml(value: string | undefined): string {
 
 function getSubject(params: ClassAssignmentEmailParams): string {
   if (params.recipientType === 'teacher') {
-    return `Class assignment: ${params.className}`;
+    return `Tutor assignment: ${params.className}`;
   }
 
   return params.studentName
@@ -74,7 +74,7 @@ function getIntro(params: ClassAssignmentEmailParams, recipient: EmailRecipient)
   const recipientName = recipient.name ? ` ${recipient.name}` : '';
 
   if (params.recipientType === 'teacher') {
-    return `Hello${recipientName}, you have been assigned to teach a class at 9jacodekids Academy.`;
+    return `Hello${recipientName}, you have been assigned as a tutor for a class at 9jacodekids Academy.`;
   }
 
   return params.studentName

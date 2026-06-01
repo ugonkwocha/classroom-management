@@ -44,16 +44,16 @@ export async function GET(
 
     if (!teacher) {
       return NextResponse.json(
-        { error: 'Teacher not found' },
+        { error: 'Tutor not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json(teacher);
   } catch (error) {
-    console.error('Error fetching teacher:', error);
+    console.error('Error fetching tutor:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch teacher' },
+      { error: 'Failed to fetch tutor' },
       { status: 500 }
     );
   }
@@ -106,9 +106,9 @@ export async function PUT(
 
     return NextResponse.json(teacher);
   } catch (error) {
-    console.error('Error updating teacher:', error);
+    console.error('Error updating tutor:', error);
     return NextResponse.json(
-      { error: 'Failed to update teacher' },
+      { error: 'Failed to update tutor' },
       { status: 500 }
     );
   }
@@ -146,9 +146,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting teacher:', error);
+    console.error('Error deleting tutor:', error);
     return NextResponse.json(
-      { error: 'Failed to delete teacher' },
+      { error: 'Failed to delete tutor' },
       { status: 500 }
     );
   }

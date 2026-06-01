@@ -41,7 +41,7 @@ export const PERMISSIONS = {
   DELETE_CLASS: 'DELETE_CLASS',
   ASSIGN_TEACHER: 'ASSIGN_TEACHER',
 
-  // Teachers (Admin+ only)
+  // Tutors (Admin+ only)
   CREATE_TEACHER: 'CREATE_TEACHER',
   READ_TEACHERS: 'READ_TEACHERS',
   UPDATE_TEACHER: 'UPDATE_TEACHER',
@@ -161,7 +161,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.UPDATE_CLASS,
     PERMISSIONS.DELETE_CLASS,
     PERMISSIONS.ASSIGN_TEACHER,
-    // Teachers - full
+    // Tutors - full
     PERMISSIONS.CREATE_TEACHER,
     PERMISSIONS.READ_TEACHERS,
     PERMISSIONS.UPDATE_TEACHER,
@@ -205,7 +205,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.READ_PROGRAMS,
     // Classes - read only
     PERMISSIONS.READ_CLASSES,
-    // Teachers - read only
+    // Tutors - read only
     PERMISSIONS.READ_TEACHERS,
     // Enrollments - full
     PERMISSIONS.CREATE_ENROLLMENT,

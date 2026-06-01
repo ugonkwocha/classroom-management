@@ -37,12 +37,12 @@ export function TeacherDetailsView({
       [section]: !prev[section],
     }));
   };
-  // Get all classes assigned to this teacher, separated by archive status
+  // Get all classes assigned to this tutor, separated by archive status
   const allAssignedClasses = classes.filter((cls) => cls.teacherId === teacher.id);
   const currentAssignedClasses = allAssignedClasses.filter((cls) => !cls.isArchived);
   const pastAssignedClasses = allAssignedClasses.filter((cls) => cls.isArchived);
 
-  // Get teacher's qualified courses
+  // Get tutor's qualified courses
   const qualifiedCourses = courses.filter((c) => teacher.qualifiedCourses.includes(c.id));
 
   // Group current classes by program
@@ -59,7 +59,7 @@ export function TeacherDetailsView({
 
   return (
     <div className="space-y-6">
-      {/* Teacher Info Header */}
+      {/* Tutor Info Header */}
       <div className="border-b border-slate-100 pb-5">
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -71,7 +71,7 @@ export function TeacherDetailsView({
             </Badge>
           </div>
           <Button variant="outline" size="sm" onClick={onEdit}>
-            Edit Teacher
+            Edit Tutor
           </Button>
         </div>
 
