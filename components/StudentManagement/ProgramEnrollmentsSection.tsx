@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ProgramEnrollment, Class, Program, PriceType } from '@/types';
 import { Card, Button } from '@/components/ui';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { PERMISSIONS } from '@/lib/permissions';
 import { PriceEditModal } from './PriceEditModal';
 import { getPriceLabel, formatCurrency } from '@/lib/constants/pricing';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
@@ -18,6 +19,8 @@ interface ProgramEnrollmentsSectionProps {
   onUnassignFromProgram?: (enrollmentId: string, programId: string, studentId: string) => void;
   onMarkAsCompleted?: (enrollmentId: string, classId: string, studentId: string) => void;
   onEditPrice?: (enrollmentId: string, priceType: PriceType, priceAmount: number) => Promise<void>;
+  onResendAssignmentEmail?: (enrollmentId: string, classId: string) => Promise<void>;
+  resendingEnrollmentId?: string | null;
   studentId?: string;
 }
 
@@ -41,10 +44,13 @@ export function ProgramEnrollmentsSection({
   onUnassignFromProgram,
   onMarkAsCompleted,
   onEditPrice,
+  onResendAssignmentEmail,
+  resendingEnrollmentId,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canEditPrice = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
   const [priceModalState, setPriceModalState] = useState<{ isOpen: boolean; enrollmentId: string | null }>({
     isOpen: false,
     enrollmentId: null,
@@ -213,6 +219,17 @@ export function ProgramEnrollmentsSection({
                     className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                   >
                     Edit Price
+                  </Button>
+                )}
+                {canResendEmail && classData && enrollment.status === 'ASSIGNED' && onResendAssignmentEmail && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onResendAssignmentEmail(enrollment.id, classData.id)}
+                    disabled={resendingEnrollmentId === enrollment.id}
+                    className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  >
+                    {resendingEnrollmentId === enrollment.id ? 'Resending...' : 'Resend assignment email'}
                   </Button>
                 )}
                 {onMarkAsCompleted && (

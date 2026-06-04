@@ -255,6 +255,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.DELETE_COURSE_HISTORY,
     // Dashboard - yes
     PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.RESEND_EMAIL,
     // Waitlist - yes
     PERMISSIONS.MANAGE_WAITLIST,
   ],

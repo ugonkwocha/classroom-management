@@ -15,6 +15,7 @@ type NotificationOptions = {
   triggeredById?: string | null;
   resendOfLogId?: string | null;
   recipientEmail?: string | null;
+  manualResend?: boolean;
 };
 
 function normalizeEmail(value: string | null | undefined) {
@@ -71,6 +72,7 @@ async function createEmailLogs({
             ...payload,
             recipientSource: recipient.source,
             resendOfLogId: options?.resendOfLogId || null,
+            manualResend: Boolean(options?.manualResend),
           },
         },
       })

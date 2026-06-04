@@ -49,6 +49,7 @@ export async function POST(
       triggeredById: sessionUser.userId,
       resendOfLogId: log.id,
       recipientEmail: log.recipientEmail,
+      manualResend: true,
     });
 
     if (notification.success) {

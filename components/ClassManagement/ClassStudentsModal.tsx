@@ -1,7 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Class, Student, Program } from '@/types';
 import { Card, Button } from '@/components/ui';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { PERMISSIONS } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 interface ClassStudentsModalProps {
@@ -10,7 +14,29 @@ interface ClassStudentsModalProps {
   programs: Program[];
 }
 
+function formatResendMessage(data: any) {
+  const parentsSent = data.parentsSent ?? data.emailsSent?.parents ?? 0;
+  const studentsSent = data.studentsSent ?? data.emailsSent?.students ?? 0;
+  const parentsFailed = data.parentsFailed ?? data.emailsFailed?.parents ?? 0;
+  const studentsFailed = data.studentsFailed ?? data.emailsFailed?.students ?? 0;
+  const sentParts = [
+    parentsSent ? `${parentsSent} parent${parentsSent === 1 ? '' : 's'}` : '',
+    studentsSent ? `${studentsSent} student${studentsSent === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+  const failedCount = parentsFailed + studentsFailed;
+
+  if (data.success) {
+    return sentParts.length ? `Assignment email resent to ${sentParts.join(' and ')}.` : 'Assignment email resend completed.';
+  }
+
+  return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
+}
+
 export function ClassStudentsModal({ classData, students, programs }: ClassStudentsModalProps) {
+  const { hasPermission } = useAuth();
+  const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
+  const [resendingStudentId, setResendingStudentId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   // Get students enrolled in this class
   const enrolledStudentIds = classData.students;
   const enrolledStudents = students.filter((student) =>
@@ -23,6 +49,42 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
   // Helper function to get student's enrollment info for this class
   const getEnrollmentInfo = (student: Student) => {
     return student.programEnrollments?.find((e) => e.classId === classData.id);
+  };
+
+  const handleResendAssignmentEmail = async (student: Student) => {
+    const enrollment = getEnrollmentInfo(student);
+    if (!enrollment) {
+      setMessage({ type: 'error', text: 'This student does not have an active enrollment for this class.' });
+      return;
+    }
+
+    setResendingStudentId(student.id);
+    setMessage(null);
+
+    try {
+      const response = await fetchWithAuth('/api/emails/send-enrollment', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: student.id,
+          classId: classData.id,
+          enrollmentId: enrollment.id,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend assignment email');
+      }
+
+      setMessage({
+        type: data.success ? 'success' : 'error',
+        text: formatResendMessage(data),
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to resend assignment email' });
+    } finally {
+      setResendingStudentId(null);
+    }
   };
 
   if (enrolledStudents.length === 0) {
@@ -38,6 +100,12 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
 
   return (
     <div className="space-y-4">
+      {message && (
+        <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
+          {message.text}
+        </div>
+      )}
+
       <div className={`p-4 rounded-lg border ${classData.isArchived ? 'bg-gray-50 border-gray-200' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-bold text-gray-900">{classData.name}</h3>
@@ -118,6 +186,20 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
                     <span className="text-gray-600">Payment Status:</span>
                     <span className={paymentStatusColor}>{statusLabel}</span>
                   </div>
+                  {canResendEmail && enrollment.status === 'ASSIGNED' && (
+                    <div className="pt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResendAssignmentEmail(student)}
+                        disabled={resendingStudentId === student.id}
+                        className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                      >
+                        {resendingStudentId === student.id ? 'Resending...' : 'Resend assignment email'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

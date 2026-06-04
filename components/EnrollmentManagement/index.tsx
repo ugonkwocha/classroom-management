@@ -18,6 +18,7 @@ import {
 import { useClasses, useCourses, usePrograms, useStudents, useTeachers } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import type { Class, CourseHistory, Program, ProgramEnrollment, Student } from '@/types';
 
@@ -142,6 +143,24 @@ function Pill({ children, className }: { children: ReactNode; className: string 
   );
 }
 
+function formatResendMessage(data: any) {
+  const parentsSent = data.parentsSent ?? data.emailsSent?.parents ?? 0;
+  const studentsSent = data.studentsSent ?? data.emailsSent?.students ?? 0;
+  const parentsFailed = data.parentsFailed ?? data.emailsFailed?.parents ?? 0;
+  const studentsFailed = data.studentsFailed ?? data.emailsFailed?.students ?? 0;
+  const sentParts = [
+    parentsSent ? `${parentsSent} parent${parentsSent === 1 ? '' : 's'}` : '',
+    studentsSent ? `${studentsSent} student${studentsSent === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+  const failedCount = parentsFailed + studentsFailed;
+
+  if (data.success) {
+    return sentParts.length ? `Assignment email resent to ${sentParts.join(' and ')}.` : 'Assignment email resend completed.';
+  }
+
+  return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
+}
+
 export function EnrollmentManagement() {
   const router = useRouter();
   const { hasPermission } = useAuth();
@@ -158,6 +177,7 @@ export function EnrollmentManagement() {
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pendingMove, setPendingMove] = useState<{
     row: EnrollmentRow;
@@ -166,6 +186,7 @@ export function EnrollmentManagement() {
   } | null>(null);
 
   const canUpdate = hasPermission(PERMISSIONS.UPDATE_ENROLLMENT);
+  const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
   const isLoaded = studentsLoaded && classesLoaded && programsLoaded;
 
   const rows = useMemo<EnrollmentRow[]>(() => {
@@ -417,6 +438,41 @@ export function EnrollmentManagement() {
     await executeClassAssignment(row, targetClass);
   };
 
+  const handleResendAssignmentEmail = async (row: EnrollmentRow) => {
+    if (!row.enrollment.classId) {
+      setMessage({ type: 'error', text: 'This enrollment does not have an assigned class.' });
+      return;
+    }
+
+    setResendingId(row.enrollment.id);
+    setMessage(null);
+
+    try {
+      const response = await fetchWithAuth('/api/emails/send-enrollment', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: row.student.id,
+          classId: row.enrollment.classId,
+          enrollmentId: row.enrollment.id,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend assignment email');
+      }
+
+      setMessage({
+        type: data.success ? 'success' : 'error',
+        text: formatResendMessage(data),
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to resend assignment email' });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const clearFilters = () => {
     setSearch('');
     setProgramFilter('ALL');
@@ -618,6 +674,7 @@ export function EnrollmentManagement() {
                 const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);
                 const currentClass = row.classItem;
                 const isUpdating = updatingId === row.enrollment.id;
+                const isResending = resendingId === row.enrollment.id;
                 const teacher = currentClass?.teacherId ? teachers.find((item) => item.id === currentClass.teacherId) : undefined;
                 const course = currentClass?.courseId ? courses.find((item) => item.id === currentClass.courseId) : undefined;
                 const classIsFull = selectedClass ? getAssignedCount(selectedClass.id, row.enrollment.id) >= selectedClass.capacity : false;
@@ -753,6 +810,17 @@ export function EnrollmentManagement() {
                         >
                           View student
                         </button>
+                        {canResendEmail && row.enrollment.status === 'ASSIGNED' && row.enrollment.classId && (
+                          <button
+                            type="button"
+                            onClick={() => handleResendAssignmentEmail(row)}
+                            disabled={isResending}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FiSend className="h-4 w-4" />
+                            {isResending ? 'Resending...' : 'Resend assignment email'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

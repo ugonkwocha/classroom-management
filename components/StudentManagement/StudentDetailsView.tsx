@@ -12,6 +12,7 @@ import { generateId, calculateAge } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
 import { formatPhoneNumberForDisplay } from '@/lib/constants/countries';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -28,6 +29,24 @@ type BatchPaymentSelection = {
 
 const isActiveProgramEnrollment = (enrollment: ProgramEnrollment) =>
   enrollment.status !== 'COMPLETED' && enrollment.status !== 'DROPPED';
+
+function formatResendMessage(data: any) {
+  const parentsSent = data.parentsSent ?? data.emailsSent?.parents ?? 0;
+  const studentsSent = data.studentsSent ?? data.emailsSent?.students ?? 0;
+  const parentsFailed = data.parentsFailed ?? data.emailsFailed?.parents ?? 0;
+  const studentsFailed = data.studentsFailed ?? data.emailsFailed?.students ?? 0;
+  const sentParts = [
+    parentsSent ? `${parentsSent} parent${parentsSent === 1 ? '' : 's'}` : '',
+    studentsSent ? `${studentsSent} student${studentsSent === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+  const failedCount = parentsFailed + studentsFailed;
+
+  if (data.success) {
+    return sentParts.length ? `Assignment email resent to ${sentParts.join(' and ')}.` : 'Assignment email resend completed.';
+  }
+
+  return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
+}
 
 // Helper function to check if a program can accept new enrollments based on start date
 const canEnrollInProgram = (program: any): { allowed: boolean; reason?: string } => {
@@ -76,6 +95,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [displayStudent, setDisplayStudent] = useState<Student>(initialStudent);
+  const [resendingEnrollmentId, setResendingEnrollmentId] = useState<string | null>(null);
   const successMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get the latest student data from SWR cache
@@ -499,6 +519,46 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
     }, 8000);
   };
 
+  const handleResendAssignmentEmail = async (enrollmentId: string, classId: string) => {
+    setResendingEnrollmentId(enrollmentId);
+
+    try {
+      const response = await fetchWithAuth('/api/emails/send-enrollment', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: student.id,
+          classId,
+          enrollmentId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend assignment email');
+      }
+
+      if (!data.success) {
+        throw new Error(formatResendMessage(data));
+      }
+
+      setSuccessMessage(formatResendMessage(data));
+      setShowSuccessMessage(true);
+
+      if (successMessageTimeoutRef.current) {
+        clearTimeout(successMessageTimeoutRef.current);
+      }
+
+      successMessageTimeoutRef.current = setTimeout(() => {
+        setShowSuccessMessage(false);
+        successMessageTimeoutRef.current = null;
+      }, 8000);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to resend assignment email');
+    } finally {
+      setResendingEnrollmentId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Student Header */}
@@ -608,6 +668,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         onUnassignFromClass={handleUnassignFromClass}
         onUnassignFromProgram={handleUnassignFromProgram}
         onMarkAsCompleted={handleMarkAsCompleted}
+        onResendAssignmentEmail={handleResendAssignmentEmail}
+        resendingEnrollmentId={resendingEnrollmentId}
         studentId={student.id}
       />
 
