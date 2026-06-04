@@ -110,6 +110,16 @@ export async function PUT(
         ? data.status
         : currentEnrollment.status;
       const effectiveClassId = nextStatus === 'ASSIGNED' ? nextClassId : null;
+
+      if (
+        currentEnrollment.classId &&
+        currentEnrollment.status === 'ASSIGNED' &&
+        effectiveClassId &&
+        nextBatchNumber !== currentEnrollment.batchNumber
+      ) {
+        throw new Error('Unassign this enrollment before changing its batch.');
+      }
+
       shouldSendAssignmentNotification = Boolean(
         effectiveClassId &&
         nextStatus === 'ASSIGNED' &&
@@ -140,6 +150,21 @@ export async function PUT(
         }
 
         await ensureClassHasActivePreparationTemplate(tx, effectiveClassId);
+
+        const duplicateBatchAssignment = await tx.programEnrollment.findFirst({
+          where: {
+            id: { not: id },
+            studentId: currentEnrollment.studentId,
+            programId: currentEnrollment.programId,
+            batchNumber: nextBatchNumber,
+            status: 'ASSIGNED',
+            classId: { not: null },
+          },
+        });
+
+        if (duplicateBatchAssignment) {
+          throw new Error('This student already has an active class assignment for this program and batch. Unassign that batch first.');
+        }
 
         const assignedCount = await tx.programEnrollment.count({
           where: {

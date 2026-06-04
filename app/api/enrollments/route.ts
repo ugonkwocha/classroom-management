@@ -119,6 +119,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const batchNumber = data.batchNumber || 1;
+    const existingEnrollment = await prisma.programEnrollment.findFirst({
+      where: {
+        studentId: data.studentId,
+        programId: data.programId,
+        batchNumber,
+        status: { notIn: ['COMPLETED', 'DROPPED'] },
+      },
+    });
+
+    if (existingEnrollment) {
+      return NextResponse.json(
+        {
+          error: `This student already has an enrollment for ${program.name} ${program.year} Batch ${batchNumber}.`,
+        },
+        { status: 409 }
+      );
+    }
+
     const status = data.status;
     const classId = status === 'ASSIGNED' ? data.classId || null : data.classId;
 
@@ -131,7 +150,7 @@ export async function POST(request: NextRequest) {
         studentId: data.studentId,
         programId: data.programId,
         classId,
-        batchNumber: data.batchNumber || 1,
+        batchNumber,
         status,
         paymentStatus: normalizePaymentStatus(data.paymentStatus || 'PENDING'),
         priceType: data.priceType || 'FULL_PRICE',
