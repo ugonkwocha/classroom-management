@@ -663,33 +663,40 @@ export function ConfirmedRegistrationsManagement() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {mappingForm.optionMappings.map((option, index) => (
-                    <div key={index} className="grid gap-3 rounded-xl bg-slate-50 p-3 md:grid-cols-[1fr_120px_auto_auto]">
-                      <input
-                        required
-                        value={option.sourceOptionText}
-                        onChange={(event) => setMappingForm((current) => ({
-                          ...current,
-                          optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
-                            currentIndex === index ? { ...currentOption, sourceOptionText: event.target.value } : currentOption
-                          ),
-                        }))}
-                        placeholder="e.g. July 27th – August 7th. 9am – 11am"
-                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                      />
-                      <input
-                        required
-                        type="number"
-                        min={1}
-                        value={option.batchNumber}
-                        onChange={(event) => setMappingForm((current) => ({
-                          ...current,
-                          optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
-                            currentIndex === index ? { ...currentOption, batchNumber: Number(event.target.value) } : currentOption
-                          ),
-                        }))}
-                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                      />
-                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                    <div key={index} className="grid gap-3 rounded-xl bg-slate-50 p-3 md:grid-cols-[1fr_160px_auto_auto] md:items-end">
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Fluent Forms option text</span>
+                        <input
+                          required
+                          value={option.sourceOptionText}
+                          onChange={(event) => setMappingForm((current) => ({
+                            ...current,
+                            optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                              currentIndex === index ? { ...currentOption, sourceOptionText: event.target.value } : currentOption
+                            ),
+                          }))}
+                          placeholder="e.g. July 27th – August 7th. 9am – 11am"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">CMS batch</span>
+                        <input
+                          required
+                          type="number"
+                          min={1}
+                          value={option.batchNumber}
+                          onChange={(event) => setMappingForm((current) => ({
+                            ...current,
+                            optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                              currentIndex === index ? { ...currentOption, batchNumber: Number(event.target.value) } : currentOption
+                            ),
+                          }))}
+                          aria-label="CMS batch number"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 pb-3 text-sm font-semibold text-slate-600">
                         <input
                           type="checkbox"
                           checked={option.isActive}
@@ -710,7 +717,7 @@ export function ConfirmedRegistrationsManagement() {
                             ? current.optionMappings.filter((_, currentIndex) => currentIndex !== index)
                             : current.optionMappings,
                         }))}
-                        className="inline-flex items-center justify-center rounded-xl border border-rose-100 bg-white px-3 py-2 text-rose-600"
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-100 bg-white px-3 py-3 text-rose-600"
                         aria-label="Remove option mapping"
                       >
                         <FiTrash2 />
