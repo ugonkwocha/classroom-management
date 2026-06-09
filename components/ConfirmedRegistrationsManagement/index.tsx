@@ -97,9 +97,9 @@ function optionStringsFromValue(value: unknown) {
 
   if (typeof value === 'string') {
     return value
-      .split(/\s*\|\s*|\s*;\s*/)
+      .split(/\s*\|\s*|\s*;\s*|,\s*(?=(January|February|March|April|May|June|July|August|September|October|November|December)\b)/)
       .map((item) => item.trim())
-      .filter(Boolean);
+      .filter((item) => item && !/^(January|February|March|April|May|June|July|August|September|October|November|December)$/.test(item));
   }
 
   return [];
@@ -108,18 +108,23 @@ function optionStringsFromValue(value: unknown) {
 function getSelectedFormOptions(registration: ExternalRegistration | null) {
   if (!registration) return [];
   const rawPayload = registration.rawPayload as any;
-  const selectedSlots = [
-    ...optionStringsFromValue(rawPayload?.selectedSlots),
-    ...optionStringsFromValue(rawPayload?.selectedSlot),
-    ...optionStringsFromValue(rawPayload?.selectedOptions),
+  const directSelectedSlots = [
     ...optionStringsFromValue(rawPayload?.fluentFormPayload?.multi_select),
+    ...optionStringsFromValue(rawPayload?.multi_select),
   ];
+  const fallbackSelectedSlots = directSelectedSlots.length > 0
+    ? []
+    : [
+        ...optionStringsFromValue(rawPayload?.selectedSlots),
+        ...optionStringsFromValue(rawPayload?.selectedSlot),
+        ...optionStringsFromValue(rawPayload?.selectedOptions),
+      ];
 
   const childOptions = registration.children
     .map((child) => child.sourceOptionText)
     .filter((value): value is string => Boolean(value?.trim()));
 
-  return Array.from(new Set([...selectedSlots, ...childOptions]));
+  return Array.from(new Set([...directSelectedSlots, ...fallbackSelectedSlots, ...childOptions]));
 }
 
 function getMappedSelectedOptions(registration: ExternalRegistration | null, mapping: FluentFormMapping | null) {
