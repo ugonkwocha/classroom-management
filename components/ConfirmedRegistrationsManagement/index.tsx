@@ -14,6 +14,7 @@ import {
   FiTrash2,
   FiUpload,
   FiUsers,
+  FiX,
 } from 'react-icons/fi';
 import { useCourses, useFamilies, usePrograms } from '@/lib/hooks';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -194,6 +195,7 @@ export function ConfirmedRegistrationsManagement() {
   const [search, setSearch] = useState({ email: '', phone: '', submissionId: '', formId: '' });
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [successDialog, setSuccessDialog] = useState<{ title: string; text: string } | null>(null);
   const [duplicatePaymentNotice, setDuplicatePaymentNotice] = useState<DuplicatePaymentNotice | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [importForm, setImportForm] = useState({
@@ -261,6 +263,7 @@ export function ConfirmedRegistrationsManagement() {
     event.preventDefault();
     setIsBusy(true);
     setMessage(null);
+    setSuccessDialog(null);
     setDuplicatePaymentNotice(null);
     setSelectedRegistration(null);
     try {
@@ -286,6 +289,7 @@ export function ConfirmedRegistrationsManagement() {
     if (!selectedRegistration) return;
     setIsBusy(true);
     setMessage(null);
+    setSuccessDialog(null);
     setDuplicatePaymentNotice(null);
     try {
       if (!matchingMapping) {
@@ -363,8 +367,8 @@ export function ConfirmedRegistrationsManagement() {
         note: importForm.paymentProofNote || 'Proof attached during confirmed registration import',
       });
       const familyName = data.import?.family?.displayName;
-      setMessage({
-        type: 'success',
+      setSuccessDialog({
+        title: data.duplicate ? 'Registration already imported' : 'Paid registration imported',
         text: data.duplicate
           ? `This registration was already imported${familyName ? ` into ${familyName}` : ''}.`
           : `Paid registration imported successfully${familyName ? ` into ${familyName}` : ''}.`,
@@ -387,6 +391,7 @@ export function ConfirmedRegistrationsManagement() {
     event.preventDefault();
     setIsBusy(true);
     setMessage(null);
+    setSuccessDialog(null);
     try {
       const isEditing = Boolean(mappingForm.id);
       const response = await fetchWithAuth(
@@ -409,7 +414,7 @@ export function ConfirmedRegistrationsManagement() {
         isActive: true,
         optionMappings: [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
       });
-      setMessage({ type: 'success', text: 'Form mapping saved.' });
+      setSuccessDialog({ title: 'Form mapping saved', text: 'The Fluent Form mapping has been updated successfully.' });
       await loadMappings();
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to save mapping' });
@@ -422,6 +427,7 @@ export function ConfirmedRegistrationsManagement() {
     event.preventDefault();
     setIsBusy(true);
     setMessage(null);
+    setSuccessDialog(null);
     try {
       const response = await fetchWithAuth(`/api/families/${existingFamilyForm.familyId}/paid-enrollments`, {
         method: 'POST',
@@ -451,7 +457,7 @@ export function ConfirmedRegistrationsManagement() {
         enrollmentId: data.records?.[0]?.enrollmentId || '',
         note: existingFamilyForm.paymentProofNote,
       });
-      setMessage({ type: 'success', text: 'Paid enrollment added to existing family.' });
+      setSuccessDialog({ title: 'Paid enrollment added', text: 'The existing family enrollment has been saved successfully.' });
       setProofFile(null);
       setExistingFamilyForm((current) => ({
         ...current,
@@ -479,8 +485,46 @@ export function ConfirmedRegistrationsManagement() {
 
   return (
     <div className="space-y-6">
-      {message && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
+      {successDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-8">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmed-registration-success-title"
+            className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <FiCheckCircle className="h-6 w-6" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuccessDialog(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                aria-label="Close success message"
+              >
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-5">
+              <h2 id="confirmed-registration-success-title" className="text-xl font-bold text-slate-950">
+                {successDialog.title}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{successDialog.text}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccessDialog(null)}
+              className="mt-6 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {message && message.type === 'error' && (
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {message.text}
         </div>
       )}
