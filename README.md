@@ -115,6 +115,11 @@ After the account is created, set `RUN_DATABASE_SEED` back to `false` and redepl
 
 Paid registration imports use Fluent Form mappings in the CMS. Unpaid WordPress/Fluent Forms submissions are not saved in the CMS.
 
+The FluentCRM paid-tag sync endpoint must attach tags and return the tags it applied. Use
+`wordpress/9ck-cms-fluentcrm-sync-endpoint.php` as the WordPress helper for
+`/wp-json/9ck/v1/fluentcrm/sync-paid-customer`; the CMS marks sync as failed if WordPress does
+not confirm applied tags.
+
 ## Project Structure
 
 ```text

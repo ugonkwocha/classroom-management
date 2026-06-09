@@ -17,7 +17,7 @@ type CrmSyncResult = {
   error?: string | null;
 };
 
-function normalizeTagList(tags: Array<string | null | undefined>) {
+function normalizeTagList(tags: Array<unknown>) {
   return Array.from(new Set(
     tags
       .flatMap((tag) => String(tag || '').split(','))
@@ -83,6 +83,33 @@ export async function syncPaidCustomerToCrm(input: CrmSyncInput): Promise<CrmSyn
       return {
         status: 'FAILED',
         error: data.error || `FluentCRM sync failed with ${response.status}`,
+      };
+    }
+
+    const appliedTags = normalizeTagList([
+      data.appliedTags,
+      data.appliedTag,
+      data.tagsApplied,
+      data.addedTags,
+    ]);
+
+    if (appliedTags.length === 0) {
+      return {
+        status: 'FAILED',
+        contactId: data.contactId ? String(data.contactId) : null,
+        error: data.message
+          ? `${data.message} The WordPress endpoint did not confirm any applied paid tags.`
+          : 'The WordPress endpoint did not confirm any applied paid tags.',
+      };
+    }
+
+    const appliedTagSet = new Set(appliedTags.map((tag) => tag.toLowerCase()));
+    const missingTags = paidTags.filter((tag) => !appliedTagSet.has(tag.toLowerCase()));
+    if (missingTags.length > 0) {
+      return {
+        status: 'FAILED',
+        contactId: data.contactId ? String(data.contactId) : null,
+        error: `WordPress did not confirm these paid tags: ${missingTags.join(', ')}`,
       };
     }
 
