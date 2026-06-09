@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     const families = await prisma.family.findMany({
       where: {
-        isArchived: false,
+        ...(search ? {} : { isArchived: false }),
         ...(search
           ? {
               OR: [

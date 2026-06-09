@@ -356,7 +356,10 @@ export function FamiliesManagement() {
                         </span>
                         <span className="min-w-0">
                           <span className="block font-bold text-slate-950">{family.displayName}</span>
-                          <span className="text-xs text-slate-500">{family.guardians.length} guardian{family.guardians.length === 1 ? '' : 's'}</span>
+                          <span className="text-xs text-slate-500">
+                            {family.guardians.length} guardian{family.guardians.length === 1 ? '' : 's'}
+                            {family.isArchived ? ' · archived' : ''}
+                          </span>
                         </span>
                       </button>
                     </td>
@@ -374,11 +377,13 @@ export function FamiliesManagement() {
                     </td>
                     <td className="px-5 py-4 align-middle">
                       <span className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${
-                        family.guardians.some((guardian) => guardian.needsReview)
+                        family.isArchived
+                          ? 'border-slate-200 bg-slate-100 text-slate-600'
+                          : family.guardians.some((guardian) => guardian.needsReview)
                           ? 'border-amber-100 bg-amber-50 text-amber-700'
                           : 'border-emerald-100 bg-emerald-50 text-emerald-700'
                       }`}>
-                        {family.guardians.some((guardian) => guardian.needsReview) ? 'Needs review' : 'Ready'}
+                        {family.isArchived ? 'Archived' : family.guardians.some((guardian) => guardian.needsReview) ? 'Needs review' : 'Ready'}
                       </span>
                     </td>
                     <td className="px-5 py-4 align-middle">
