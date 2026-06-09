@@ -5,6 +5,7 @@ import {
   FiCheckCircle,
   FiCreditCard,
   FiDatabase,
+  FiExternalLink,
   FiLink,
   FiPlus,
   FiRefreshCw,
@@ -25,6 +26,16 @@ import type {
 } from '@/types';
 
 type WorkspaceTab = 'import' | 'existing-family' | 'mappings' | 'history';
+
+type DuplicatePaymentNotice = {
+  familyId?: string | null;
+  familyName?: string | null;
+  familyIsArchived?: boolean;
+  studentId?: string | null;
+  studentName?: string;
+  programName?: string;
+  batchNumber?: number;
+};
 
 type ExternalRegistration = {
   sourceFormId: string;
@@ -183,6 +194,7 @@ export function ConfirmedRegistrationsManagement() {
   const [search, setSearch] = useState({ email: '', phone: '', submissionId: '', formId: '' });
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [duplicatePaymentNotice, setDuplicatePaymentNotice] = useState<DuplicatePaymentNotice | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [importForm, setImportForm] = useState({
     priceType: 'FULL_PRICE' as PriceType,
@@ -249,6 +261,7 @@ export function ConfirmedRegistrationsManagement() {
     event.preventDefault();
     setIsBusy(true);
     setMessage(null);
+    setDuplicatePaymentNotice(null);
     setSelectedRegistration(null);
     try {
       const params = new URLSearchParams();
@@ -273,6 +286,7 @@ export function ConfirmedRegistrationsManagement() {
     if (!selectedRegistration) return;
     setIsBusy(true);
     setMessage(null);
+    setDuplicatePaymentNotice(null);
     try {
       if (!matchingMapping) {
         throw new Error(`No active form mapping exists for form ${selectedRegistration.sourceFormId}.`);
@@ -323,7 +337,20 @@ export function ConfirmedRegistrationsManagement() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Import failed');
+      if (!response.ok) {
+        if (data.duplicatePayment) {
+          setDuplicatePaymentNotice({
+            familyId: data.familyId || null,
+            familyName: data.familyName || null,
+            familyIsArchived: Boolean(data.familyIsArchived),
+            studentId: data.studentId || null,
+            studentName: data.studentName,
+            programName: data.programName,
+            batchNumber: data.batchNumber,
+          });
+        }
+        throw new Error(data.error || 'Import failed');
+      }
       await uploadProof(proofFile, {
         importId: data.import?.id || '',
         paymentRecordId: data.import?.paymentRecords?.[0]?.id || '',
@@ -338,6 +365,7 @@ export function ConfirmedRegistrationsManagement() {
       });
       setSelectedRegistration(null);
       setSelectedFamilyId('');
+      setDuplicatePaymentNotice(null);
       setFamilyImportChoice('create');
       setProofFile(null);
       setImportForm({ priceType: 'FULL_PRICE', confirmedAmount: 0, paymentProofNote: '' });
@@ -448,6 +476,34 @@ export function ConfirmedRegistrationsManagement() {
       {message && (
         <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
           {message.text}
+        </div>
+      )}
+
+      {duplicatePaymentNotice && (
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-800">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-bold text-rose-900">Existing paid enrollment found</p>
+              <p className="mt-1">
+                {duplicatePaymentNotice.studentName || 'This student'} already has a confirmed payment
+                {duplicatePaymentNotice.programName ? ` for ${duplicatePaymentNotice.programName}` : ''}
+                {duplicatePaymentNotice.batchNumber ? ` Batch ${duplicatePaymentNotice.batchNumber}` : ''}.
+                {duplicatePaymentNotice.familyName ? ` Family: ${duplicatePaymentNotice.familyName}${duplicatePaymentNotice.familyIsArchived ? ' (archived)' : ''}.` : ''}
+              </p>
+            </div>
+            {duplicatePaymentNotice.familyId && (
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = `/?tab=families&familyId=${encodeURIComponent(duplicatePaymentNotice.familyId || '')}`;
+                }}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white hover:bg-rose-700"
+              >
+                <FiExternalLink className="h-4 w-4" />
+                Open existing family
+              </button>
+            )}
+          </div>
         </div>
       )}
 

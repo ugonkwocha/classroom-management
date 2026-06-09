@@ -13,6 +13,26 @@ import {
 } from '@/lib/paid-registration-utils';
 import { syncPaidCustomerToCrm } from '@/lib/fluent-crm-sync';
 
+type DuplicatePaymentContext = {
+  familyId?: string | null;
+  familyName?: string | null;
+  familyIsArchived?: boolean;
+  studentId?: string | null;
+  studentName: string;
+  programName: string;
+  batchNumber: number;
+};
+
+class DuplicatePaymentError extends Error {
+  context: DuplicatePaymentContext;
+
+  constructor(message: string, context: DuplicatePaymentContext) {
+    super(message);
+    this.name = 'DuplicatePaymentError';
+    this.context = context;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);
   if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -162,11 +182,22 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingPaymentRecord) {
+          const studentName = `${child.firstName} ${child.lastName}`;
+          const familyName = existingPaymentRecord.family?.displayName || null;
           const familyLabel = existingPaymentRecord.family
             ? `${existingPaymentRecord.family.displayName}${existingPaymentRecord.family.isArchived ? ' (archived)' : ''}`
             : 'an existing family';
-          throw new Error(
-            `A confirmed payment already exists for ${child.firstName} ${child.lastName} in ${existingPaymentRecord.enrollment.program.name} Batch ${childBatch}. Existing family: ${familyLabel}. Search Families for "${existingPaymentRecord.family?.displayName || child.firstName}".`
+          throw new DuplicatePaymentError(
+            `A confirmed payment already exists for ${studentName} in ${existingPaymentRecord.enrollment.program.name} Batch ${childBatch}. Existing family: ${familyLabel}.`,
+            {
+              familyId: existingPaymentRecord.familyId,
+              familyName,
+              familyIsArchived: existingPaymentRecord.family?.isArchived || false,
+              studentId: existingPaymentRecord.studentId,
+              studentName,
+              programName: existingPaymentRecord.enrollment.program.name,
+              batchNumber: childBatch,
+            }
           );
         }
 
@@ -266,6 +297,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ import: updatedImport, duplicate: false }, { status: 201 });
   } catch (error) {
+    if (error instanceof DuplicatePaymentError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          duplicatePayment: true,
+          ...error.context,
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to import confirmed registration' },
       { status: 500 }

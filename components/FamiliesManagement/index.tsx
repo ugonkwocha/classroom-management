@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Family, Student } from '@/types';
 import { useFamilies, useStudents } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { formatGuardianName } from '@/lib/family-utils';
 import { Button, Input, Modal, PhoneInput, Select } from '@/components/ui';
@@ -38,6 +40,8 @@ function getPrimaryGuardian(family: Family) {
 }
 
 export function FamiliesManagement() {
+  const searchParams = useSearchParams();
+  const requestedFamilyId = searchParams.get('familyId');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
@@ -94,6 +98,37 @@ export function FamiliesManagement() {
 
     return () => window.clearTimeout(timeout);
   }, [search]);
+
+  useEffect(() => {
+    if (!requestedFamilyId || selectedFamily?.id === requestedFamilyId) return;
+
+    const listedFamily = families.find((family) => family.id === requestedFamilyId);
+    if (listedFamily) {
+      setSelectedFamily(listedFamily);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadRequestedFamily = async () => {
+      try {
+        const response = await fetchWithAuth(`/api/families/${requestedFamilyId}`);
+        const family = await response.json();
+        if (!response.ok) throw new Error(family.error || 'Family not found');
+        if (isMounted) setSelectedFamily(family);
+      } catch (error) {
+        if (isMounted) {
+          alert(error instanceof Error ? error.message : 'Family not found');
+        }
+      }
+    };
+
+    loadRequestedFamily();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [families, requestedFamilyId, selectedFamily?.id]);
 
   const activeGuardians = families.reduce(
     (total, family) => total + family.guardians.filter((guardian) => guardian.isActive).length,
