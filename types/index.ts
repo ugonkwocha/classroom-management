@@ -120,8 +120,19 @@ export interface FluentFormMapping {
   removeLeadTagOnPaid: boolean;
   isActive: boolean;
   program?: Program;
+  optionMappings?: FluentFormOptionMapping[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FluentFormOptionMapping {
+  id?: string;
+  formMappingId?: string;
+  sourceOptionText: string;
+  batchNumber: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Course history entry for tracking courses student has taken

@@ -6,9 +6,11 @@ import {
   FiCreditCard,
   FiDatabase,
   FiLink,
+  FiPlus,
   FiRefreshCw,
   FiSearch,
   FiSettings,
+  FiTrash2,
   FiUpload,
   FiUsers,
 } from 'react-icons/fi';
@@ -42,6 +44,9 @@ type ExternalRegistration = {
     phoneCountryCode?: string | null;
     dateOfBirth?: string | null;
     courseId?: string | null;
+    courseName?: string | null;
+    batchNumber?: number | null;
+    sourceOptionText?: string | null;
     priceType?: PriceType | string | null;
     priceAmount?: number | null;
   }>;
@@ -83,6 +88,48 @@ function Pill({ children, className = '' }: { children: React.ReactNode; classNa
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">{children}</section>;
+}
+
+function optionStringsFromValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(/\s*\|\s*|\s*;\s*/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getSelectedFormOptions(registration: ExternalRegistration | null) {
+  if (!registration) return [];
+  const rawPayload = registration.rawPayload as any;
+  const selectedSlots = [
+    ...optionStringsFromValue(rawPayload?.selectedSlots),
+    ...optionStringsFromValue(rawPayload?.selectedSlot),
+    ...optionStringsFromValue(rawPayload?.selectedOptions),
+    ...optionStringsFromValue(rawPayload?.fluentFormPayload?.multi_select),
+  ];
+
+  const childOptions = registration.children
+    .map((child) => child.sourceOptionText)
+    .filter((value): value is string => Boolean(value?.trim()));
+
+  return Array.from(new Set([...selectedSlots, ...childOptions]));
+}
+
+function getMappedSelectedOptions(registration: ExternalRegistration | null, mapping: FluentFormMapping | null) {
+  const selectedOptions = getSelectedFormOptions(registration);
+  const activeMappings = mapping?.optionMappings?.filter((option) => option.isActive) || [];
+
+  return selectedOptions.map((optionText) => ({
+    optionText,
+    mapping: activeMappings.find((option) => option.sourceOptionText === optionText) || null,
+  }));
 }
 
 function Header({ title, subtitle, icon }: { title: string; subtitle: string; icon: React.ReactNode }) {
@@ -131,6 +178,11 @@ export function ConfirmedRegistrationsManagement() {
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [importForm, setImportForm] = useState({
+    priceType: 'FULL_PRICE' as PriceType,
+    confirmedAmount: 0,
+    paymentProofNote: '',
+  });
   const { programs } = usePrograms();
   const { courses } = useCourses();
   const { families, mutate: mutateFamilies } = useFamilies();
@@ -140,12 +192,11 @@ export function ConfirmedRegistrationsManagement() {
     formId: '',
     formName: '',
     programId: '',
-    defaultBatch: 1,
-    defaultPriceType: 'FULL_PRICE' as PriceType,
     leadTag: '',
     paidTag: '',
     removeLeadTagOnPaid: false,
     isActive: true,
+    optionMappings: [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
   });
 
   const [existingFamilyForm, setExistingFamilyForm] = useState({
@@ -185,6 +236,8 @@ export function ConfirmedRegistrationsManagement() {
   const matchingMapping = selectedRegistration
     ? mappings.find((mapping) => mapping.formId === selectedRegistration.sourceFormId && mapping.isActive)
     : null;
+  const mappedSelectedOptions = getMappedSelectedOptions(selectedRegistration, matchingMapping || null);
+  const hasUnmappedSelectedOptions = mappedSelectedOptions.some((item) => !item.mapping);
 
   const handleSearch = async (event: FormEvent) => {
     event.preventDefault();
@@ -215,21 +268,46 @@ export function ConfirmedRegistrationsManagement() {
     setIsBusy(true);
     setMessage(null);
     try {
-      const confirmedAmount = Number(selectedRegistration.expectedAmount || 0);
+      if (!matchingMapping) {
+        throw new Error(`No active form mapping exists for form ${selectedRegistration.sourceFormId}.`);
+      }
+
+      if (mappedSelectedOptions.length === 0) {
+        throw new Error('No selected date/batch option was found in this WordPress registration.');
+      }
+
+      const unmappedOption = mappedSelectedOptions.find((item) => !item.mapping);
+      if (unmappedOption) {
+        throw new Error(`The selected form option "${unmappedOption.optionText}" is not mapped to a CMS batch yet.`);
+      }
+
+      const confirmedAmount = Number(importForm.confirmedAmount || 0);
+      if (confirmedAmount <= 0) {
+        throw new Error('Confirmed amount must be greater than zero.');
+      }
+
+      const mappedOptions = mappedSelectedOptions.flatMap((item) => (item.mapping ? [item.mapping] : []));
+      const enrollmentItemsCount = Math.max(selectedRegistration.children.length * mappedOptions.length, 1);
+      const splitAmount = Math.round(confirmedAmount / enrollmentItemsCount);
+
       const response = await fetchWithAuth('/api/confirmed-registrations/import', {
         method: 'POST',
         body: JSON.stringify({
           ...selectedRegistration,
           familyId: selectedFamilyId || undefined,
           confirmedAmount,
+          paymentProofNote: importForm.paymentProofNote,
           rawPayload: selectedRegistration.rawPayload || selectedRegistration,
-          children: selectedRegistration.children.map((child) => ({
-            ...child,
-            programId: matchingMapping?.programId,
-            batchNumber: matchingMapping?.defaultBatch,
-            priceType: child.priceType || matchingMapping?.defaultPriceType || 'FULL_PRICE',
-            priceAmount: child.priceAmount || Math.round(confirmedAmount / Math.max(selectedRegistration.children.length, 1)),
-          })),
+          children: selectedRegistration.children.flatMap((child) =>
+            mappedOptions.map((mappedOption) => ({
+              ...child,
+              programId: matchingMapping.programId,
+              sourceOptionText: mappedOption.sourceOptionText,
+              batchNumber: mappedOption.batchNumber,
+              priceType: importForm.priceType,
+              priceAmount: child.priceAmount || splitAmount,
+            }))
+          ),
         }),
       });
       const data = await response.json();
@@ -237,12 +315,13 @@ export function ConfirmedRegistrationsManagement() {
       await uploadProof(proofFile, {
         importId: data.import?.id || '',
         paymentRecordId: data.import?.paymentRecords?.[0]?.id || '',
-        note: 'Proof attached during confirmed registration import',
+        note: importForm.paymentProofNote || 'Proof attached during confirmed registration import',
       });
       setMessage({ type: 'success', text: data.duplicate ? 'This registration was already imported.' : 'Paid registration imported successfully.' });
       setSelectedRegistration(null);
       setSelectedFamilyId('');
       setProofFile(null);
+      setImportForm({ priceType: 'FULL_PRICE', confirmedAmount: 0, paymentProofNote: '' });
       await Promise.all([loadImports(), mutateFamilies()]);
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Import failed' });
@@ -271,12 +350,11 @@ export function ConfirmedRegistrationsManagement() {
         formId: '',
         formName: '',
         programId: '',
-        defaultBatch: 1,
-        defaultPriceType: 'FULL_PRICE',
         leadTag: '',
         paidTag: '',
         removeLeadTagOnPaid: false,
         isActive: true,
+        optionMappings: [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
       });
       setMessage({ type: 'success', text: 'Form mapping saved.' });
       await loadMappings();
@@ -414,6 +492,10 @@ export function ConfirmedRegistrationsManagement() {
                   onClick={() => {
                     setSelectedRegistration(result);
                     setSelectedFamilyId(result.matchingFamilies?.[0]?.id || '');
+                    setImportForm((current) => ({
+                      ...current,
+                      confirmedAmount: result.expectedAmount || current.confirmedAmount || 0,
+                    }));
                   }}
                   className={`w-full rounded-2xl border p-4 text-left transition ${selectedRegistration?.sourceSubmissionId === result.sourceSubmissionId ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-200'}`}
                 >
@@ -459,16 +541,49 @@ export function ConfirmedRegistrationsManagement() {
                     {selectedRegistration.children.map((child, index) => (
                       <div key={`${child.firstName}-${child.lastName}-${index}`} className="border-b border-slate-100 p-4 last:border-b-0">
                         <p className="font-bold text-slate-950">{child.firstName} {child.lastName}</p>
-                        <p className="mt-1 text-sm text-slate-500">{formatLabel(String(child.priceType || matchingMapping?.defaultPriceType || 'FULL_PRICE'))} · {formatCurrency(child.priceAmount || Math.round((selectedRegistration.expectedAmount || 0) / Math.max(selectedRegistration.children.length, 1)))}</p>
+                        <p className="mt-1 text-sm text-slate-500">{child.courseName || matchingMapping?.program?.name || 'No course shown'}</p>
                       </div>
                     ))}
                   </div>
                   {!matchingMapping && <p className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">No active form mapping exists for form {selectedRegistration.sourceFormId}.</p>}
+                  {matchingMapping && (
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <p className="text-sm font-bold text-slate-700">Selected date/batch options</p>
+                      {mappedSelectedOptions.length === 0 ? (
+                        <p className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">No selected date/batch option was found in this WordPress registration.</p>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          {mappedSelectedOptions.map((item) => (
+                            <div key={item.optionText} className={`rounded-xl border p-3 text-sm ${item.mapping ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
+                              <p className="font-semibold">{item.optionText}</p>
+                              <p className="mt-1">{item.mapping ? `Maps to CMS Batch ${item.mapping.batchNumber}` : 'Not mapped yet. Update Form Mappings before importing.'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-bold text-slate-700">Confirmed price option</span>
+                      <select value={importForm.priceType} onChange={(event) => setImportForm((current) => ({ ...current, priceType: event.target.value as PriceType }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm">
+                        {priceTypes.map((type) => <option key={type} value={type}>{formatLabel(type)}</option>)}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-bold text-slate-700">Confirmed amount paid</span>
+                      <input type="number" min={1} value={importForm.confirmedAmount || ''} onChange={(event) => setImportForm((current) => ({ ...current, confirmedAmount: Number(event.target.value) }))} placeholder="Confirmed amount" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700">Payment proof note</span>
+                    <textarea value={importForm.paymentProofNote} onChange={(event) => setImportForm((current) => ({ ...current, paymentProofNote: event.target.value }))} placeholder="Bank transfer confirmation note" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  </label>
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold text-slate-700">Payment proof file</span>
                     <input type="file" accept="image/*,application/pdf" onChange={(event) => setProofFile(event.target.files?.[0] || null)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                   </label>
-                  <button disabled={isBusy || !matchingMapping} onClick={handleImport} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                  <button disabled={isBusy || !matchingMapping || hasUnmappedSelectedOptions || mappedSelectedOptions.length === 0} onClick={handleImport} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
                     <FiUpload /> Import paid registration
                   </button>
                 </>
@@ -519,7 +634,7 @@ export function ConfirmedRegistrationsManagement() {
       {activeTab === 'mappings' && (
         <div className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
           <SectionCard>
-            <Header title="Form mapping" subtitle="Map each Fluent Form to a CMS program and paid CRM tag." icon={<FiSettings className="h-5 w-5" />} />
+            <Header title="Form mapping" subtitle="Map one Fluent Form to a CMS program, then map each selected date option to the right batch." icon={<FiSettings className="h-5 w-5" />} />
             <form onSubmit={handleSaveMapping} className="grid gap-4 p-5">
               <input required value={mappingForm.formId} onChange={(event) => setMappingForm((current) => ({ ...current, formId: event.target.value }))} placeholder="Fluent Form ID" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
               <input required value={mappingForm.formName} onChange={(event) => setMappingForm((current) => ({ ...current, formName: event.target.value }))} placeholder="Form name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
@@ -527,30 +642,130 @@ export function ConfirmedRegistrationsManagement() {
                 <option value="">Choose program</option>
                 {programs.map((program: Program) => <option key={program.id} value={program.id}>{program.name}</option>)}
               </select>
-              <input type="number" min={1} value={mappingForm.defaultBatch} onChange={(event) => setMappingForm((current) => ({ ...current, defaultBatch: Number(event.target.value) }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-              <select value={mappingForm.defaultPriceType} onChange={(event) => setMappingForm((current) => ({ ...current, defaultPriceType: event.target.value as PriceType }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-                {priceTypes.map((type) => <option key={type} value={type}>{formatLabel(type)}</option>)}
-              </select>
               <input value={mappingForm.leadTag} onChange={(event) => setMappingForm((current) => ({ ...current, leadTag: event.target.value }))} placeholder="Lead tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
               <input required value={mappingForm.paidTag} onChange={(event) => setMappingForm((current) => ({ ...current, paidTag: event.target.value }))} placeholder="Paid tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">Date/batch option mappings</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Paste the exact option text from Fluent Forms, then choose the CMS batch it represents.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMappingForm((current) => ({
+                      ...current,
+                      optionMappings: [...current.optionMappings, { sourceOptionText: '', batchNumber: 1, isActive: true }],
+                    }))}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"
+                  >
+                    <FiPlus /> Add option
+                  </button>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {mappingForm.optionMappings.map((option, index) => (
+                    <div key={index} className="grid gap-3 rounded-xl bg-slate-50 p-3 md:grid-cols-[1fr_120px_auto_auto]">
+                      <input
+                        required
+                        value={option.sourceOptionText}
+                        onChange={(event) => setMappingForm((current) => ({
+                          ...current,
+                          optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                            currentIndex === index ? { ...currentOption, sourceOptionText: event.target.value } : currentOption
+                          ),
+                        }))}
+                        placeholder="e.g. July 27th – August 7th. 9am – 11am"
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      />
+                      <input
+                        required
+                        type="number"
+                        min={1}
+                        value={option.batchNumber}
+                        onChange={(event) => setMappingForm((current) => ({
+                          ...current,
+                          optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                            currentIndex === index ? { ...currentOption, batchNumber: Number(event.target.value) } : currentOption
+                          ),
+                        }))}
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      />
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={option.isActive}
+                          onChange={(event) => setMappingForm((current) => ({
+                            ...current,
+                            optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                              currentIndex === index ? { ...currentOption, isActive: event.target.checked } : currentOption
+                            ),
+                          }))}
+                        />
+                        Active
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setMappingForm((current) => ({
+                          ...current,
+                          optionMappings: current.optionMappings.length > 1
+                            ? current.optionMappings.filter((_, currentIndex) => currentIndex !== index)
+                            : current.optionMappings,
+                        }))}
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-100 bg-white px-3 py-2 text-rose-600"
+                        aria-label="Remove option mapping"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input type="checkbox" checked={mappingForm.isActive} onChange={(event) => setMappingForm((current) => ({ ...current, isActive: event.target.checked }))} /> Active</label>
               <button disabled={isBusy} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white">{mappingForm.id ? 'Update mapping' : 'Create mapping'}</button>
             </form>
           </SectionCard>
 
           <SectionCard>
-            <Header title="Mapped forms" subtitle="These mappings decide which paid tag and CMS program are used during import." icon={<FiLink className="h-5 w-5" />} />
+            <Header title="Mapped forms" subtitle="These mappings decide the CMS program, batch routing, and paid tag used during import." icon={<FiLink className="h-5 w-5" />} />
             <div className="divide-y divide-slate-100">
               {mappings.map((mapping) => (
                 <div key={mapping.id} className="flex flex-wrap items-center justify-between gap-4 p-5">
                   <div>
                     <p className="font-bold text-slate-950">{mapping.formName}</p>
-                    <p className="mt-1 text-sm text-slate-500">Form {mapping.formId} · {mapping.program?.name} · Batch {mapping.defaultBatch}</p>
+                    <p className="mt-1 text-sm text-slate-500">Form {mapping.formId} · {mapping.program?.name} · {mapping.optionMappings?.length || 0} option mapping{mapping.optionMappings?.length === 1 ? '' : 's'}</p>
                     <p className="mt-1 text-sm text-slate-500">Paid tag: {mapping.paidTag}</p>
+                    <div className="mt-3 space-y-1">
+                      {mapping.optionMappings?.map((option) => (
+                        <p key={option.id || option.sourceOptionText} className="text-xs text-slate-500">
+                          Batch {option.batchNumber}: {option.sourceOptionText}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Pill className={mapping.isActive ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}>{mapping.isActive ? 'Active' : 'Inactive'}</Pill>
-                    <button type="button" onClick={() => setMappingForm({ ...mapping, leadTag: mapping.leadTag || '' })} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">Edit</button>
+                    <button
+                      type="button"
+                      onClick={() => setMappingForm({
+                        id: mapping.id,
+                        formId: mapping.formId,
+                        formName: mapping.formName,
+                        programId: mapping.programId,
+                        leadTag: mapping.leadTag || '',
+                        paidTag: mapping.paidTag,
+                        removeLeadTagOnPaid: mapping.removeLeadTagOnPaid,
+                        isActive: mapping.isActive,
+                        optionMappings: mapping.optionMappings?.length
+                          ? mapping.optionMappings.map((option) => ({
+                              sourceOptionText: option.sourceOptionText,
+                              batchNumber: option.batchNumber,
+                              isActive: option.isActive,
+                            }))
+                          : [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
+                      })}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700"
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
               ))}

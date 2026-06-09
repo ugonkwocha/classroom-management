@@ -377,8 +377,26 @@ model FluentFormMapping {
   updatedAt          DateTime  @updatedAt
 
   program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  optionMappings     FluentFormOptionMapping[]
 
   @@index([programId])
+  @@index([isActive])
+}
+
+model FluentFormOptionMapping {
+  id                 String   @id @default(cuid())
+  formMappingId      String
+  sourceOptionText   String
+  batchNumber        Int
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  formMapping        FluentFormMapping @relation(fields: [formMappingId], references: [id], onDelete: Cascade)
+
+  @@unique([formMappingId, sourceOptionText])
+  @@index([formMappingId])
+  @@index([batchNumber])
   @@index([isActive])
 }
 

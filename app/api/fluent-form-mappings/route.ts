@@ -10,7 +10,12 @@ export async function GET(request: NextRequest) {
   try {
     checkPermission(sessionUser.role, PERMISSIONS.READ_CONFIRMED_REGISTRATIONS);
     const mappings = await prisma.fluentFormMapping.findMany({
-      include: { program: true },
+      include: {
+        program: true,
+        optionMappings: {
+          orderBy: [{ batchNumber: 'asc' }, { sourceOptionText: 'asc' }],
+        },
+      },
       orderBy: [{ isActive: 'desc' }, { formName: 'asc' }],
     });
     return NextResponse.json(mappings);
@@ -27,19 +32,34 @@ export async function POST(request: NextRequest) {
   try {
     checkPermission(sessionUser.role, PERMISSIONS.MANAGE_FORM_MAPPINGS);
     const data = await request.json();
+    const optionMappings = Array.isArray(data.optionMappings) ? data.optionMappings : [];
     const mapping = await prisma.fluentFormMapping.create({
       data: {
         formId: String(data.formId || '').trim(),
         formName: String(data.formName || '').trim(),
         programId: data.programId,
-        defaultBatch: Number(data.defaultBatch || 1),
-        defaultPriceType: data.defaultPriceType || 'FULL_PRICE',
+        defaultBatch: 1,
+        defaultPriceType: 'FULL_PRICE',
         leadTag: data.leadTag?.trim() || null,
         paidTag: String(data.paidTag || '').trim(),
         removeLeadTagOnPaid: Boolean(data.removeLeadTagOnPaid),
         isActive: data.isActive ?? true,
+        optionMappings: {
+          create: optionMappings
+            .map((option: any) => ({
+              sourceOptionText: String(option.sourceOptionText || '').trim(),
+              batchNumber: Number(option.batchNumber || 1),
+              isActive: option.isActive ?? true,
+            }))
+            .filter((option: any) => option.sourceOptionText && option.batchNumber > 0),
+        },
       },
-      include: { program: true },
+      include: {
+        program: true,
+        optionMappings: {
+          orderBy: [{ batchNumber: 'asc' }, { sourceOptionText: 'asc' }],
+        },
+      },
     });
     return NextResponse.json(mapping, { status: 201 });
   } catch (error: any) {

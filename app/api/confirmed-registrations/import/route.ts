@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
     const sourceSubmissionId = requireText(data.sourceSubmissionId, 'Submission ID');
     const mapping = await prisma.fluentFormMapping.findUnique({
       where: { formId: sourceFormId },
-      include: { program: true },
+      include: {
+        program: true,
+        optionMappings: true,
+      },
     });
 
     if (!mapping?.isActive) {
@@ -60,6 +63,14 @@ export async function POST(request: NextRequest) {
     const children = Array.isArray(data.children) ? (data.children as PaidRegistrationChildInput[]) : [];
     if (children.length === 0) {
       return NextResponse.json({ error: 'At least one paid child is required' }, { status: 400 });
+    }
+
+    const activeOptionMappings = mapping.optionMappings.filter((option) => option.isActive);
+    if (activeOptionMappings.length === 0) {
+      return NextResponse.json(
+        { error: `Form ${sourceFormId} has no active date/batch option mappings. Add option mappings before importing.` },
+        { status: 400 }
+      );
     }
 
     const parentFirstName = requireText(data.parentFirstName, 'Parent first name');
@@ -107,12 +118,27 @@ export async function POST(request: NextRequest) {
       });
 
       const paymentRecords = [];
+      const batchNumbers = new Set<number>();
 
       for (const child of children) {
         const childProgramId = child.programId || mapping.programId;
-        const childBatch = toPositiveInt(child.batchNumber, mapping.defaultBatch);
-        const priceType = child.priceType || mapping.defaultPriceType;
+        const sourceOptionText = toOptionalText((child as any).sourceOptionText);
+        const mappedOption = sourceOptionText
+          ? activeOptionMappings.find((option) => option.sourceOptionText === sourceOptionText)
+          : null;
+        const childBatch = mappedOption?.batchNumber || toPositiveInt(child.batchNumber, 0);
+
+        if (!childBatch) {
+          throw new Error(`No mapped CMS batch was provided for ${child.firstName} ${child.lastName}`);
+        }
+
+        if (sourceOptionText && !mappedOption) {
+          throw new Error(`The selected form option "${sourceOptionText}" is not mapped to a CMS batch yet.`);
+        }
+
+        const priceType = child.priceType || data.priceType || 'FULL_PRICE';
         const priceAmount = toPositiveInt(child.priceAmount, Math.round(confirmedAmount / children.length));
+        batchNumbers.add(childBatch);
         const student = await ensurePaidStudent(tx, family, child);
         const enrollment = await ensureConfirmedEnrollment(tx, {
           studentId: student.id,
@@ -178,6 +204,13 @@ export async function POST(request: NextRequest) {
           actorId: sessionUser.userId,
         },
       });
+
+      if (batchNumbers.size > 0) {
+        await tx.confirmedRegistrationImport.update({
+          where: { id: registrationImport.id },
+          data: { defaultBatch: [...batchNumbers][0] },
+        });
+      }
 
       return { registrationImport, paymentRecords };
     });
