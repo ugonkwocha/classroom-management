@@ -27,6 +27,41 @@ export async function GET(request: NextRequest) {
     const normalizedPhone = normalizePhone(search);
     const shouldSearchContact = Boolean(search && (search.length >= 3 || search.includes('@') || normalizedPhone.length >= 3));
     const shouldSearchPhone = normalizedPhone.length >= 3;
+    const searchTerms = search
+      ? search
+          .split(/\s+/)
+          .map((term) => term.trim())
+          .filter(Boolean)
+      : [];
+    const textSearchFields = search
+      ? [
+          { displayName: { contains: search, mode: 'insensitive' as const } },
+          { guardians: { some: { firstName: { contains: search, mode: 'insensitive' as const } } } },
+          { guardians: { some: { lastName: { contains: search, mode: 'insensitive' as const } } } },
+          { students: { some: { firstName: { contains: search, mode: 'insensitive' as const } } } },
+          { students: { some: { lastName: { contains: search, mode: 'insensitive' as const } } } },
+          { paymentRecords: { some: { student: { firstName: { contains: search, mode: 'insensitive' as const } } } } },
+          { paymentRecords: { some: { student: { lastName: { contains: search, mode: 'insensitive' as const } } } } },
+          { confirmedRegistrationImports: { some: { parentFirstName: { contains: search, mode: 'insensitive' as const } } } },
+          { confirmedRegistrationImports: { some: { parentLastName: { contains: search, mode: 'insensitive' as const } } } },
+          { confirmedRegistrationImports: { some: { parentEmail: { contains: search, mode: 'insensitive' as const } } } },
+          { confirmedRegistrationImports: { some: { children: { some: { firstName: { contains: search, mode: 'insensitive' as const } } } } } },
+          { confirmedRegistrationImports: { some: { children: { some: { lastName: { contains: search, mode: 'insensitive' as const } } } } } },
+        ]
+      : [];
+    const tokenSearchFields = searchTerms.flatMap((term) => [
+      { displayName: { contains: term, mode: 'insensitive' as const } },
+      { guardians: { some: { firstName: { contains: term, mode: 'insensitive' as const } } } },
+      { guardians: { some: { lastName: { contains: term, mode: 'insensitive' as const } } } },
+      { students: { some: { firstName: { contains: term, mode: 'insensitive' as const } } } },
+      { students: { some: { lastName: { contains: term, mode: 'insensitive' as const } } } },
+      { paymentRecords: { some: { student: { firstName: { contains: term, mode: 'insensitive' as const } } } } },
+      { paymentRecords: { some: { student: { lastName: { contains: term, mode: 'insensitive' as const } } } } },
+      { confirmedRegistrationImports: { some: { parentFirstName: { contains: term, mode: 'insensitive' as const } } } },
+      { confirmedRegistrationImports: { some: { parentLastName: { contains: term, mode: 'insensitive' as const } } } },
+      { confirmedRegistrationImports: { some: { children: { some: { firstName: { contains: term, mode: 'insensitive' as const } } } } } },
+      { confirmedRegistrationImports: { some: { children: { some: { lastName: { contains: term, mode: 'insensitive' as const } } } } } },
+    ]);
 
     const families = await prisma.family.findMany({
       where: {
@@ -34,17 +69,14 @@ export async function GET(request: NextRequest) {
         ...(search
           ? {
               OR: [
-                { displayName: { contains: search, mode: 'insensitive' } },
-                { guardians: { some: { firstName: { contains: search, mode: 'insensitive' } } } },
-                { guardians: { some: { lastName: { contains: search, mode: 'insensitive' } } } },
+                ...textSearchFields,
+                ...tokenSearchFields,
                 ...(shouldSearchContact && normalizedEmail
                   ? [{ guardians: { some: { emailNormalized: { contains: normalizedEmail } } } }]
                   : []),
                 ...(shouldSearchPhone
                   ? [{ guardians: { some: { phoneNormalized: { contains: normalizedPhone } } } }]
                   : []),
-                { students: { some: { firstName: { contains: search, mode: 'insensitive' } } } },
-                { students: { some: { lastName: { contains: search, mode: 'insensitive' } } } },
               ],
             }
           : {}),
