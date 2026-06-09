@@ -44,7 +44,12 @@ export function AssignmentModal({
 
   // Get selected program data
   const selectedProgramData = programs.find((p) => p.id === selectedProgram);
-
+  const activeProgramEnrollments = studentProgramEnrollments.filter(
+    (enrollment) => enrollment.programId === selectedProgram && enrollment.status !== 'DROPPED'
+  );
+  const selectedProgramEnrollment = activeProgramEnrollments.find(
+    (enrollment) => enrollment.batchNumber === selectedBatch
+  );
   // Filter classes by selected program and batch (excluding archived classes)
   const programClasses = selectedProgram
     ? classes.filter(
@@ -56,14 +61,19 @@ export function AssignmentModal({
     : [];
 
   // Check if selected program has confirmed payment
-  const selectedProgramEnrollment = studentProgramEnrollments.find(
-    (e) => e.programId === selectedProgram
-  );
   const isPaymentConfirmed = normalizePaymentStatus(selectedProgramEnrollment?.paymentStatus) === 'CONFIRMED';
 
   const handleProgramSelect = (programId: string) => {
+    const programEnrollments = studentProgramEnrollments.filter(
+      (enrollment) => enrollment.programId === programId && enrollment.status !== 'DROPPED'
+    );
+    const preferredEnrollment =
+      programEnrollments.find((enrollment) => normalizePaymentStatus(enrollment.paymentStatus) === 'CONFIRMED' && !enrollment.classId) ||
+      programEnrollments.find((enrollment) => normalizePaymentStatus(enrollment.paymentStatus) === 'CONFIRMED') ||
+      programEnrollments[0];
+
     setSelectedProgram(programId);
-    setSelectedBatch(1); // Reset batch to 1 when program changes
+    setSelectedBatch(preferredEnrollment?.batchNumber || 1);
     setStep('batch'); // Move to batch selection
     setSelectedClass(''); // Reset class selection when program changes
   };
@@ -267,20 +277,44 @@ export function AssignmentModal({
             <p className="text-gray-500 text-sm">No programs available. Please create a program first.</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {programs.map((program) => (
-                <button
-                  key={program.id}
-                  onClick={() => handleProgramSelect(program.id)}
-                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-purple-50 hover:border-purple-500 transition-colors"
-                >
-                  <p className="font-semibold text-gray-900">
-                    {program.name} - {program.season} {program.year}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Type: {program.type} | Batches: {program.batches}
-                  </p>
-                </button>
-              ))}
+              {programs.map((program) => {
+                const programEnrollments = studentProgramEnrollments.filter(
+                  (enrollment) => enrollment.programId === program.id && enrollment.status !== 'DROPPED'
+                );
+                const confirmedBatches = programEnrollments
+                  .filter((enrollment) => normalizePaymentStatus(enrollment.paymentStatus) === 'CONFIRMED')
+                  .map((enrollment) => enrollment.batchNumber)
+                  .sort((a, b) => a - b);
+                const hasEnrollment = programEnrollments.length > 0;
+
+                return (
+                  <button
+                    key={program.id}
+                    onClick={() => hasEnrollment && handleProgramSelect(program.id)}
+                    disabled={!hasEnrollment}
+                    className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                      hasEnrollment
+                        ? 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                        : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <p className="font-semibold text-gray-900">
+                      {program.name} - {program.season} {program.year}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Type: {program.type} | Batches: {program.batches}
+                    </p>
+                    {hasEnrollment ? (
+                      <p className="mt-2 text-xs font-semibold text-blue-700">
+                        Enrolled batch{confirmedBatches.length === 1 ? '' : 'es'}:{' '}
+                        {confirmedBatches.length > 0 ? confirmedBatches.map((batch) => `Batch ${batch}`).join(', ') : 'payment pending'}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs font-semibold text-gray-500">No paid enrollment for this program</p>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -296,19 +330,38 @@ export function AssignmentModal({
           <h4 className="font-semibold text-gray-900">Step 2: Select a Batch</h4>
           <div className="space-y-2">
             {Array.from({ length: selectedProgramData?.batches || 1 }, (_, i) => i + 1).map(
-              (batchNum) => (
-                <button
-                  key={batchNum}
-                  onClick={() => handleBatchSelect(batchNum)}
-                  className={`w-full p-3 text-left border rounded-lg transition-colors ${
-                    selectedBatch === batchNum
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
-                  }`}
-                >
-                  <p className="font-semibold text-gray-900">Batch {batchNum}</p>
-                </button>
-              )
+              (batchNum) => {
+                const batchEnrollment = activeProgramEnrollments.find((enrollment) => enrollment.batchNumber === batchNum);
+                const batchPaymentConfirmed = normalizePaymentStatus(batchEnrollment?.paymentStatus) === 'CONFIRMED';
+                const isAssigned = Boolean(batchEnrollment?.classId && batchEnrollment.status === 'ASSIGNED');
+                const isSelectable = Boolean(batchEnrollment && batchPaymentConfirmed && !isAssigned);
+
+                return (
+                  <button
+                    key={batchNum}
+                    onClick={() => isSelectable && handleBatchSelect(batchNum)}
+                    disabled={!isSelectable}
+                    className={`w-full p-3 text-left border rounded-lg transition-colors ${
+                      selectedBatch === batchNum
+                        ? 'border-purple-500 bg-purple-50'
+                        : isSelectable
+                        ? 'border-gray-300 hover:bg-purple-50 hover:border-purple-500'
+                        : 'border-gray-200 bg-gray-50 opacity-70 cursor-not-allowed'
+                    }`}
+                  >
+                    <p className="font-semibold text-gray-900">Batch {batchNum}</p>
+                    <p className="mt-1 text-xs font-semibold text-gray-600">
+                      {!batchEnrollment
+                        ? 'No paid enrollment for this batch'
+                        : isAssigned
+                        ? 'Already assigned to a class'
+                        : batchPaymentConfirmed
+                        ? 'Payment confirmed - ready for class assignment'
+                        : 'Payment pending - cannot assign yet'}
+                    </p>
+                  </button>
+                );
+              }
             )}
           </div>
         </div>
@@ -319,6 +372,9 @@ export function AssignmentModal({
               <span className="font-semibold">Selected Program:</span>{' '}
               {programs.find((p) => p.id === selectedProgram)?.name}
             </p>
+            <p className="mt-1 text-sm text-gray-600">
+              <span className="font-semibold">Selected Batch:</span> Batch {selectedBatch}
+            </p>
           </div>
 
           <h4 className="font-semibold text-gray-900">Step 3: Confirm Payment Status</h4>
@@ -328,7 +384,7 @@ export function AssignmentModal({
               : 'border-amber-300 bg-amber-50'
           }`}>
             <p className="text-sm font-semibold mb-3">
-              Payment Status for {programs.find((p) => p.id === selectedProgram)?.name}
+              Payment Status for {programs.find((p) => p.id === selectedProgram)?.name} Batch {selectedBatch}
             </p>
             <p className={`text-sm font-semibold ${
               isPaymentConfirmed
@@ -365,11 +421,14 @@ export function AssignmentModal({
               <span className="font-semibold">Selected Program:</span>{' '}
               {programs.find((p) => p.id === selectedProgram)?.name}
             </p>
+            <p className="mt-1 text-sm text-gray-600">
+              <span className="font-semibold">Selected Batch:</span> Batch {selectedBatch}
+            </p>
           </div>
 
           <h4 className="font-semibold text-gray-900">Step 4: Select a Class</h4>
           {programClasses.length === 0 ? (
-            <p className="text-gray-500 text-sm">No classes available for this program.</p>
+            <p className="text-gray-500 text-sm">No classes available for this program and Batch {selectedBatch}. Create a Batch {selectedBatch} class first.</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {programClasses.map((cls) => {
