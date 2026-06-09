@@ -13,6 +13,7 @@ export type PaidRegistrationChildInput = {
   programId?: string | null;
   batchNumber?: number | null;
   sourceOptionText?: string | null;
+  crmTag?: string | null;
   priceType?: 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
   priceAmount?: number | null;
   existingStudentId?: string | null;

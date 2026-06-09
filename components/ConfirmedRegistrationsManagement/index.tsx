@@ -214,7 +214,7 @@ export function ConfirmedRegistrationsManagement() {
     paidTag: '',
     removeLeadTagOnPaid: false,
     isActive: true,
-    optionMappings: [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
+    optionMappings: [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
   });
 
   const [existingFamilyForm, setExistingFamilyForm] = useState({
@@ -407,7 +407,7 @@ export function ConfirmedRegistrationsManagement() {
         paidTag: '',
         removeLeadTagOnPaid: false,
         isActive: true,
-        optionMappings: [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
+        optionMappings: [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
       });
       setMessage({ type: 'success', text: 'Form mapping saved.' });
       await loadMappings();
@@ -760,13 +760,13 @@ export function ConfirmedRegistrationsManagement() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-bold text-slate-800">Date/batch option mappings</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">Paste the exact option text from Fluent Forms, then choose the CMS batch it represents.</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Paste the exact option text from Fluent Forms, choose the CMS batch, then set the paid CRM tag for that option.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMappingForm((current) => ({
                       ...current,
-                      optionMappings: [...current.optionMappings, { sourceOptionText: '', batchNumber: 1, isActive: true }],
+                      optionMappings: [...current.optionMappings, { sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
                     }))}
                     className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"
                   >
@@ -791,7 +791,7 @@ export function ConfirmedRegistrationsManagement() {
                           className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                         />
                       </label>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[160px_minmax(260px,1fr)_auto_auto] sm:items-end">
                         <label className="block">
                           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">CMS batch</span>
                           <input
@@ -806,6 +806,20 @@ export function ConfirmedRegistrationsManagement() {
                               ),
                             }))}
                             aria-label="CMS batch number"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Paid CRM tag for this option</span>
+                          <input
+                            value={option.paidTag || ''}
+                            onChange={(event) => setMappingForm((current) => ({
+                              ...current,
+                              optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                                currentIndex === index ? { ...currentOption, paidTag: event.target.value } : currentOption
+                              ),
+                            }))}
+                            placeholder="Leave blank to use form-level paid tag"
                             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                           />
                         </label>
@@ -858,6 +872,7 @@ export function ConfirmedRegistrationsManagement() {
                       {mapping.optionMappings?.map((option) => (
                         <p key={option.id || option.sourceOptionText} className="text-xs text-slate-500">
                           Batch {option.batchNumber}: {option.sourceOptionText}
+                          {option.paidTag ? ` · Paid tag: ${option.paidTag}` : ' · Uses form paid tag'}
                         </p>
                       ))}
                     </div>
@@ -879,9 +894,10 @@ export function ConfirmedRegistrationsManagement() {
                           ? mapping.optionMappings.map((option) => ({
                               sourceOptionText: option.sourceOptionText,
                               batchNumber: option.batchNumber,
+                              paidTag: option.paidTag || '',
                               isActive: option.isActive,
                             }))
-                          : [{ sourceOptionText: '', batchNumber: 1, isActive: true }],
+                          : [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
                       })}
                       className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700"
                     >
@@ -917,7 +933,11 @@ export function ConfirmedRegistrationsManagement() {
                     <td className="px-4 py-4 text-slate-600">{item.program?.name}</td>
                     <td className="px-4 py-4 text-slate-600">{item.children?.length || 0}</td>
                     <td className="px-4 py-4 text-slate-600">{formatCurrency(item.confirmedAmount)}</td>
-                    <td className="px-4 py-4"><Pill className={statusClass(item.crmSyncStatus)}>{formatLabel(item.crmSyncStatus)}</Pill></td>
+                    <td className="px-4 py-4">
+                      <Pill className={statusClass(item.crmSyncStatus)}>{formatLabel(item.crmSyncStatus)}</Pill>
+                      {item.crmTag && <p className="mt-2 text-xs text-slate-500">Tag: {item.crmTag}</p>}
+                      {item.crmError && <p className="mt-1 max-w-xs text-xs text-slate-500">{item.crmError}</p>}
+                    </td>
                     <td className="px-4 py-4">
                       {item.paymentRecords?.[0] && (
                         <button

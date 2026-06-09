@@ -32,6 +32,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                   .map((option: any) => ({
                     sourceOptionText: String(option.sourceOptionText || '').trim(),
                     batchNumber: Number(option.batchNumber || 1),
+                    paidTag: String(option.paidTag || '').trim() || null,
                     isActive: option.isActive ?? true,
                   }))
                   .filter((option: any) => option.sourceOptionText && option.batchNumber > 0),

@@ -130,6 +130,7 @@ export interface FluentFormOptionMapping {
   formMappingId?: string;
   sourceOptionText: string;
   batchNumber: number;
+  paidTag?: string | null;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;

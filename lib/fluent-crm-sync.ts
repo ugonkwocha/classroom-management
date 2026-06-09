@@ -6,6 +6,7 @@ type CrmSyncInput = {
   parentFirstName?: string | null;
   parentLastName?: string | null;
   paidTag?: string | null;
+  paidTags?: Array<string | null | undefined>;
   leadTag?: string | null;
   removeLeadTagOnPaid?: boolean;
 };
@@ -16,10 +17,20 @@ type CrmSyncResult = {
   error?: string | null;
 };
 
+function normalizeTagList(tags: Array<string | null | undefined>) {
+  return Array.from(new Set(
+    tags
+      .flatMap((tag) => String(tag || '').split(','))
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+  ));
+}
+
 export async function syncPaidCustomerToCrm(input: CrmSyncInput): Promise<CrmSyncResult> {
   const endpoint = process.env.FLUENTCRM_SYNC_ENDPOINT;
+  const paidTags = normalizeTagList([...(input.paidTags || []), input.paidTag]);
 
-  if (!input.paidTag) {
+  if (paidTags.length === 0) {
     return { status: 'SKIPPED', error: 'No paid FluentCRM tag configured' };
   }
 
@@ -46,8 +57,11 @@ export async function syncPaidCustomerToCrm(input: CrmSyncInput): Promise<CrmSyn
           firstName: input.parentFirstName,
           lastName: input.parentLastName,
         },
-        addTags: [input.paidTag],
-        removeTags: input.removeLeadTagOnPaid && input.leadTag ? [input.leadTag] : [],
+        addTags: paidTags,
+        addTagIds: paidTags.filter((tag) => /^\d+$/.test(tag)).map((tag) => Number(tag)),
+        addTagNames: paidTags,
+        addTagSlugs: paidTags,
+        removeTags: input.removeLeadTagOnPaid && input.leadTag ? normalizeTagList([input.leadTag]) : [],
       }),
     });
 
@@ -63,6 +77,7 @@ export async function syncPaidCustomerToCrm(input: CrmSyncInput): Promise<CrmSyn
     return {
       status: 'SYNCED',
       contactId: data.contactId ? String(data.contactId) : null,
+      error: data.message || data.note || null,
     };
   } catch (error) {
     return {

@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
         programId: childProgramId,
         batchNumber: childBatch,
         sourceOptionText,
+        crmTag: mappedOption?.paidTag || mapping.paidTag,
         priceType: child.priceType || data.priceType || 'FULL_PRICE',
       });
     }
@@ -152,6 +153,12 @@ export async function POST(request: NextRequest) {
     }
 
     const removedDuplicateEnrollmentRequests = resolvedChildren.length < children.length;
+    const paidTags = Array.from(new Set(
+      resolvedChildren
+        .map((child) => toOptionalText(child.crmTag) || mapping.paidTag)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    ));
 
     const result = await prisma.$transaction(async (tx) => {
       const family = await ensurePaidFamily(
@@ -185,7 +192,7 @@ export async function POST(request: NextRequest) {
           paymentProofNote: toOptionalText(data.paymentProofNote),
           rawPayload: data.rawPayload || data,
           crmSyncStatus: 'PENDING',
-          crmTag: mapping.paidTag,
+          crmTag: paidTags.join(', '),
           familyId: family.id,
           importedById: sessionUser.userId,
         },
@@ -204,6 +211,7 @@ export async function POST(request: NextRequest) {
         const priceAmount = removedDuplicateEnrollmentRequests
           ? fallbackPriceAmount
           : toPositiveInt(child.priceAmount, fallbackPriceAmount);
+        const crmTag = toOptionalText(child.crmTag) || mapping.paidTag;
         batchNumbers.add(childBatch);
         const student = await ensurePaidStudent(tx, family, child);
 
@@ -301,7 +309,7 @@ export async function POST(request: NextRequest) {
             amountConfirmed: priceAmount,
             paymentProofNote: toOptionalText(data.paymentProofNote),
             crmSyncStatus: 'PENDING',
-            crmTag: mapping.paidTag,
+            crmTag,
             confirmedById: sessionUser.userId,
           },
         });
@@ -332,7 +340,7 @@ export async function POST(request: NextRequest) {
       parentPhone: data.parentPhone,
       parentFirstName,
       parentLastName,
-      paidTag: mapping.paidTag,
+      paidTags,
       leadTag: mapping.leadTag,
       removeLeadTagOnPaid: mapping.removeLeadTagOnPaid,
     });
