@@ -90,7 +90,8 @@ export async function POST(request: NextRequest) {
           phone: toOptionalText(data.parentPhone),
           phoneCountryCode: toOptionalText(data.parentPhoneCountryCode) || 'NG',
         },
-        toOptionalText(data.familyId)
+        toOptionalText(data.familyId),
+        { forceCreate: Boolean(data.forceCreateFamily) }
       );
 
       const registrationImport = await tx.confirmedRegistrationImport.create({

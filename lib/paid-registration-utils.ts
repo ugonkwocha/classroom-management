@@ -89,7 +89,8 @@ export async function findMatchingFamilies({
 export async function ensurePaidFamily(
   tx: any,
   guardian: PaidGuardianInput,
-  familyId?: string | null
+  familyId?: string | null,
+  options: { forceCreate?: boolean } = {}
 ) {
   if (familyId) {
     const family = await tx.family.findUnique({
@@ -109,22 +110,24 @@ export async function ensurePaidFamily(
     needsReview: false,
   });
 
-  const matched = await tx.family.findFirst({
-    where: {
-      isArchived: false,
-      guardians: {
-        some: {
-          OR: [
-            ...(guardianData.emailNormalized ? [{ emailNormalized: guardianData.emailNormalized }] : []),
-            ...(guardianData.phoneNormalized
-              ? [{ phoneNormalized: guardianData.phoneNormalized, phoneCountryCode: guardianData.phoneCountryCode || 'NG' }]
-              : []),
-          ],
+  const matched = options.forceCreate
+    ? null
+    : await tx.family.findFirst({
+        where: {
+          isArchived: false,
+          guardians: {
+            some: {
+              OR: [
+                ...(guardianData.emailNormalized ? [{ emailNormalized: guardianData.emailNormalized }] : []),
+                ...(guardianData.phoneNormalized
+                  ? [{ phoneNormalized: guardianData.phoneNormalized, phoneCountryCode: guardianData.phoneCountryCode || 'NG' }]
+                  : []),
+              ],
+            },
+          },
         },
-      },
-    },
-    include: { guardians: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] } },
-  });
+        include: { guardians: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] } },
+      });
 
   if (matched) return matched;
 

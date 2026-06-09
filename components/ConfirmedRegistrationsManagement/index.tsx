@@ -179,6 +179,7 @@ export function ConfirmedRegistrationsManagement() {
   const [searchResults, setSearchResults] = useState<ExternalRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<ExternalRegistration | null>(null);
   const [selectedFamilyId, setSelectedFamilyId] = useState('');
+  const [familyImportChoice, setFamilyImportChoice] = useState<'create' | 'existing'>('create');
   const [search, setSearch] = useState({ email: '', phone: '', submissionId: '', formId: '' });
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -291,6 +292,11 @@ export function ConfirmedRegistrationsManagement() {
         throw new Error('Confirmed amount must be greater than zero.');
       }
 
+      const hasMatchingFamilies = Boolean(selectedRegistration.matchingFamilies?.length);
+      if (hasMatchingFamilies && familyImportChoice === 'existing' && !selectedFamilyId) {
+        throw new Error('Choose the existing family to attach this paid registration to.');
+      }
+
       const mappedOptions = mappedSelectedOptions.flatMap((item) => (item.mapping ? [item.mapping] : []));
       const enrollmentItemsCount = Math.max(selectedRegistration.children.length * mappedOptions.length, 1);
       const splitAmount = Math.round(confirmedAmount / enrollmentItemsCount);
@@ -299,7 +305,8 @@ export function ConfirmedRegistrationsManagement() {
         method: 'POST',
         body: JSON.stringify({
           ...selectedRegistration,
-          familyId: selectedFamilyId || undefined,
+          familyId: familyImportChoice === 'existing' ? selectedFamilyId || undefined : undefined,
+          forceCreateFamily: familyImportChoice === 'create',
           confirmedAmount,
           paymentProofNote: importForm.paymentProofNote,
           rawPayload: selectedRegistration.rawPayload || selectedRegistration,
@@ -322,9 +329,16 @@ export function ConfirmedRegistrationsManagement() {
         paymentRecordId: data.import?.paymentRecords?.[0]?.id || '',
         note: importForm.paymentProofNote || 'Proof attached during confirmed registration import',
       });
-      setMessage({ type: 'success', text: data.duplicate ? 'This registration was already imported.' : 'Paid registration imported successfully.' });
+      const familyName = data.import?.family?.displayName;
+      setMessage({
+        type: 'success',
+        text: data.duplicate
+          ? `This registration was already imported${familyName ? ` into ${familyName}` : ''}.`
+          : `Paid registration imported successfully${familyName ? ` into ${familyName}` : ''}.`,
+      });
       setSelectedRegistration(null);
       setSelectedFamilyId('');
+      setFamilyImportChoice('create');
       setProofFile(null);
       setImportForm({ priceType: 'FULL_PRICE', confirmedAmount: 0, paymentProofNote: '' });
       await Promise.all([loadImports(), mutateFamilies()]);
@@ -496,7 +510,8 @@ export function ConfirmedRegistrationsManagement() {
                   type="button"
                   onClick={() => {
                     setSelectedRegistration(result);
-                    setSelectedFamilyId(result.matchingFamilies?.[0]?.id || '');
+                    setSelectedFamilyId('');
+                    setFamilyImportChoice('create');
                     setImportForm((current) => ({
                       ...current,
                       confirmedAmount: result.expectedAmount || current.confirmedAmount || 0,
@@ -535,11 +550,41 @@ export function ConfirmedRegistrationsManagement() {
                   </div>
                   {selectedRegistration.matchingFamilies && selectedRegistration.matchingFamilies.length > 0 && (
                     <div>
-                      <label className="mb-2 block text-sm font-bold text-slate-700">Matching family</label>
-                      <select value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm">
-                        <option value="">Create new family</option>
-                        {selectedRegistration.matchingFamilies.map((family) => <option key={family.id} value={family.id}>{family.displayName}</option>)}
-                      </select>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">Family handling</label>
+                      <div className="grid gap-3">
+                        <label className={`rounded-xl border p-3 text-sm font-semibold ${familyImportChoice === 'create' ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-600'}`}>
+                          <input
+                            type="radio"
+                            name="familyImportChoice"
+                            checked={familyImportChoice === 'create'}
+                            onChange={() => {
+                              setFamilyImportChoice('create');
+                              setSelectedFamilyId('');
+                            }}
+                            className="mr-2"
+                          />
+                          Create a new family
+                        </label>
+                        <label className={`rounded-xl border p-3 text-sm font-semibold ${familyImportChoice === 'existing' ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-600'}`}>
+                          <input
+                            type="radio"
+                            name="familyImportChoice"
+                            checked={familyImportChoice === 'existing'}
+                            onChange={() => setFamilyImportChoice('existing')}
+                            className="mr-2"
+                          />
+                          Attach to an existing matching family
+                        </label>
+                        {familyImportChoice === 'existing' && (
+                          <select value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm">
+                            <option value="">Choose matching family</option>
+                            {selectedRegistration.matchingFamilies.map((family) => <option key={family.id} value={family.id}>{family.displayName}</option>)}
+                          </select>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        A match means this parent email or phone already exists in the CMS. Choose deliberately to avoid accidental duplicate families.
+                      </p>
                     </div>
                   )}
                   <div className="rounded-2xl border border-slate-200">
