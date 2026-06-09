@@ -100,6 +100,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Confirmed amount must be greater than zero' }, { status: 400 });
     }
 
+    const resolvedChildren: PaidRegistrationChildInput[] = [];
+    const requestedEnrollmentKeys = new Set<string>();
+
+    for (const child of children) {
+      const childProgramId = child.programId || mapping.programId;
+      const sourceOptionText = toOptionalText((child as any).sourceOptionText);
+      const mappedOption = sourceOptionText
+        ? activeOptionMappings.find((option) => option.sourceOptionText === sourceOptionText)
+        : null;
+      const childBatch = mappedOption?.batchNumber || toPositiveInt(child.batchNumber, 0);
+
+      if (!childBatch) {
+        return NextResponse.json(
+          { error: `No mapped CMS batch was provided for ${child.firstName} ${child.lastName}` },
+          { status: 400 }
+        );
+      }
+
+      if (sourceOptionText && !mappedOption) {
+        return NextResponse.json(
+          { error: `The selected form option "${sourceOptionText}" is not mapped to a CMS batch yet.` },
+          { status: 400 }
+        );
+      }
+
+      const childKey = [
+        childProgramId,
+        childBatch,
+        child.existingStudentId || '',
+        requireText(child.firstName, 'Child first name').toLowerCase(),
+        requireText(child.lastName, 'Child last name').toLowerCase(),
+        child.dateOfBirth || '',
+        toOptionalText(child.email) || '',
+      ].join('|');
+
+      if (requestedEnrollmentKeys.has(childKey)) continue;
+      requestedEnrollmentKeys.add(childKey);
+
+      resolvedChildren.push({
+        ...child,
+        programId: childProgramId,
+        batchNumber: childBatch,
+        sourceOptionText,
+        priceType: child.priceType || data.priceType || 'FULL_PRICE',
+      });
+    }
+
+    if (resolvedChildren.length === 0) {
+      return NextResponse.json({ error: 'No unique paid enrollment batch was found to import' }, { status: 400 });
+    }
+
+    const removedDuplicateEnrollmentRequests = resolvedChildren.length < children.length;
+
     const result = await prisma.$transaction(async (tx) => {
       const family = await ensurePaidFamily(
         tx,
@@ -140,27 +193,72 @@ export async function POST(request: NextRequest) {
 
       const paymentRecords = [];
       const batchNumbers = new Set<number>();
+      const processedEnrollmentKeys = new Set<string>();
+      const fallbackPriceAmount = Math.round(confirmedAmount / resolvedChildren.length);
 
-      for (const child of children) {
+      for (const child of resolvedChildren) {
         const childProgramId = child.programId || mapping.programId;
-        const sourceOptionText = toOptionalText((child as any).sourceOptionText);
-        const mappedOption = sourceOptionText
-          ? activeOptionMappings.find((option) => option.sourceOptionText === sourceOptionText)
-          : null;
-        const childBatch = mappedOption?.batchNumber || toPositiveInt(child.batchNumber, 0);
-
-        if (!childBatch) {
-          throw new Error(`No mapped CMS batch was provided for ${child.firstName} ${child.lastName}`);
-        }
-
-        if (sourceOptionText && !mappedOption) {
-          throw new Error(`The selected form option "${sourceOptionText}" is not mapped to a CMS batch yet.`);
-        }
+        const childBatch = toPositiveInt(child.batchNumber, 0);
 
         const priceType = child.priceType || data.priceType || 'FULL_PRICE';
-        const priceAmount = toPositiveInt(child.priceAmount, Math.round(confirmedAmount / children.length));
+        const priceAmount = removedDuplicateEnrollmentRequests
+          ? fallbackPriceAmount
+          : toPositiveInt(child.priceAmount, fallbackPriceAmount);
         batchNumbers.add(childBatch);
         const student = await ensurePaidStudent(tx, family, child);
+
+        const processedKey = `${student.id}:${childProgramId}:${childBatch}`;
+        if (processedEnrollmentKeys.has(processedKey)) continue;
+        processedEnrollmentKeys.add(processedKey);
+
+        const existingEnrollment = await tx.programEnrollment.findFirst({
+          where: {
+            studentId: student.id,
+            programId: childProgramId,
+            batchNumber: childBatch,
+            status: { not: 'DROPPED' },
+          },
+        });
+
+        if (existingEnrollment) {
+          const existingPaymentRecord = await tx.enrollmentPaymentRecord.findFirst({
+            where: { enrollmentId: existingEnrollment.id },
+            include: {
+              family: true,
+              student: {
+                include: {
+                  family: true,
+                },
+              },
+              enrollment: {
+                include: {
+                  program: true,
+                },
+              },
+            },
+          });
+
+          if (existingPaymentRecord) {
+            const studentName = `${child.firstName} ${child.lastName}`;
+            const resolvedFamily = existingPaymentRecord.family || existingPaymentRecord.student.family || null;
+            const familyLabel = resolvedFamily
+              ? `${resolvedFamily.displayName}${resolvedFamily.isArchived ? ' (archived)' : ''}`
+              : 'a missing family record';
+            throw new DuplicatePaymentError(
+              `A confirmed payment already exists for ${studentName} in ${existingPaymentRecord.enrollment.program.name} Batch ${childBatch}. Existing family: ${familyLabel}.`,
+              {
+                familyId: resolvedFamily?.id || null,
+                familyName: resolvedFamily?.displayName || null,
+                familyIsArchived: resolvedFamily?.isArchived || false,
+                studentId: existingPaymentRecord.studentId,
+                studentName,
+                programName: existingPaymentRecord.enrollment.program.name,
+                batchNumber: childBatch,
+              }
+            );
+          }
+        }
+
         const enrollment = await ensureConfirmedEnrollment(tx, {
           studentId: student.id,
           programId: childProgramId,
@@ -168,38 +266,6 @@ export async function POST(request: NextRequest) {
           priceType,
           priceAmount,
         });
-        const existingPaymentRecord = await tx.enrollmentPaymentRecord.findFirst({
-          where: { enrollmentId: enrollment.id },
-          include: {
-            family: true,
-            student: true,
-            enrollment: {
-              include: {
-                program: true,
-              },
-            },
-          },
-        });
-
-        if (existingPaymentRecord) {
-          const studentName = `${child.firstName} ${child.lastName}`;
-          const familyName = existingPaymentRecord.family?.displayName || null;
-          const familyLabel = existingPaymentRecord.family
-            ? `${existingPaymentRecord.family.displayName}${existingPaymentRecord.family.isArchived ? ' (archived)' : ''}`
-            : 'an existing family';
-          throw new DuplicatePaymentError(
-            `A confirmed payment already exists for ${studentName} in ${existingPaymentRecord.enrollment.program.name} Batch ${childBatch}. Existing family: ${familyLabel}.`,
-            {
-              familyId: existingPaymentRecord.familyId,
-              familyName,
-              familyIsArchived: existingPaymentRecord.family?.isArchived || false,
-              studentId: existingPaymentRecord.studentId,
-              studentName,
-              programName: existingPaymentRecord.enrollment.program.name,
-              batchNumber: childBatch,
-            }
-          );
-        }
 
         await tx.student.update({
           where: { id: student.id },
@@ -246,7 +312,7 @@ export async function POST(request: NextRequest) {
         data: {
           importId: registrationImport.id,
           action: 'IMPORT_CREATED',
-          message: `Imported ${children.length} paid child${children.length === 1 ? '' : 'ren'} from Fluent Forms`,
+          message: `Imported ${resolvedChildren.length} paid enrollment${resolvedChildren.length === 1 ? '' : 's'} from Fluent Forms`,
           actorId: sessionUser.userId,
         },
       });

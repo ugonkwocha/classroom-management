@@ -311,7 +311,13 @@ export function ConfirmedRegistrationsManagement() {
         throw new Error('Choose the existing family to attach this paid registration to.');
       }
 
-      const mappedOptions = mappedSelectedOptions.flatMap((item) => (item.mapping ? [item.mapping] : []));
+      const mappedOptionsByBatch = new Map<number, NonNullable<(typeof mappedSelectedOptions)[number]['mapping']>>();
+      mappedSelectedOptions.forEach((item) => {
+        if (item.mapping && !mappedOptionsByBatch.has(item.mapping.batchNumber)) {
+          mappedOptionsByBatch.set(item.mapping.batchNumber, item.mapping);
+        }
+      });
+      const mappedOptions = Array.from(mappedOptionsByBatch.values());
       const enrollmentItemsCount = Math.max(selectedRegistration.children.length * mappedOptions.length, 1);
       const splitAmount = Math.round(confirmedAmount / enrollmentItemsCount);
 
