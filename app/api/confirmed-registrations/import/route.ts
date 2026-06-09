@@ -150,10 +150,24 @@ export async function POST(request: NextRequest) {
         });
         const existingPaymentRecord = await tx.enrollmentPaymentRecord.findFirst({
           where: { enrollmentId: enrollment.id },
+          include: {
+            family: true,
+            student: true,
+            enrollment: {
+              include: {
+                program: true,
+              },
+            },
+          },
         });
 
         if (existingPaymentRecord) {
-          throw new Error(`A confirmed payment already exists for ${child.firstName} ${child.lastName} in this program and batch`);
+          const familyLabel = existingPaymentRecord.family
+            ? `${existingPaymentRecord.family.displayName}${existingPaymentRecord.family.isArchived ? ' (archived)' : ''}`
+            : 'an existing family';
+          throw new Error(
+            `A confirmed payment already exists for ${child.firstName} ${child.lastName} in ${existingPaymentRecord.enrollment.program.name} Batch ${childBatch}. Existing family: ${familyLabel}. Search Families for "${existingPaymentRecord.family?.displayName || child.firstName}".`
+          );
         }
 
         await tx.student.update({
