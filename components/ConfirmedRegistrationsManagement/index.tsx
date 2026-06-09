@@ -663,8 +663,8 @@ export function ConfirmedRegistrationsManagement() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {mappingForm.optionMappings.map((option, index) => (
-                    <div key={index} className="grid gap-3 rounded-xl bg-slate-50 p-3 md:grid-cols-[1fr_160px_auto_auto] md:items-end">
-                      <label className="block">
+                    <div key={index} className="rounded-xl bg-slate-50 p-3">
+                      <label className="block w-full">
                         <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Fluent Forms option text</span>
                         <input
                           required
@@ -679,49 +679,51 @@ export function ConfirmedRegistrationsManagement() {
                           className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                         />
                       </label>
-                      <label className="block">
-                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">CMS batch</span>
-                        <input
-                          required
-                          type="number"
-                          min={1}
-                          value={option.batchNumber}
-                          onChange={(event) => setMappingForm((current) => ({
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">CMS batch</span>
+                          <input
+                            required
+                            type="number"
+                            min={1}
+                            value={option.batchNumber}
+                            onChange={(event) => setMappingForm((current) => ({
+                              ...current,
+                              optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                                currentIndex === index ? { ...currentOption, batchNumber: Number(event.target.value) } : currentOption
+                              ),
+                            }))}
+                            aria-label="CMS batch number"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 pb-3 text-sm font-semibold text-slate-600">
+                          <input
+                            type="checkbox"
+                            checked={option.isActive}
+                            onChange={(event) => setMappingForm((current) => ({
+                              ...current,
+                              optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
+                                currentIndex === index ? { ...currentOption, isActive: event.target.checked } : currentOption
+                              ),
+                            }))}
+                          />
+                          Active
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setMappingForm((current) => ({
                             ...current,
-                            optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
-                              currentIndex === index ? { ...currentOption, batchNumber: Number(event.target.value) } : currentOption
-                            ),
+                            optionMappings: current.optionMappings.length > 1
+                              ? current.optionMappings.filter((_, currentIndex) => currentIndex !== index)
+                              : current.optionMappings,
                           }))}
-                          aria-label="CMS batch number"
-                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                        />
-                      </label>
-                      <label className="flex items-center gap-2 pb-3 text-sm font-semibold text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={option.isActive}
-                          onChange={(event) => setMappingForm((current) => ({
-                            ...current,
-                            optionMappings: current.optionMappings.map((currentOption, currentIndex) =>
-                              currentIndex === index ? { ...currentOption, isActive: event.target.checked } : currentOption
-                            ),
-                          }))}
-                        />
-                        Active
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setMappingForm((current) => ({
-                          ...current,
-                          optionMappings: current.optionMappings.length > 1
-                            ? current.optionMappings.filter((_, currentIndex) => currentIndex !== index)
-                            : current.optionMappings,
-                        }))}
-                        className="inline-flex items-center justify-center rounded-xl border border-rose-100 bg-white px-3 py-3 text-rose-600"
-                        aria-label="Remove option mapping"
-                      >
-                        <FiTrash2 />
-                      </button>
+                          className="inline-flex items-center justify-center rounded-xl border border-rose-100 bg-white px-3 py-3 text-rose-600"
+                          aria-label="Remove option mapping"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
