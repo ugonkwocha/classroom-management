@@ -28,6 +28,7 @@ model User {
   confirmedRegistrationImports ConfirmedRegistrationImport[] @relation("ConfirmedRegistrationImporter")
   paymentProofs PaymentProof[] @relation("PaymentProofUploader")
   importActivityLogs ImportActivityLog[] @relation("ImportActivityActor")
+  claimedEnrollments ProgramEnrollment[] @relation("EnrollmentClaims")
 
   @@index([email])
 }
@@ -324,6 +325,8 @@ model ProgramEnrollment {
   paymentStatus     PaymentStatus @default(PENDING)
   priceType         PriceType @default(FULL_PRICE)
   priceAmount       Int      @default(60000)
+  claimedById       String?
+  claimExpiresAt    DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -331,6 +334,7 @@ model ProgramEnrollment {
   student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
   class             Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  claimedBy         User?    @relation("EnrollmentClaims", fields: [claimedById], references: [id], onDelete: SetNull)
   paymentRecords    EnrollmentPaymentRecord[]
   paymentProofs     PaymentProof[]
 
@@ -340,6 +344,8 @@ model ProgramEnrollment {
   @@index([programId])
   @@index([classId])
   @@index([status])
+  @@index([claimedById])
+  @@index([claimExpiresAt])
 }
 
 enum EnrollmentStatus {

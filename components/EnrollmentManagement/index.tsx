@@ -1,17 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import type { IconType } from 'react-icons';
 import {
   FiAlertTriangle,
   FiCheckCircle,
+  FiClock,
   FiClipboard,
   FiCreditCard,
   FiFilter,
+  FiLock,
+  FiRefreshCw,
   FiSearch,
   FiSend,
+  FiUnlock,
   FiUserCheck,
   FiUsers,
 } from 'react-icons/fi';
@@ -25,12 +29,18 @@ import type { Class, CourseHistory, Program, ProgramEnrollment, Student } from '
 type EnrollmentStatus = ProgramEnrollment['status'];
 type PaymentStatus = Exclude<NonNullable<ProgramEnrollment['paymentStatus']>, 'COMPLETED'>;
 type AssignmentFilter = 'ALL' | 'UNASSIGNED' | 'ASSIGNED' | 'READY';
+type ViewMode = 'ALL' | 'WAITLIST';
 
 type EnrollmentRow = {
   enrollment: ProgramEnrollment;
   student: Student;
   program?: Program;
   classItem?: Class;
+};
+
+type WaitlistEnrollment = ProgramEnrollment & {
+  student: Student;
+  program: Program;
 };
 
 const enrollmentStatuses: EnrollmentStatus[] = ['WAITLIST', 'ASSIGNED', 'COMPLETED', 'DROPPED'];
@@ -161,9 +171,49 @@ function formatResendMessage(data: any) {
   return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
 }
 
+function getClaimState(enrollment: ProgramEnrollment, currentUserId?: string | null) {
+  const expiresAt = enrollment.claimExpiresAt ? new Date(enrollment.claimExpiresAt).getTime() : 0;
+  const isActive = Boolean(enrollment.claimedById && expiresAt && expiresAt > Date.now());
+
+  if (!enrollment.claimedById || !isActive) {
+    return {
+      state: enrollment.claimedById ? 'EXPIRED' : 'UNCLAIMED',
+      label: enrollment.claimedById ? 'Expired claim' : 'Unclaimed',
+      className: enrollment.claimedById ? 'border-slate-200 bg-slate-100 text-slate-600' : 'border-emerald-100 bg-emerald-50 text-emerald-700',
+      isActive: false,
+      isMine: false,
+      isOther: false,
+    };
+  }
+
+  const isMine = enrollment.claimedById === currentUserId;
+  const claimantName = enrollment.claimedBy
+    ? `${enrollment.claimedBy.firstName} ${enrollment.claimedBy.lastName}`.trim()
+    : 'another user';
+
+  return {
+    state: isMine ? 'MINE' : 'OTHER',
+    label: isMine ? 'Claimed by you' : `Claimed by ${claimantName}`,
+    className: isMine ? 'border-blue-100 bg-blue-50 text-blue-700' : 'border-amber-100 bg-amber-50 text-amber-700',
+    isActive: true,
+    isMine,
+    isOther: !isMine,
+  };
+}
+
+function getGuardianContact(student: Student) {
+  const primaryGuardian = student.family?.guardians?.find((guardian) => guardian.isPrimary) || student.family?.guardians?.[0];
+
+  return {
+    email: primaryGuardian?.email || student.parentEmail || student.email || 'No email saved',
+    phone: primaryGuardian?.phone || student.parentPhone || student.phone || '',
+    name: primaryGuardian ? `${primaryGuardian.firstName} ${primaryGuardian.lastName}` : 'Guardian',
+  };
+}
+
 export function EnrollmentManagement() {
   const router = useRouter();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const { students, isLoaded: studentsLoaded, updateStudent } = useStudents();
   const { classes, isLoaded: classesLoaded } = useClasses();
   const { programs, isLoaded: programsLoaded } = usePrograms();
@@ -175,8 +225,13 @@ export function EnrollmentManagement() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | EnrollmentStatus>('ALL');
   const [paymentFilter, setPaymentFilter] = useState<'ALL' | PaymentStatus>('ALL');
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('ALL');
+  const [viewMode, setViewMode] = useState<ViewMode>('ALL');
+  const [waitlistEnrollments, setWaitlistEnrollments] = useState<WaitlistEnrollment[]>([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pendingMove, setPendingMove] = useState<{
@@ -187,6 +242,8 @@ export function EnrollmentManagement() {
 
   const canUpdate = hasPermission(PERMISSIONS.UPDATE_ENROLLMENT);
   const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
+  const canManageWaitlist = hasPermission(PERMISSIONS.MANAGE_WAITLIST);
+  const canOverrideClaims = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
   const isLoaded = studentsLoaded && classesLoaded && programsLoaded;
 
   const rows = useMemo<EnrollmentRow[]>(() => {
@@ -288,6 +345,105 @@ export function EnrollmentManagement() {
     };
   }, [classes, rows]);
 
+  const fetchWaitlistQueue = useCallback(async () => {
+    setWaitlistLoading(true);
+    setWaitlistError(null);
+
+    try {
+      const params = new URLSearchParams();
+      if (programFilter !== 'ALL') params.set('programId', programFilter);
+      if (yearFilter !== 'ALL') params.set('year', yearFilter);
+
+      const response = await fetchWithAuth(`/api/enrollments/waitlist${params.toString() ? `?${params.toString()}` : ''}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load waitlist queue');
+      }
+
+      setWaitlistEnrollments(data.enrollments || []);
+    } catch (error) {
+      setWaitlistError(error instanceof Error ? error.message : 'Failed to load waitlist queue');
+    } finally {
+      setWaitlistLoading(false);
+    }
+  }, [programFilter, yearFilter]);
+
+  useEffect(() => {
+    if (viewMode !== 'WAITLIST') return;
+
+    void fetchWaitlistQueue();
+    const intervalId = window.setInterval(() => {
+      void fetchWaitlistQueue();
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchWaitlistQueue, viewMode]);
+
+  const waitlistRows = useMemo<EnrollmentRow[]>(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return waitlistEnrollments
+      .filter((enrollment) => {
+        const guardian = getGuardianContact(enrollment.student);
+        const paymentStatus = normalizePaymentStatus(enrollment.paymentStatus);
+        const haystack = [
+          enrollment.student.firstName,
+          enrollment.student.lastName,
+          enrollment.student.email,
+          enrollment.student.parentEmail,
+          enrollment.student.parentPhone,
+          guardian.name,
+          guardian.email,
+          guardian.phone,
+          enrollment.program.name,
+          enrollment.program.season,
+          `batch ${enrollment.batchNumber}`,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return (
+          (!normalizedSearch || haystack.includes(normalizedSearch)) &&
+          (paymentFilter === 'ALL' || paymentStatus === paymentFilter)
+        );
+      })
+      .map((enrollment) => ({
+        enrollment,
+        student: {
+          ...enrollment.student,
+          programEnrollments: enrollment.student.programEnrollments || enrollment.student.enrollments || [enrollment],
+        },
+        program: enrollment.program,
+        classItem: undefined,
+      }));
+  }, [paymentFilter, search, waitlistEnrollments]);
+
+  const waitlistGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; title: string; program?: Program; batchNumber: number; rows: EnrollmentRow[] }>();
+
+    for (const row of waitlistRows) {
+      const key = `${row.enrollment.programId}-${row.enrollment.batchNumber}`;
+      const title = `${row.program?.name || 'Unknown program'} ${row.program?.year || ''} · Batch ${row.enrollment.batchNumber}`;
+      const existingGroup = groups.get(key);
+
+      if (existingGroup) {
+        existingGroup.rows.push(row);
+      } else {
+        groups.set(key, {
+          key,
+          title,
+          program: row.program,
+          batchNumber: row.enrollment.batchNumber,
+          rows: [row],
+        });
+      }
+    }
+
+    return Array.from(groups.values());
+  }, [waitlistRows]);
+
   const applyEnrollmentUpdate = async (
     row: EnrollmentRow,
     updates: Partial<ProgramEnrollment>,
@@ -332,6 +488,71 @@ export function EnrollmentManagement() {
     }
   };
 
+  const claimEnrollment = async (row: EnrollmentRow, options: { quiet?: boolean } = {}) => {
+    setClaimingId(row.enrollment.id);
+    if (!options.quiet) setMessage(null);
+
+    try {
+      const response = await fetchWithAuth(`/api/enrollments/${row.enrollment.id}/claim`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to claim waitlist item');
+      }
+
+      await fetchWaitlistQueue();
+      if (!options.quiet) {
+        setMessage({ type: 'success', text: `${row.student.firstName} ${row.student.lastName} is now claimed by you for assignment.` });
+      }
+      return data.enrollment as ProgramEnrollment;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to claim waitlist item';
+      setMessage({ type: 'error', text: errorMessage });
+      throw error;
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  const releaseEnrollmentClaim = async (row: EnrollmentRow) => {
+    setClaimingId(row.enrollment.id);
+    setMessage(null);
+
+    try {
+      const response = await fetchWithAuth(`/api/enrollments/${row.enrollment.id}/claim`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to release waitlist claim');
+      }
+
+      await fetchWaitlistQueue();
+      setMessage({ type: 'success', text: `Claim released for ${row.student.firstName} ${row.student.lastName}.` });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to release waitlist claim' });
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
+  const ensureWaitlistClaimForAssignment = async (row: EnrollmentRow) => {
+    if (row.enrollment.status !== 'WAITLIST') return;
+
+    const claim = getClaimState(row.enrollment, user?.id);
+
+    if (claim.isOther && !canOverrideClaims) {
+      throw new Error(claim.label);
+    }
+
+    if (!claim.isMine) {
+      await claimEnrollment(row, { quiet: true });
+    }
+  };
+
   const handlePaymentChange = async (row: EnrollmentRow, paymentStatus: PaymentStatus) => {
     try {
       await applyEnrollmentUpdate(row, { paymentStatus }, { updateStudentPayment: true });
@@ -360,6 +581,7 @@ export function EnrollmentManagement() {
 
   const executeClassAssignment = async (row: EnrollmentRow, classItem: Class) => {
     try {
+      await ensureWaitlistClaimForAssignment(row);
       const courseHistoryEntry = buildCourseHistoryEntry(row.student, classItem, row.program);
       await applyEnrollmentUpdate(
         row,
@@ -375,8 +597,11 @@ export function EnrollmentManagement() {
         type: 'success',
         text: `${row.student.firstName} ${row.student.lastName} assigned to ${classItem.name}. Parent notification email is handled by the server.`,
       });
-    } catch {
-      // Message is set in applyEnrollmentUpdate.
+      if (viewMode === 'WAITLIST') {
+        await fetchWaitlistQueue();
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Unable to assign student to class' });
     }
   };
 
@@ -592,6 +817,31 @@ export function EnrollmentManagement() {
             </div>
           </div>
 
+          <div className="mt-4 inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('ALL')}
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                viewMode === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-white'
+              }`}
+            >
+              All Enrollments
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('WAITLIST')}
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                viewMode === 'WAITLIST'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-white'
+              }`}
+            >
+              Waitlist Queue
+            </button>
+          </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <select
               value={programFilter}
@@ -654,6 +904,187 @@ export function EnrollmentManagement() {
           </div>
         </div>
 
+        {viewMode === 'WAITLIST' ? (
+          <div className="space-y-4 p-5">
+            <div className="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <FiLock className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-bold">Claim before assigning</p>
+                  <p className="mt-1 text-blue-700">
+                    Claims last 20 minutes. Staff can work independently, while admins can override stuck claims.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchWaitlistQueue()}
+                disabled={waitlistLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FiRefreshCw className={`h-4 w-4 ${waitlistLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+
+            {waitlistError && (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                {waitlistError}
+              </div>
+            )}
+
+            {waitlistGroups.map((group) => {
+              const groupClasses = classes
+                .filter((classItem) => !classItem.isArchived && classItem.programId === group.program?.id && classItem.batch === group.batchNumber)
+                .sort((a, b) => a.name.localeCompare(b.name));
+              const openSeats = groupClasses.reduce((sum, classItem) => {
+                return sum + Math.max(classItem.capacity - getAssignedCount(classItem.id), 0);
+              }, 0);
+
+              return (
+                <div key={group.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 p-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-950">{group.title}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {group.rows.length} waitlisted student{group.rows.length === 1 ? '' : 's'} · {openSeats} open seat{openSeats === 1 ? '' : 's'} across {groupClasses.length} class{groupClasses.length === 1 ? '' : 'es'}
+                      </p>
+                    </div>
+                    <Pill className="border-indigo-100 bg-indigo-50 text-indigo-700">
+                      {group.program?.season ? formatLabel(group.program.season) : 'Program'} {group.program?.year || ''}
+                    </Pill>
+                  </div>
+
+                  <div className="divide-y divide-slate-100">
+                    {group.rows.map((row) => {
+                      const guardian = getGuardianContact(row.student);
+                      const paymentStatus = normalizePaymentStatus(row.enrollment.paymentStatus);
+                      const claim = getClaimState(row.enrollment, user?.id);
+                      const selectedClassId = selectedClasses[row.enrollment.id] || '';
+                      const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);
+                      const classIsFull = selectedClass ? getAssignedCount(selectedClass.id, row.enrollment.id) >= selectedClass.capacity : false;
+                      const canAssignClaim = !claim.isOther || canOverrideClaims;
+                      const showRelease = claim.isMine || (claim.isActive && canOverrideClaims);
+                      const isClaiming = claimingId === row.enrollment.id;
+                      const isUpdating = updatingId === row.enrollment.id;
+
+                      return (
+                        <div key={row.enrollment.id} className="grid gap-4 p-5 xl:grid-cols-[1.35fr_1fr_1.45fr_auto] xl:items-center">
+                          <div className="min-w-0">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                <FiUsers className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-950">
+                                  {row.student.firstName} {row.student.lastName}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-500">{guardian.email}</p>
+                                {guardian.phone && <p className="mt-1 text-xs font-semibold text-slate-400">{guardian.phone}</p>}
+                                <p className="mt-1 text-xs font-semibold text-slate-400">Waitlisted {formatDate(row.enrollment.enrollmentDate)}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Pill className={paymentStyles[paymentStatus]}>{formatLabel(paymentStatus)}</Pill>
+                            <Pill className={claim.className}>{claim.label}</Pill>
+                            {row.enrollment.claimExpiresAt && claim.isActive && (
+                              <p className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                                <FiClock className="h-3.5 w-3.5" />
+                                Until {new Date(row.enrollment.claimExpiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <select
+                                value={selectedClassId}
+                                disabled={!canUpdate || !canAssignClaim || isUpdating}
+                                onChange={(event) =>
+                                  setSelectedClasses((current) => ({
+                                    ...current,
+                                    [row.enrollment.id]: event.target.value,
+                                  }))
+                                }
+                                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400 disabled:bg-slate-50 disabled:text-slate-400"
+                              >
+                                <option value="">Select class</option>
+                                {groupClasses.map((classItem) => {
+                                  const count = getAssignedCount(classItem.id, row.enrollment.id);
+                                  return (
+                                    <option key={classItem.id} value={classItem.id}>
+                                      {classItem.name} ({count}/{classItem.capacity})
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleAssignClass(row)}
+                                disabled={!canUpdate || isUpdating || paymentStatus !== 'CONFIRMED' || !selectedClassId || classIsFull || !canAssignClaim}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                              >
+                                <FiSend className="h-4 w-4" />
+                                Assign
+                              </button>
+                            </div>
+                            {selectedClass && (
+                              <p className={`text-xs font-semibold ${classIsFull ? 'text-rose-600' : 'text-slate-500'}`}>
+                                {getAssignedCount(selectedClass.id, row.enrollment.id)} of {selectedClass.capacity} seats filled
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 xl:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => claimEnrollment(row)}
+                              disabled={!canManageWaitlist || isClaiming || (claim.isActive && claim.isMine) || (claim.isOther && !canOverrideClaims)}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FiLock className="h-4 w-4" />
+                              {claim.isOther && canOverrideClaims ? 'Override claim' : claim.isMine ? 'Claimed' : 'Claim'}
+                            </button>
+                            {showRelease && (
+                              <button
+                                type="button"
+                                onClick={() => releaseEnrollmentClaim(row)}
+                                disabled={!canManageWaitlist || isClaiming}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <FiUnlock className="h-4 w-4" />
+                                Release
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/?tab=students&id=${row.student.id}`)}
+                              className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                            >
+                              View student
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {!waitlistLoading && waitlistGroups.length === 0 && (
+              <div className="p-10 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                  <FiCheckCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-950">No waitlisted students found</h3>
+                <p className="mt-2 text-sm text-slate-500">Try adjusting filters, or check All Enrollments for assigned and completed students.</p>
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-[1320px] w-full">
             <thead>
@@ -829,8 +1260,9 @@ export function EnrollmentManagement() {
             </tbody>
           </table>
         </div>
+        )}
 
-        {filteredRows.length === 0 && (
+        {viewMode === 'ALL' && filteredRows.length === 0 && (
           <div className="p-10 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
               <FiAlertTriangle className="h-6 w-6" />

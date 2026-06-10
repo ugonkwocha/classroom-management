@@ -6,6 +6,18 @@ import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
 import { ensureClassHasActivePreparationTemplate } from '@/lib/course-email-template-requirements';
 
+function getActiveClaimConflict(
+  enrollment: { claimedById: string | null; claimExpiresAt: Date | null },
+  userId: string
+) {
+  return Boolean(
+    enrollment.claimedById &&
+    enrollment.claimedById !== userId &&
+    enrollment.claimExpiresAt &&
+    enrollment.claimExpiresAt > new Date()
+  );
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -38,6 +50,15 @@ export async function GET(
         student: true,
         program: true,
         class: true,
+        claimedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -94,6 +115,16 @@ export async function PUT(
     const enrollment = await prisma.$transaction(async (tx) => {
       const currentEnrollment = await tx.programEnrollment.findUnique({
         where: { id: id },
+        include: {
+          claimedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
       });
 
       if (!currentEnrollment) {
@@ -110,6 +141,13 @@ export async function PUT(
         ? data.status
         : currentEnrollment.status;
       const effectiveClassId = nextStatus === 'ASSIGNED' ? nextClassId : null;
+
+      if (effectiveClassId && getActiveClaimConflict(currentEnrollment, sessionUser.userId)) {
+        const claimantName = currentEnrollment.claimedBy
+          ? `${currentEnrollment.claimedBy.firstName} ${currentEnrollment.claimedBy.lastName}`
+          : 'another user';
+        throw new Error(`This waitlist item is currently claimed by ${claimantName}.`);
+      }
 
       if (
         currentEnrollment.classId &&
@@ -191,6 +229,14 @@ export async function PUT(
       ) {
         updateData.classId = effectiveClassId;
       }
+      if (
+        effectiveClassId ||
+        nextStatus === 'COMPLETED' ||
+        nextStatus === 'DROPPED'
+      ) {
+        updateData.claimedById = null;
+        updateData.claimExpiresAt = null;
+      }
 
       const updatedEnrollment = await tx.programEnrollment.update({
         where: { id: id },
@@ -199,6 +245,15 @@ export async function PUT(
           student: true,
           program: true,
           class: true,
+          claimedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+            },
+          },
         },
       });
 

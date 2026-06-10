@@ -44,6 +44,15 @@ export async function GET(
           include: {
             class: true,
             program: true,
+            claimedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
           },
         },
         courseHistory: true,
@@ -190,6 +199,15 @@ export async function PUT(
             include: {
               class: true,
               program: true,
+              claimedBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
             },
           },
           courseHistory: true,

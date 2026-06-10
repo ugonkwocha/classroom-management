@@ -163,6 +163,9 @@ export interface ProgramEnrollment {
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'COMPLETED'; // Program-specific payment status
   priceType?: PriceType; // Pricing option selected
   priceAmount?: number; // Amount paid in Naira
+  claimedById?: string | null;
+  claimExpiresAt?: string | null;
+  claimedBy?: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'role'> | null;
   program?: Program;
   class?: Class | null;
 }

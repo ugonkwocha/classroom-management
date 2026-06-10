@@ -44,6 +44,15 @@ export async function GET(request: NextRequest) {
         student: true,
         program: true,
         class: true,
+        claimedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
       orderBy: {
         enrollmentDate: 'desc',
@@ -160,6 +169,15 @@ export async function POST(request: NextRequest) {
         student: true,
         program: true,
         class: true,
+        claimedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     });
 

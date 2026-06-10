@@ -38,6 +38,15 @@ export async function GET(request: NextRequest) {
           include: {
             class: true,
             program: true,
+            claimedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
           },
         },
         courseHistory: true,
@@ -148,6 +157,15 @@ export async function POST(request: NextRequest) {
             include: {
               class: true,
               program: true,
+              claimedBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
             },
           },
           courseHistory: true,
