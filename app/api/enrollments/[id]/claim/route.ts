@@ -10,7 +10,7 @@ function isAdminRole(role: string) {
 }
 
 function isActiveClaim(enrollment: { claimedById: string | null; claimExpiresAt: Date | null }, now: Date) {
-  return Boolean(enrollment.claimedById && enrollment.claimExpiresAt && enrollment.claimExpiresAt > now);
+  return Boolean(enrollment.claimedById && (!enrollment.claimExpiresAt || enrollment.claimExpiresAt > now));
 }
 
 export async function POST(
@@ -144,13 +144,14 @@ export async function DELETE(
         throw new Error('Enrollment not found');
       }
 
+      const isPersistentAssignment = Boolean(currentEnrollment.claimedById && !currentEnrollment.claimExpiresAt);
       const releaseAllowed =
-        currentEnrollment.claimedById === sessionUser.userId ||
         !currentEnrollment.claimedById ||
-        isAdminRole(sessionUser.role);
+        isAdminRole(sessionUser.role) ||
+        (currentEnrollment.claimedById === sessionUser.userId && !isPersistentAssignment);
 
       if (!releaseAllowed) {
-        throw new Error('Only the claimant, admin, or superadmin can release this waitlist claim.');
+        throw new Error('Only admin or superadmin can release admin-assigned waitlist work.');
       }
 
       return tx.programEnrollment.update({

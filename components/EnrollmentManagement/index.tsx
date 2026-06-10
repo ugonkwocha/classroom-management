@@ -17,6 +17,7 @@ import {
   FiSend,
   FiUnlock,
   FiUserCheck,
+  FiUserPlus,
   FiUsers,
 } from 'react-icons/fi';
 import { useClasses, useCourses, usePrograms, useStudents, useTeachers } from '@/lib/hooks';
@@ -24,7 +25,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
-import type { Class, CourseHistory, Program, ProgramEnrollment, Student } from '@/types';
+import type { Class, CourseHistory, Program, ProgramEnrollment, Student, User } from '@/types';
 
 type EnrollmentStatus = ProgramEnrollment['status'];
 type PaymentStatus = Exclude<NonNullable<ProgramEnrollment['paymentStatus']>, 'COMPLETED'>;
@@ -172,8 +173,9 @@ function formatResendMessage(data: any) {
 }
 
 function getClaimState(enrollment: ProgramEnrollment, currentUserId?: string | null) {
+  const isPersistentAssignment = Boolean(enrollment.claimedById && !enrollment.claimExpiresAt);
   const expiresAt = enrollment.claimExpiresAt ? new Date(enrollment.claimExpiresAt).getTime() : 0;
-  const isActive = Boolean(enrollment.claimedById && expiresAt && expiresAt > Date.now());
+  const isActive = Boolean(enrollment.claimedById && (isPersistentAssignment || (expiresAt && expiresAt > Date.now())));
 
   if (!enrollment.claimedById || !isActive) {
     return {
@@ -183,6 +185,7 @@ function getClaimState(enrollment: ProgramEnrollment, currentUserId?: string | n
       isActive: false,
       isMine: false,
       isOther: false,
+      isPersistentAssignment: false,
     };
   }
 
@@ -193,11 +196,18 @@ function getClaimState(enrollment: ProgramEnrollment, currentUserId?: string | n
 
   return {
     state: isMine ? 'MINE' : 'OTHER',
-    label: isMine ? 'Claimed by you' : `Claimed by ${claimantName}`,
+    label: isPersistentAssignment
+      ? isMine
+        ? 'Assigned to you'
+        : `Assigned to ${claimantName}`
+      : isMine
+        ? 'Claimed by you'
+        : `Claimed by ${claimantName}`,
     className: isMine ? 'border-blue-100 bg-blue-50 text-blue-700' : 'border-amber-100 bg-amber-50 text-amber-700',
     isActive: true,
     isMine,
     isOther: !isMine,
+    isPersistentAssignment,
   };
 }
 
@@ -229,6 +239,11 @@ export function EnrollmentManagement() {
   const [waitlistEnrollments, setWaitlistEnrollments] = useState<WaitlistEnrollment[]>([]);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedWaitlistIds, setSelectedWaitlistIds] = useState<string[]>([]);
+  const [bulkAssigneeId, setBulkAssigneeId] = useState('');
+  const [bulkSelectCount, setBulkSelectCount] = useState(10);
+  const [bulkAssigning, setBulkAssigning] = useState(false);
   const [selectedClasses, setSelectedClasses] = useState<Record<string, string>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -244,6 +259,7 @@ export function EnrollmentManagement() {
   const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
   const canManageWaitlist = hasPermission(PERMISSIONS.MANAGE_WAITLIST);
   const canOverrideClaims = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const canBulkAssignWaitlist = canOverrideClaims;
   const isLoaded = studentsLoaded && classesLoaded && programsLoaded;
 
   const rows = useMemo<EnrollmentRow[]>(() => {
@@ -380,6 +396,27 @@ export function EnrollmentManagement() {
     return () => window.clearInterval(intervalId);
   }, [fetchWaitlistQueue, viewMode]);
 
+  useEffect(() => {
+    if (viewMode !== 'WAITLIST' || !canBulkAssignWaitlist) return;
+
+    const fetchUsers = async () => {
+      try {
+        const response = await fetchWithAuth('/api/users');
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load staff users');
+        }
+
+        setUsers(Array.isArray(data) ? data.filter((item: User) => item.isActive) : []);
+      } catch (error) {
+        setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to load staff users' });
+      }
+    };
+
+    void fetchUsers();
+  }, [canBulkAssignWaitlist, viewMode]);
+
   const waitlistRows = useMemo<EnrollmentRow[]>(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -443,6 +480,28 @@ export function EnrollmentManagement() {
 
     return Array.from(groups.values());
   }, [waitlistRows]);
+
+  useEffect(() => {
+    const visibleIds = new Set(waitlistRows.map((row) => row.enrollment.id));
+    setSelectedWaitlistIds((current) => current.filter((id) => visibleIds.has(id)));
+  }, [waitlistRows]);
+
+  const toggleWaitlistSelection = (enrollmentId: string) => {
+    setSelectedWaitlistIds((current) =>
+      current.includes(enrollmentId)
+        ? current.filter((id) => id !== enrollmentId)
+        : [...current, enrollmentId]
+    );
+  };
+
+  const selectFirstVisibleWaitlistRows = () => {
+    const count = Math.max(1, bulkSelectCount || 1);
+    setSelectedWaitlistIds(waitlistRows.slice(0, count).map((row) => row.enrollment.id));
+  };
+
+  const clearWaitlistSelection = () => {
+    setSelectedWaitlistIds([]);
+  };
 
   const applyEnrollmentUpdate = async (
     row: EnrollmentRow,
@@ -536,6 +595,48 @@ export function EnrollmentManagement() {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to release waitlist claim' });
     } finally {
       setClaimingId(null);
+    }
+  };
+
+  const handleBulkAssignToStaff = async () => {
+    if (!bulkAssigneeId) {
+      setMessage({ type: 'error', text: 'Choose a staff member before assigning waitlist items.' });
+      return;
+    }
+
+    if (selectedWaitlistIds.length === 0) {
+      setMessage({ type: 'error', text: 'Select at least one waitlisted student.' });
+      return;
+    }
+
+    setBulkAssigning(true);
+    setMessage(null);
+
+    try {
+      const response = await fetchWithAuth('/api/enrollments/claims', {
+        method: 'POST',
+        body: JSON.stringify({
+          enrollmentIds: selectedWaitlistIds,
+          claimedById: bulkAssigneeId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to assign waitlist items to staff');
+      }
+
+      await fetchWaitlistQueue();
+      clearWaitlistSelection();
+      const assigneeName = data.assignee ? `${data.assignee.firstName} ${data.assignee.lastName}` : 'selected staff';
+      setMessage({
+        type: 'success',
+        text: `${data.assignedCount} waitlist item${data.assignedCount === 1 ? '' : 's'} assigned to ${assigneeName}.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to assign waitlist items to staff' });
+    } finally {
+      setBulkAssigning(false);
     }
   };
 
@@ -912,7 +1013,7 @@ export function EnrollmentManagement() {
                 <div>
                   <p className="font-bold">Claim before assigning</p>
                   <p className="mt-1 text-blue-700">
-                    Claims last 20 minutes. Staff can work independently, while admins can override stuck claims.
+                    Self-claims last 20 minutes. Admin-assigned staff work does not expire, and admins can override it.
                   </p>
                 </div>
               </div>
@@ -926,6 +1027,71 @@ export function EnrollmentManagement() {
                 Refresh
               </button>
             </div>
+
+            {canBulkAssignWaitlist && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-slate-950">Assign waitlist work to staff</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Select individual students or select the first visible rows, then assign them to a staff member.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-[140px_auto_auto] xl:min-w-[620px]">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">First rows</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={bulkSelectCount}
+                        onChange={(event) => setBulkSelectCount(Number(event.target.value))}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={selectFirstVisibleWaitlistRows}
+                      disabled={waitlistRows.length === 0}
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-end"
+                    >
+                      Select first {Math.max(1, bulkSelectCount || 1)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearWaitlistSelection}
+                      disabled={selectedWaitlistIds.length === 0}
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:self-end"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+                  <select
+                    value={bulkAssigneeId}
+                    onChange={(event) => setBulkAssigneeId(event.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
+                  >
+                    <option value="">Choose staff member</option>
+                    {users.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.firstName} {item.lastName} · {formatLabel(item.role)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkAssignToStaff}
+                    disabled={bulkAssigning || selectedWaitlistIds.length === 0 || !bulkAssigneeId}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                  >
+                    <FiUserPlus className="h-4 w-4" />
+                    {bulkAssigning ? 'Assigning...' : `Assign selected (${selectedWaitlistIds.length})`}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {waitlistError && (
               <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
@@ -964,7 +1130,7 @@ export function EnrollmentManagement() {
                       const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);
                       const classIsFull = selectedClass ? getAssignedCount(selectedClass.id, row.enrollment.id) >= selectedClass.capacity : false;
                       const canAssignClaim = !claim.isOther || canOverrideClaims;
-                      const showRelease = claim.isMine || (claim.isActive && canOverrideClaims);
+                      const showRelease = (claim.isMine && !claim.isPersistentAssignment) || (claim.isActive && canOverrideClaims);
                       const isClaiming = claimingId === row.enrollment.id;
                       const isUpdating = updatingId === row.enrollment.id;
 
@@ -972,6 +1138,15 @@ export function EnrollmentManagement() {
                         <div key={row.enrollment.id} className="grid gap-4 p-5 xl:grid-cols-[1.35fr_1fr_1.45fr_auto] xl:items-center">
                           <div className="min-w-0">
                             <div className="flex items-start gap-3">
+                              {canBulkAssignWaitlist && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedWaitlistIds.includes(row.enrollment.id)}
+                                  onChange={() => toggleWaitlistSelection(row.enrollment.id)}
+                                  className="mt-3 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                  aria-label={`Select ${row.student.firstName} ${row.student.lastName}`}
+                                />
+                              )}
                               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                                 <FiUsers className="h-5 w-5" />
                               </div>
@@ -993,6 +1168,12 @@ export function EnrollmentManagement() {
                               <p className="flex items-center gap-1 text-xs font-semibold text-slate-400">
                                 <FiClock className="h-3.5 w-3.5" />
                                 Until {new Date(row.enrollment.claimExpiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </p>
+                            )}
+                            {claim.isPersistentAssignment && claim.isActive && (
+                              <p className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                                <FiUserCheck className="h-3.5 w-3.5" />
+                                Admin-assigned work
                               </p>
                             )}
                           </div>
@@ -1045,7 +1226,13 @@ export function EnrollmentManagement() {
                               className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <FiLock className="h-4 w-4" />
-                              {claim.isOther && canOverrideClaims ? 'Override claim' : claim.isMine ? 'Claimed' : 'Claim'}
+                              {claim.isOther && canOverrideClaims
+                                ? 'Override'
+                                : claim.isMine && claim.isPersistentAssignment
+                                  ? 'Assigned'
+                                  : claim.isMine
+                                    ? 'Claimed'
+                                    : 'Claim'}
                             </button>
                             {showRelease && (
                               <button

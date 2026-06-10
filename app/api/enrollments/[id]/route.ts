@@ -13,8 +13,7 @@ function getActiveClaimConflict(
   return Boolean(
     enrollment.claimedById &&
     enrollment.claimedById !== userId &&
-    enrollment.claimExpiresAt &&
-    enrollment.claimExpiresAt > new Date()
+    (!enrollment.claimExpiresAt || enrollment.claimExpiresAt > new Date())
   );
 }
 
