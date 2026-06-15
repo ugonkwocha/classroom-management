@@ -139,6 +139,41 @@ function normalizeFontSize(value?: string | null): string | null {
   return FONT_TAG_SIZE_MAP[trimmed] || null;
 }
 
+function componentToHex(value: number): string {
+  return value.toString(16).padStart(2, '0');
+}
+
+function normalizeColor(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().toLowerCase();
+
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const shortHex = trimmed.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (shortHex) {
+    return `#${shortHex[1]}${shortHex[1]}${shortHex[2]}${shortHex[2]}${shortHex[3]}${shortHex[3]}`.toLowerCase();
+  }
+
+  const rgb = trimmed.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+  if (rgb) {
+    const values = rgb.slice(1).map((part) => Number(part));
+    if (values.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) {
+      return `#${values.map(componentToHex).join('')}`;
+    }
+  }
+
+  return null;
+}
+
+function buildSpanStyle(size?: string | null, color?: string | null): string {
+  const styles: string[] = [];
+  if (size) styles.push(`font-size:${size}`);
+  if (color) styles.push(`color:${color}`);
+  return styles.length > 0 ? ` style="${styles.join(';')};"` : '';
+}
+
 function getAttribute(attrs: string, name: string): string | null {
   const quoted = attrs.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, 'i'));
   if (quoted) return quoted[1];
@@ -183,12 +218,14 @@ function sanitizeOpeningTag(tag: string, attrs: string): string {
       return `<li style="${EMAIL_LIST_ITEM_STYLE}">`;
     case 'font': {
       const size = normalizeFontSize(getAttribute(attrs, 'size'));
-      return size ? `<span style="font-size:${size};">` : '<span>';
+      const color = normalizeColor(getAttribute(attrs, 'color'));
+      return `<span${buildSpanStyle(size, color)}>`;
     }
     case 'span': {
       const style = getAttribute(attrs, 'style');
       const size = normalizeFontSize(style?.match(/font-size\s*:\s*([^;]+)/i)?.[1] || null);
-      return size ? `<span style="font-size:${size};">` : '<span>';
+      const color = normalizeColor(style?.match(/color\s*:\s*([^;]+)/i)?.[1] || null);
+      return `<span${buildSpanStyle(size, color)}>`;
     }
     default:
       return '';

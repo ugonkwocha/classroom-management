@@ -93,6 +93,15 @@ const editorFontSizes = [
   { label: 'XXL', commandValue: '6' },
 ];
 
+const editorTextColors = [
+  { label: 'Navy', value: '#0f172a' },
+  { label: 'Blue', value: '#2563eb' },
+  { label: 'Green', value: '#047857' },
+  { label: 'Amber', value: '#b45309' },
+  { label: 'Red', value: '#dc2626' },
+  { label: 'Slate', value: '#475569' },
+];
+
 const fontSizeMap: Record<string, string> = {
   '1': '12px',
   '2': '14px',
@@ -127,12 +136,16 @@ function normalizeEditorHtml(value: string): string {
   const container = document.createElement('div');
   container.innerHTML = value;
 
-  container.querySelectorAll('font[size]').forEach((font) => {
+  container.querySelectorAll('font').forEach((font) => {
     const size = font.getAttribute('size') || '';
+    const color = font.getAttribute('color') || '';
     const span = document.createElement('span');
     const fontSize = fontSizeMap[size];
     if (fontSize) {
       span.style.fontSize = fontSize;
+    }
+    if (color) {
+      span.style.color = color;
     }
     while (font.firstChild) {
       span.appendChild(font.firstChild);
@@ -143,9 +156,13 @@ function normalizeEditorHtml(value: string): string {
   container.querySelectorAll('[style]').forEach((node) => {
     const element = node as HTMLElement;
     const fontSize = element.style.fontSize;
+    const color = element.style.color;
     element.removeAttribute('style');
     if (fontSize) {
       element.style.fontSize = fontSize;
+    }
+    if (color) {
+      element.style.color = color;
     }
   });
 
@@ -642,6 +659,29 @@ export function EmailTemplatesManagement() {
                           </option>
                         ))}
                       </select>
+                      <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2" title="Text color">
+                        <span className="text-xs font-bold text-slate-500">Color</span>
+                        <input
+                          type="color"
+                          defaultValue="#0f172a"
+                          onChange={(event) => runEditorCommand('foreColor', event.target.value)}
+                          className="h-6 w-8 cursor-pointer rounded border border-slate-200 bg-white p-0"
+                          aria-label="Choose text color"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {editorTextColors.map((color) => (
+                          <button
+                            key={color.value}
+                            type="button"
+                            onClick={() => runEditorCommand('foreColor', color.value)}
+                            className="h-7 w-7 rounded-full border border-slate-200 shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            style={{ backgroundColor: color.value }}
+                            title={color.label}
+                            aria-label={`Apply ${color.label} text color`}
+                          />
+                        ))}
+                      </div>
                       <button
                         type="button"
                         onClick={() => runEditorCommand('insertUnorderedList')}
