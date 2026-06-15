@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import { sanitizeTemplateBodyHtml } from '@/lib/email-template-rendering';
 
 function requireText(value: unknown, field: string) {
   if (typeof value !== 'string' || !value.trim()) {
@@ -69,7 +70,7 @@ export async function PUT(
   try {
     const data = await request.json();
     const subject = requireText(data.subject, 'Subject');
-    const body = requireText(data.body, 'Body');
+    const body = sanitizeTemplateBodyHtml(requireText(data.body, 'Body'));
     const isActive = typeof data.isActive === 'boolean' ? data.isActive : true;
 
     const template = await prisma.courseEmailTemplate.update({

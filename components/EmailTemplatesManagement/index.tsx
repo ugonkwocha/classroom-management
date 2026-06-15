@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   FiCheckCircle,
@@ -85,6 +85,76 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
+const editorFontSizes = [
+  { label: 'Small', commandValue: '2' },
+  { label: 'Normal', commandValue: '3' },
+  { label: 'Large', commandValue: '4' },
+  { label: 'XL', commandValue: '5' },
+  { label: 'XXL', commandValue: '6' },
+];
+
+const fontSizeMap: Record<string, string> = {
+  '1': '12px',
+  '2': '14px',
+  '3': '16px',
+  '4': '18px',
+  '5': '24px',
+  '6': '28px',
+  '7': '32px',
+};
+
+function escapeEditorHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function bodyLooksFormatted(value: string): boolean {
+  return /<\/?(?:a|b|br|div|em|font|i|li|ol|p|span|strong|u|ul)\b/i.test(value);
+}
+
+function templateBodyToEditorHtml(value: string): string {
+  if (bodyLooksFormatted(value)) return value;
+  return escapeEditorHtml(value).replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+}
+
+function normalizeEditorHtml(value: string): string {
+  if (typeof document === 'undefined') return value;
+
+  const container = document.createElement('div');
+  container.innerHTML = value;
+
+  container.querySelectorAll('font[size]').forEach((font) => {
+    const size = font.getAttribute('size') || '';
+    const span = document.createElement('span');
+    const fontSize = fontSizeMap[size];
+    if (fontSize) {
+      span.style.fontSize = fontSize;
+    }
+    while (font.firstChild) {
+      span.appendChild(font.firstChild);
+    }
+    font.replaceWith(span);
+  });
+
+  container.querySelectorAll('[style]').forEach((node) => {
+    const element = node as HTMLElement;
+    const fontSize = element.style.fontSize;
+    element.removeAttribute('style');
+    if (fontSize) {
+      element.style.fontSize = fontSize;
+    }
+  });
+
+  return container.innerHTML
+    .replace(/<div><br><\/div>/gi, '<br>')
+    .replace(/<p><br><\/p>/gi, '<br>')
+    .trim();
+}
+
 function TemplateStatus({ template }: { template: CourseEmailTemplate | null }) {
   if (!template) {
     return (
@@ -116,6 +186,9 @@ export function EmailTemplatesManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewAudience, setPreviewAudience] = useState<'parent' | 'student'>('parent');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editorVersion, setEditorVersion] = useState(0);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const editorInitialBodyRef = useRef(defaultBody);
   const [form, setForm] = useState<FormState>({
     courseId: '',
     subject: 'Prepare for {{courseName}}',
@@ -145,6 +218,40 @@ export function EmailTemplatesManagement() {
     fetchTemplates();
   }, [fetchTemplates]);
 
+  useEffect(() => {
+    if (!isModalOpen || !editorRef.current) return;
+    editorRef.current.innerHTML = templateBodyToEditorHtml(editorInitialBodyRef.current);
+  }, [editorVersion, isModalOpen]);
+
+  const readEditorBody = useCallback(() => {
+    if (!editorRef.current) return form.body.trim();
+    return normalizeEditorHtml(editorRef.current.innerHTML);
+  }, [form.body]);
+
+  const syncEditorBody = useCallback(() => {
+    const body = readEditorBody();
+    setForm((current) => ({ ...current, body }));
+    return body;
+  }, [readEditorBody]);
+
+  const runEditorCommand = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncEditorBody();
+  };
+
+  const insertEditorText = (value: string) => {
+    editorRef.current?.focus();
+    document.execCommand('insertText', false, value);
+    syncEditorBody();
+  };
+
+  const insertEditorHtml = (value: string) => {
+    editorRef.current?.focus();
+    document.execCommand('insertHTML', false, value);
+    syncEditorBody();
+  };
+
   const filteredItems = useMemo(() => {
     const value = search.trim().toLowerCase();
     if (!value) return items;
@@ -173,16 +280,19 @@ export function EmailTemplatesManagement() {
 
   const openCreateModal = (courseId = '') => {
     const course = items.find((item) => item.course.id === courseId)?.course;
+    const initialBody = defaultBody;
     setEditingTemplate(null);
     setForm({
       courseId,
       subject: `Prepare for {{courseName}}`,
-      body: defaultBody,
+      body: initialBody,
       isActive: true,
     });
     if (!course && items.length > 0 && !courseId) {
       setForm((current) => ({ ...current, courseId: items[0].course.id }));
     }
+    editorInitialBodyRef.current = initialBody;
+    setEditorVersion((current) => current + 1);
     setMessage(null);
     setIsModalOpen(true);
   };
@@ -194,12 +304,14 @@ export function EmailTemplatesManagement() {
     }
 
     setEditingTemplate(row.template);
+    editorInitialBodyRef.current = row.template.body;
     setForm({
       courseId: row.course.id,
       subject: row.template.subject,
       body: row.template.body,
       isActive: row.template.isActive,
     });
+    setEditorVersion((current) => current + 1);
     setMessage(null);
     setIsModalOpen(true);
   };
@@ -210,11 +322,16 @@ export function EmailTemplatesManagement() {
     setMessage(null);
 
     try {
+      const body = readEditorBody();
+      if (!body.trim()) {
+        throw new Error('Body is required');
+      }
+
       const endpoint = editingTemplate ? `/api/email-templates/${editingTemplate.id}` : '/api/email-templates';
       const response = await fetch(endpoint, {
         method: editingTemplate ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, body }),
       });
       const data = await response.json();
 
@@ -481,16 +598,87 @@ export function EmailTemplatesManagement() {
 
                 <div>
                   <label className="mb-2 block text-sm font-bold text-slate-700">Body</label>
-                  <textarea
-                    value={form.body}
-                    onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-                    rows={13}
-                    className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                    placeholder="Write the assignment email..."
-                    required
-                  />
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => runEditorCommand('bold')}
+                        className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-sm font-black text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                        title="Bold"
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runEditorCommand('italic')}
+                        className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold italic text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                        title="Italic"
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runEditorCommand('underline')}
+                        className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold text-slate-700 underline transition hover:border-blue-200 hover:text-blue-600"
+                        title="Underline"
+                      >
+                        U
+                      </button>
+                      <span className="h-8 w-px bg-slate-200" />
+                      <select
+                        defaultValue=""
+                        onChange={(event) => {
+                          if (!event.target.value) return;
+                          runEditorCommand('fontSize', event.target.value);
+                          event.target.value = '';
+                        }}
+                        className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition hover:border-blue-200 focus:border-blue-300"
+                        title="Font size"
+                      >
+                        <option value="">Font size</option>
+                        {editorFontSizes.map((size) => (
+                          <option key={size.commandValue} value={size.commandValue}>
+                            {size.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => runEditorCommand('insertUnorderedList')}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                        title="Bullet list"
+                      >
+                        Bullets
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runEditorCommand('insertOrderedList')}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
+                        title="Numbered list"
+                      >
+                        Numbers
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertEditorText('{{meetButton}}')}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 px-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                        title="Insert Google Meet button"
+                      >
+                        Meet button
+                      </button>
+                    </div>
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={syncEditorBody}
+                      onBlur={syncEditorBody}
+                      className="min-h-[320px] w-full overflow-y-auto px-4 py-3 text-sm leading-6 text-slate-800 outline-none"
+                      aria-label="Email template body"
+                    />
+                  </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    Use {'{{meetButton}}'} wherever the blue Google Meet button should appear. Use {'{{#parent}}...{{/parent}}'} and {'{{#student}}...{{/student}}'} for recipient-specific sections.
+                    Use {'{{meetButton}}'} wherever the blue Google Meet button should appear. Formatting is limited to safe email-friendly text styles.
                   </p>
                 </div>
 
@@ -511,7 +699,7 @@ export function EmailTemplatesManagement() {
                       <button
                         key={placeholder}
                         type="button"
-                        onClick={() => setForm((current) => ({ ...current, body: `${current.body}${current.body.endsWith(' ') || current.body.endsWith('\n') ? '' : ' '}${placeholder}` }))}
+                        onClick={() => insertEditorText(placeholder)}
                         className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
                       >
                         {placeholder}
@@ -525,14 +713,14 @@ export function EmailTemplatesManagement() {
                   <div className="grid gap-2 text-xs font-semibold text-slate-600">
                     <button
                       type="button"
-                      onClick={() => setForm((current) => ({ ...current, body: `${current.body}\n\n{{#parent}}\nParent-only message here.\n{{/parent}}` }))}
+                      onClick={() => insertEditorHtml('<p>{{#parent}}</p><p>Parent-only message here.</p><p>{{/parent}}</p>')}
                       className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
                     >
                       Add parent-only section
                     </button>
                     <button
                       type="button"
-                      onClick={() => setForm((current) => ({ ...current, body: `${current.body}\n\n{{#student}}\nStudent-only message here.\n{{/student}}` }))}
+                      onClick={() => insertEditorHtml('<p>{{#student}}</p><p>Student-only message here.</p><p>{{/student}}</p>')}
                       className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
                     >
                       Add student-only section
