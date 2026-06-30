@@ -31,6 +31,8 @@ const STATUS_PRECEDENCE: Record<EmailLogStatus, number> = {
   FAILED: 3,
 };
 
+const DEFAULT_WEBHOOK_AUTH_HEADER = 'x-zeptomail-webhook-secret';
+
 function safeDecode(value: string) {
   try {
     return decodeURIComponent(value.replace(/\+/g, ' '));
@@ -81,6 +83,34 @@ function verifySignature(body: string, signatureHeader: string | null, secret: s
     receivedBuffer.length === expectedBuffer.length &&
     crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
   );
+}
+
+function verifyCustomAuthHeader(request: NextRequest, secret: string) {
+  const headerName = process.env.ZEPTOMAIL_WEBHOOK_AUTH_HEADER || DEFAULT_WEBHOOK_AUTH_HEADER;
+  const receivedSecret = request.headers.get(headerName);
+
+  if (!receivedSecret) return false;
+
+  const expectedBuffer = Buffer.from(secret);
+  const receivedBuffer = Buffer.from(receivedSecret);
+
+  return (
+    receivedBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
+  );
+}
+
+function parseWebhookEvent(body: string): ZeptoMailWebhookEvent | null {
+  const payload = extractSignedPayload(body).trim();
+  if (!payload) return null;
+
+  try {
+    const event = JSON.parse(payload) as ZeptoMailWebhookEvent;
+    if (!event.event_name && !event.event_message) return null;
+    return event;
+  } catch {
+    return null;
+  }
 }
 
 function getEventStatus(eventName?: string): EmailLogStatus | null {
@@ -186,12 +216,19 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signatureHeader = request.headers.get('producer-signature');
+    const isAuthenticated =
+      verifySignature(body, signatureHeader, webhookSecret) ||
+      verifyCustomAuthHeader(request, webhookSecret);
+    const event = parseWebhookEvent(body);
 
-    if (!verifySignature(body, signatureHeader, webhookSecret)) {
+    if (!event) {
+      return NextResponse.json({ received: true, verified: true });
+    }
+
+    if (!isAuthenticated) {
       return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
     }
 
-    const event = JSON.parse(extractSignedPayload(body)) as ZeptoMailWebhookEvent;
     const nextStatus = getEventStatus(event.event_name);
     const messages = getWebhookMessages(event);
     let matched = 0;

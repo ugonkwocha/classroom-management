@@ -53,6 +53,7 @@ ZEPTOMAIL_FROM_EMAIL=classes@updates.9jacodekids.com
 ZEPTOMAIL_FROM_NAME=9jacodekids Academy
 ZEPTOMAIL_REPLY_TO_EMAIL=admin@9jacodekids.com
 ZEPTOMAIL_WEBHOOK_SECRET=<staging-zeptomail-webhook-authentication-secret>
+ZEPTOMAIL_WEBHOOK_AUTH_HEADER=x-zeptomail-webhook-secret
 RESEND_API_KEY=<staging-resend-api-key>
 EMAIL_FROM="9jacodekids Academy <classes@updates.9jacodekids.com>"
 EMAIL_REPLY_TO=admin@9jacodekids.com
@@ -91,6 +92,7 @@ ZEPTOMAIL_FROM_EMAIL=classes@updates.9jacodekids.com
 ZEPTOMAIL_FROM_NAME=9jacodekids Academy
 ZEPTOMAIL_REPLY_TO_EMAIL=admin@9jacodekids.com
 ZEPTOMAIL_WEBHOOK_SECRET=<production-zeptomail-webhook-authentication-secret>
+ZEPTOMAIL_WEBHOOK_AUTH_HEADER=x-zeptomail-webhook-secret
 RESEND_API_KEY=<production-resend-api-key>
 EMAIL_FROM="9jacodekids Academy <classes@updates.9jacodekids.com>"
 EMAIL_REPLY_TO=admin@9jacodekids.com
@@ -102,8 +104,11 @@ Create one ZeptoMail webhook per environment:
 
 - Staging URL: `https://staging.9jacodekids.com/api/webhooks/zeptomail`
 - Production URL: `https://<production-domain>/api/webhooks/zeptomail`
-- Events: `Processed`, `Delivered`, `Soft bounce`, and `Hard bounce`
-- Authentication secret key: use the same value stored as `ZEPTOMAIL_WEBHOOK_SECRET`
+- Authorization headers:
+  - Key: `x-zeptomail-webhook-secret`
+  - Value: the same value stored as `ZEPTOMAIL_WEBHOOK_SECRET`
+- Events: `Soft bounces`, `Hard bounces`, and `Feedback loop`
+- Optional tracking events: enable ZeptoMail email tracking if you also want open/click activity webhooks.
 
 The send API only confirms that ZeptoMail accepted the email. The webhook is what updates Email Logs from `Sent` to `Delivered` or `Bounced`.
 
