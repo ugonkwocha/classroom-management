@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
       recipientName: `${firstName} ${lastName}`.trim(),
       recipientRole: role,
       subject: 'Your 9jacodekids Academy invitation',
+      provider: emailDelivery.provider,
       providerMessageId: emailDelivery.messageId,
       error: emailDelivery.error,
       success: emailDelivery.success,
@@ -176,6 +177,8 @@ export async function POST(request: NextRequest) {
       payload: {
         invitationId: invitation.id,
         expiresAt: expiresAt.toISOString(),
+        providerFallbackError: emailDelivery.fallbackError || null,
+        attemptedProviders: emailDelivery.attemptedProviders || [],
       },
     });
 

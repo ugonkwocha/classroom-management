@@ -7,6 +7,7 @@ type EmailLogInput = {
   recipientName?: string;
   recipientRole?: string;
   subject?: string;
+  provider?: string;
   providerMessageId?: string;
   error?: string;
   success: boolean;
@@ -26,6 +27,7 @@ export async function logEmailDelivery(input: EmailLogInput) {
       recipientName: input.recipientName,
       recipientRole: input.recipientRole,
       subject: input.subject,
+      provider: input.provider || 'resend',
       providerMessageId: input.providerMessageId,
       error: input.success ? null : input.error || 'Email delivery failed',
       studentId: input.studentId || null,

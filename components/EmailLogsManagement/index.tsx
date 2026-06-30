@@ -264,7 +264,10 @@ export function EmailLogsManagement() {
                         {formatLabel(log.status)}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-500">{log.providerMessageId || 'None'}</td>
+                    <td className="px-5 py-4 text-sm text-slate-500">
+                      <p className="font-semibold text-slate-700">{formatLabel(log.provider || 'unknown')}</p>
+                      <p className="mt-1 max-w-48 truncate">{log.providerMessageId || 'No provider id'}</p>
+                    </td>
                     <td className="px-5 py-4">
                       <p className="max-w-sm text-sm text-slate-500">{log.error || 'None'}</p>
                     </td>

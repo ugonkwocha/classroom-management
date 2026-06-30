@@ -122,6 +122,7 @@ export async function POST(
       recipientName: `${targetUser.firstName} ${targetUser.lastName}`.trim(),
       recipientRole: targetUser.role,
       subject: 'Reset your 9jacodekids Academy password',
+      provider: emailDelivery.provider,
       providerMessageId: emailDelivery.messageId,
       error: emailDelivery.error,
       success: emailDelivery.success,
@@ -129,6 +130,8 @@ export async function POST(
       payload: {
         targetUserId: targetUser.id,
         expiresAt: expiresAt.toISOString(),
+        providerFallbackError: emailDelivery.fallbackError || null,
+        attemptedProviders: emailDelivery.attemptedProviders || [],
       },
     });
 

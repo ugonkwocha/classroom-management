@@ -33,7 +33,10 @@ interface ClassAssignmentEmailParams {
 interface EmailResponse {
   success: boolean;
   messageId?: string;
+  provider?: string;
   error?: string;
+  fallbackError?: string;
+  attemptedProviders?: string[];
 }
 
 interface UserInvitationEmailParams {
@@ -51,13 +54,70 @@ interface PasswordResetEmailParams {
   expiresAt: string;
 }
 
-const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || (process.env.RESEND_API_KEY ? 'resend' : 'disabled');
+type EmailProvider = 'zeptomail' | 'resend' | 'disabled';
+
+type BuiltEmail = {
+  subject: string;
+  html: string;
+  text: string;
+};
+
+const EMAIL_PROVIDER = normalizeProvider(
+  process.env.EMAIL_PROVIDER || (process.env.ZEPTOMAIL_SEND_MAIL_TOKEN ? 'zeptomail' : process.env.RESEND_API_KEY ? 'resend' : 'disabled')
+);
+const EMAIL_FALLBACK_PROVIDER = normalizeProvider(process.env.EMAIL_FALLBACK_PROVIDER || (EMAIL_PROVIDER === 'zeptomail' && process.env.RESEND_API_KEY ? 'resend' : undefined), undefined);
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL;
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || process.env.RESEND_REPLY_TO_EMAIL;
 const EMAIL_DELIVERY_ATTEMPTS = 3;
+const ZEPTOMAIL_SEND_MAIL_TOKEN = process.env.ZEPTOMAIL_SEND_MAIL_TOKEN;
+const ZEPTOMAIL_API_URL = process.env.ZEPTOMAIL_API_URL || 'https://api.zeptomail.com/v1.1/email';
+const ZEPTOMAIL_FROM = parseEmailIdentity(process.env.ZEPTOMAIL_FROM_EMAIL || EMAIL_FROM);
+const ZEPTOMAIL_FROM_NAME = process.env.ZEPTOMAIL_FROM_NAME || ZEPTOMAIL_FROM.name || '9jacodekids Academy';
+const ZEPTOMAIL_REPLY_TO = parseEmailIdentity(process.env.ZEPTOMAIL_REPLY_TO_EMAIL || EMAIL_REPLY_TO);
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+function normalizeProvider(value: string | undefined, defaultValue: EmailProvider = 'disabled'): EmailProvider {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'zeptomail' || normalized === 'resend' || normalized === 'disabled') {
+    return normalized;
+  }
+  return defaultValue;
+}
+
+function parseEmailIdentity(value?: string | null): { email?: string; name?: string } {
+  const raw = (value || '').trim();
+  if (!raw) return {};
+
+  const match = raw.match(/^(.+?)\s*<([^>]+)>$/);
+  if (match) {
+    return {
+      name: match[1].trim().replace(/^["']|["']$/g, '') || undefined,
+      email: match[2].trim(),
+    };
+  }
+
+  return { email: raw };
+}
+
+function getProviderAttempts(): EmailProvider[] {
+  if (EMAIL_PROVIDER === 'disabled') return ['disabled'];
+  const providers: EmailProvider[] = [EMAIL_PROVIDER];
+
+  if (EMAIL_FALLBACK_PROVIDER && EMAIL_FALLBACK_PROVIDER !== 'disabled' && EMAIL_FALLBACK_PROVIDER !== EMAIL_PROVIDER) {
+    providers.push(EMAIL_FALLBACK_PROVIDER);
+  }
+
+  return providers;
+}
+
+function getDeliveryError(error: unknown, fallbackMessage: string): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message;
+  return fallbackMessage;
+}
 
 function escapeHtml(value: string | undefined): string {
   if (!value) return '';
@@ -68,6 +128,216 @@ function escapeHtml(value: string | undefined): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+async function sendViaResend(recipient: EmailRecipient, email: BuiltEmail): Promise<EmailResponse> {
+  if (!resend || !EMAIL_FROM) {
+    return {
+      success: false,
+      provider: 'resend',
+      error: `Resend is not configured. Message not sent to ${recipient.email}.`,
+    };
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: [recipient.email],
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+    ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
+  });
+
+  if (error) {
+    return {
+      success: false,
+      provider: 'resend',
+      error: getDeliveryError(error, 'Resend delivery failed'),
+    };
+  }
+
+  return {
+    success: true,
+    provider: 'resend',
+    messageId: data?.id,
+  };
+}
+
+function getZeptoMailMessageId(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const payload = data as Record<string, unknown>;
+
+  if (typeof payload.request_id === 'string') return payload.request_id;
+  if (typeof payload.requestId === 'string') return payload.requestId;
+  if (typeof payload.messageId === 'string') return payload.messageId;
+  if (typeof payload.message_id === 'string') return payload.message_id;
+
+  return undefined;
+}
+
+async function sendViaZeptoMail(recipient: EmailRecipient, email: BuiltEmail): Promise<EmailResponse> {
+  if (!ZEPTOMAIL_SEND_MAIL_TOKEN || !ZEPTOMAIL_FROM.email) {
+    return {
+      success: false,
+      provider: 'zeptomail',
+      error: `ZeptoMail is not configured. Message not sent to ${recipient.email}.`,
+    };
+  }
+
+  const response = await fetch(ZEPTOMAIL_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Zoho-enczapikey ${ZEPTOMAIL_SEND_MAIL_TOKEN}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      from: {
+        address: ZEPTOMAIL_FROM.email,
+        name: ZEPTOMAIL_FROM_NAME,
+      },
+      to: [
+        {
+          email_address: {
+            address: recipient.email,
+            name: recipient.name || recipient.email,
+          },
+        },
+      ],
+      subject: email.subject,
+      htmlbody: email.html,
+      textbody: email.text,
+      ...(ZEPTOMAIL_REPLY_TO.email
+        ? {
+            reply_to: [
+              {
+                address: ZEPTOMAIL_REPLY_TO.email,
+                ...(ZEPTOMAIL_REPLY_TO.name ? { name: ZEPTOMAIL_REPLY_TO.name } : {}),
+              },
+            ],
+          }
+        : {}),
+    }),
+  });
+
+  const text = await response.text();
+  let data: unknown = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+
+  if (!response.ok) {
+    const error =
+      data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
+        ? data.message
+        : text || `ZeptoMail delivery failed with status ${response.status}`;
+
+    return {
+      success: false,
+      provider: 'zeptomail',
+      error,
+    };
+  }
+
+  return {
+    success: true,
+    provider: 'zeptomail',
+    messageId: getZeptoMailMessageId(data),
+  };
+}
+
+async function sendViaProvider(provider: EmailProvider, recipient: EmailRecipient, email: BuiltEmail): Promise<EmailResponse> {
+  if (provider === 'disabled') {
+    return {
+      success: false,
+      provider: 'disabled',
+      error: `Email delivery disabled. Message not sent to ${recipient.email}.`,
+    };
+  }
+
+  if (provider === 'zeptomail') {
+    return sendViaZeptoMail(recipient, email);
+  }
+
+  return sendViaResend(recipient, email);
+}
+
+async function sendWithRetries(
+  provider: EmailProvider,
+  recipient: EmailRecipient,
+  email: BuiltEmail,
+  attempts: number
+): Promise<EmailResponse> {
+  let lastError = 'Email delivery failed';
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const result = await sendViaProvider(provider, recipient, email);
+      if (result.success) return result;
+
+      lastError = result.error || lastError;
+      console.error('[Email] Provider delivery failed:', {
+        provider,
+        recipient: recipient.email,
+        attempt,
+        error: result.error,
+      });
+    } catch (error) {
+      lastError = getDeliveryError(error, 'Unexpected email delivery error');
+      console.error('[Email] Provider delivery error:', {
+        provider,
+        recipient: recipient.email,
+        attempt,
+        error,
+      });
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+    }
+  }
+
+  return {
+    success: false,
+    provider,
+    error: lastError,
+  };
+}
+
+async function sendTransactionalEmail(recipient: EmailRecipient, email: BuiltEmail): Promise<EmailResponse> {
+  const providers = getProviderAttempts();
+  const attemptedProviders: string[] = [];
+  let primaryError: string | undefined;
+
+  for (const provider of providers) {
+    attemptedProviders.push(provider);
+    const attempts = provider === EMAIL_PROVIDER ? EMAIL_DELIVERY_ATTEMPTS : 1;
+    const result = await sendWithRetries(provider, recipient, email, attempts);
+
+    if (result.success) {
+      return {
+        ...result,
+        attemptedProviders,
+        ...(primaryError ? { fallbackError: primaryError } : {}),
+      };
+    }
+
+    if (!primaryError) {
+      primaryError = result.error || `${provider} delivery failed`;
+    }
+  }
+
+  return {
+    success: false,
+    provider: providers[providers.length - 1],
+    attemptedProviders,
+    error: primaryError || 'Email delivery failed after retries',
+  };
 }
 
 function getSubject(params: ClassAssignmentEmailParams): string {
@@ -246,91 +516,10 @@ export async function sendClassAssignmentEmail(
     return [{ success: false, error: 'No recipients provided' }];
   }
 
-  if (EMAIL_PROVIDER !== 'resend') {
-    console.warn('[Email] Email delivery is disabled. EMAIL_PROVIDER is not set to resend.', {
-      provider: EMAIL_PROVIDER,
-      recipientType: params.recipientType,
-      className: params.className,
-      recipientCount: params.recipients.length,
-    });
-
-    return params.recipients.map((recipient) => ({
-      success: false,
-      error: `Email delivery disabled. Message not sent to ${recipient.email}.`,
-    }));
-  }
-
-  if (!resend || !EMAIL_FROM) {
-    console.warn('[Email] Resend is not fully configured. Missing RESEND_API_KEY or EMAIL_FROM.', {
-      hasApiKey: !!RESEND_API_KEY,
-      hasFrom: !!EMAIL_FROM,
-      recipientType: params.recipientType,
-      className: params.className,
-    });
-
-    return params.recipients.map((recipient) => ({
-      success: false,
-      error: `Resend is not configured. Message not sent to ${recipient.email}.`,
-    }));
-  }
-
   const responses = await Promise.all(
     params.recipients.map(async (recipient) => {
       const email = buildClassAssignmentEmail(params, recipient);
-
-      for (let attempt = 1; attempt <= EMAIL_DELIVERY_ATTEMPTS; attempt += 1) {
-        try {
-          const { data, error } = await resend.emails.send({
-            from: EMAIL_FROM,
-            to: [recipient.email],
-            subject: email.subject,
-            html: email.html,
-            text: email.text,
-            ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
-          });
-
-          if (error) {
-            const errorMessage = typeof error === 'string' ? error : error.message || 'Resend delivery failed';
-            console.error('[Email] Resend delivery failed:', {
-              recipient: recipient.email,
-              attempt,
-              error,
-            });
-
-            if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
-              return {
-                success: false,
-                error: errorMessage,
-              };
-            }
-          } else {
-            return {
-              success: true,
-              messageId: data?.id,
-            };
-          }
-        } catch (error) {
-          console.error('[Email] Resend delivery error:', {
-            recipient: recipient.email,
-            attempt,
-            error,
-          });
-
-          if (attempt === EMAIL_DELIVERY_ATTEMPTS) {
-            return {
-              success: false,
-              error: error instanceof Error ? error.message : 'Unexpected email delivery error',
-            };
-          }
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, attempt * 400));
-      }
-
-      return {
-        success: false,
-        error: 'Email delivery failed after retries',
-      };
+      return sendTransactionalEmail(recipient, email);
     })
   );
 
@@ -388,70 +577,8 @@ function buildUserInvitationEmail(params: UserInvitationEmailParams) {
 }
 
 export async function sendUserInvitationEmail(params: UserInvitationEmailParams): Promise<EmailResponse> {
-  if (EMAIL_PROVIDER !== 'resend') {
-    console.warn('[Email] User invitation email delivery is disabled. EMAIL_PROVIDER is not set to resend.', {
-      provider: EMAIL_PROVIDER,
-      recipient: params.recipient.email,
-    });
-
-    return {
-      success: false,
-      error: `Email delivery disabled. Invite not sent to ${params.recipient.email}.`,
-    };
-  }
-
-  if (!resend || !EMAIL_FROM) {
-    console.warn('[Email] Resend is not fully configured for user invitations.', {
-      hasApiKey: !!RESEND_API_KEY,
-      hasFrom: !!EMAIL_FROM,
-      recipient: params.recipient.email,
-    });
-
-    return {
-      success: false,
-      error: `Resend is not configured. Invite not sent to ${params.recipient.email}.`,
-    };
-  }
-
   const email = buildUserInvitationEmail(params);
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: [params.recipient.email],
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
-    });
-
-    if (error) {
-      console.error('[Email] User invitation delivery failed:', {
-        recipient: params.recipient.email,
-        error,
-      });
-
-      return {
-        success: false,
-        error: typeof error === 'string' ? error : error.message || 'Resend delivery failed',
-      };
-    }
-
-    return {
-      success: true,
-      messageId: data?.id,
-    };
-  } catch (error) {
-    console.error('[Email] User invitation delivery error:', {
-      recipient: params.recipient.email,
-      error,
-    });
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unexpected email delivery error',
-    };
-  }
+  return sendTransactionalEmail(params.recipient, email);
 }
 
 function buildPasswordResetEmail(params: PasswordResetEmailParams) {
@@ -509,70 +636,8 @@ function buildPasswordResetEmail(params: PasswordResetEmailParams) {
 }
 
 export async function sendPasswordResetEmail(params: PasswordResetEmailParams): Promise<EmailResponse> {
-  if (EMAIL_PROVIDER !== 'resend') {
-    console.warn('[Email] Password reset email delivery is disabled. EMAIL_PROVIDER is not set to resend.', {
-      provider: EMAIL_PROVIDER,
-      recipient: params.recipient.email,
-    });
-
-    return {
-      success: false,
-      error: `Email delivery disabled. Password reset not sent to ${params.recipient.email}.`,
-    };
-  }
-
-  if (!resend || !EMAIL_FROM) {
-    console.warn('[Email] Resend is not fully configured for password resets.', {
-      hasApiKey: !!RESEND_API_KEY,
-      hasFrom: !!EMAIL_FROM,
-      recipient: params.recipient.email,
-    });
-
-    return {
-      success: false,
-      error: `Resend is not configured. Password reset not sent to ${params.recipient.email}.`,
-    };
-  }
-
   const email = buildPasswordResetEmail(params);
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: [params.recipient.email],
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
-    });
-
-    if (error) {
-      console.error('[Email] Password reset delivery failed:', {
-        recipient: params.recipient.email,
-        error,
-      });
-
-      return {
-        success: false,
-        error: typeof error === 'string' ? error : error.message || 'Resend delivery failed',
-      };
-    }
-
-    return {
-      success: true,
-      messageId: data?.id,
-    };
-  } catch (error) {
-    console.error('[Email] Password reset delivery error:', {
-      recipient: params.recipient.email,
-      error,
-    });
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unexpected email delivery error',
-    };
-  }
+  return sendTransactionalEmail(params.recipient, email);
 }
 
 /**

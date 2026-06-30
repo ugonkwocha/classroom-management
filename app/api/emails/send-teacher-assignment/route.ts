@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       recipientName: `${classData.teacher.firstName} ${classData.teacher.lastName}`,
       recipientRole: 'teacher',
       subject: `Tutor assignment: ${classData.name}`,
+      provider: result?.provider,
       providerMessageId: result?.messageId,
       error: result?.error,
       success: Boolean(result?.success),
@@ -100,6 +101,8 @@ export async function POST(request: NextRequest) {
         className: classData.name,
         courseName: classData.course.name,
         programName: classData.program.name,
+        providerFallbackError: result?.fallbackError || null,
+        attemptedProviders: result?.attemptedProviders || [],
       },
     });
 

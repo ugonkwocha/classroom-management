@@ -81,18 +81,30 @@ async function createEmailLogs({
 }
 
 async function updateEmailLogsWithResults(
-  logs: { id: string }[],
-  results: { success: boolean; messageId?: string; error?: string }[]
+  logs: { id: string; payload?: unknown }[],
+  results: { success: boolean; messageId?: string; provider?: string; error?: string; fallbackError?: string; attemptedProviders?: string[] }[]
 ) {
   await Promise.all(
     logs.map((log, index) => {
       const result = results[index];
+      const existingPayload = log.payload && typeof log.payload === 'object' && !Array.isArray(log.payload) ? log.payload : {};
+      const providerPayload =
+        result?.fallbackError || result?.attemptedProviders
+          ? {
+              ...existingPayload,
+              providerFallbackError: result?.fallbackError || null,
+              attemptedProviders: result?.attemptedProviders || [],
+            }
+          : undefined;
+
       return prisma.emailLog.update({
         where: { id: log.id },
         data: {
           status: result?.success ? 'SENT' : 'FAILED',
+          provider: result?.provider || 'resend',
           providerMessageId: result?.messageId || null,
           error: result?.success ? null : result?.error || 'Email delivery failed',
+          payload: providerPayload,
           sentAt: result?.success ? new Date() : null,
         },
       });

@@ -45,6 +45,16 @@ RUN_DATABASE_SEED=false
 ALLOW_START_WITH_DB_INIT_FAILURE=false
 SEED_ADMIN_EMAIL=admin@9jacodekids.com
 SEED_ADMIN_PASSWORD=<temporary-staging-admin-password>
+EMAIL_PROVIDER=zeptomail
+EMAIL_FALLBACK_PROVIDER=resend
+ZEPTOMAIL_SEND_MAIL_TOKEN=<staging-zeptomail-send-mail-token>
+ZEPTOMAIL_API_URL=https://api.zeptomail.com/v1.1/email
+ZEPTOMAIL_FROM_EMAIL=classes@updates.9jacodekids.com
+ZEPTOMAIL_FROM_NAME=9jacodekids Academy
+ZEPTOMAIL_REPLY_TO_EMAIL=admin@9jacodekids.com
+RESEND_API_KEY=<staging-resend-api-key>
+EMAIL_FROM="9jacodekids Academy <classes@updates.9jacodekids.com>"
+EMAIL_REPLY_TO=admin@9jacodekids.com
 ```
 
 ## Coolify Production App
@@ -72,6 +82,16 @@ JWT_SECRET=<unique-production-secret>
 DB_INIT_MODE=migrate
 RUN_DATABASE_SEED=false
 ALLOW_START_WITH_DB_INIT_FAILURE=false
+EMAIL_PROVIDER=zeptomail
+EMAIL_FALLBACK_PROVIDER=resend
+ZEPTOMAIL_SEND_MAIL_TOKEN=<production-zeptomail-send-mail-token>
+ZEPTOMAIL_API_URL=https://api.zeptomail.com/v1.1/email
+ZEPTOMAIL_FROM_EMAIL=classes@updates.9jacodekids.com
+ZEPTOMAIL_FROM_NAME=9jacodekids Academy
+ZEPTOMAIL_REPLY_TO_EMAIL=admin@9jacodekids.com
+RESEND_API_KEY=<production-resend-api-key>
+EMAIL_FROM="9jacodekids Academy <classes@updates.9jacodekids.com>"
+EMAIL_REPLY_TO=admin@9jacodekids.com
 ```
 
 ## Database Rules
@@ -89,7 +109,8 @@ After each Coolify deployment:
 2. Confirm startup logs show `Database migrations applied successfully`.
 3. Log in to the app.
 4. Check students, classes, programs, and pricing pages.
-5. For staging only, test class assignment flows and Google Meet link display before promoting to production.
+5. For staging only, send one user invite or password reset, then confirm Email Logs show `Zeptomail`.
+6. For staging only, test class assignment flows and Google Meet link display before promoting to production.
 
 ## Promotion Checklist
 
