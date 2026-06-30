@@ -52,6 +52,12 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
+function getPayloadValue(payload: unknown, key: string): string | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 function MetricCard({
   label,
   value,
@@ -270,6 +276,11 @@ export function EmailLogsManagement() {
                     </td>
                     <td className="px-5 py-4">
                       <p className="max-w-sm text-sm text-slate-500">{log.error || 'None'}</p>
+                      {getPayloadValue(log.payload, 'providerFallbackError') && (
+                        <p className="mt-2 max-w-sm rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                          Fallback used: {getPayloadValue(log.payload, 'providerFallbackError')}
+                        </p>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-sm text-slate-500">
                       <p>{formatDate(log.createdAt)}</p>

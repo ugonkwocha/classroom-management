@@ -70,7 +70,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL;
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || process.env.RESEND_REPLY_TO_EMAIL;
 const EMAIL_DELIVERY_ATTEMPTS = 3;
-const ZEPTOMAIL_SEND_MAIL_TOKEN = process.env.ZEPTOMAIL_SEND_MAIL_TOKEN;
+const ZEPTOMAIL_SEND_MAIL_TOKEN = normalizeZeptoMailToken(process.env.ZEPTOMAIL_SEND_MAIL_TOKEN);
 const ZEPTOMAIL_API_URL = process.env.ZEPTOMAIL_API_URL || 'https://api.zeptomail.com/v1.1/email';
 const ZEPTOMAIL_FROM = parseEmailIdentity(process.env.ZEPTOMAIL_FROM_EMAIL || EMAIL_FROM);
 const ZEPTOMAIL_FROM_NAME = process.env.ZEPTOMAIL_FROM_NAME || ZEPTOMAIL_FROM.name || '9jacodekids Academy';
@@ -117,6 +117,13 @@ function getDeliveryError(error: unknown, fallbackMessage: string): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message;
   return fallbackMessage;
+}
+
+function normalizeZeptoMailToken(value?: string | null): string | undefined {
+  const token = (value || '').trim();
+  if (!token) return undefined;
+
+  return token.replace(/^zoho-enczapikey\s+/i, '').trim();
 }
 
 function escapeHtml(value: string | undefined): string {
@@ -173,6 +180,35 @@ function getZeptoMailMessageId(data: unknown): string | undefined {
   if (typeof payload.message_id === 'string') return payload.message_id;
 
   return undefined;
+}
+
+function getZeptoMailError(data: unknown, fallback: string): string {
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (typeof data !== 'object') return fallback;
+
+  const payload = data as Record<string, unknown>;
+  if (typeof payload.message === 'string') return payload.message;
+
+  const error = payload.error;
+  if (error && typeof error === 'object') {
+    const errorPayload = error as Record<string, unknown>;
+    if (typeof errorPayload.message === 'string') return errorPayload.message;
+    if (Array.isArray(errorPayload.details)) {
+      const details = errorPayload.details
+        .map((detail) => {
+          if (!detail || typeof detail !== 'object') return null;
+          const detailPayload = detail as Record<string, unknown>;
+          return typeof detailPayload.message === 'string' ? detailPayload.message : null;
+        })
+        .filter(Boolean)
+        .join('; ');
+
+      if (details) return details;
+    }
+  }
+
+  return fallback;
 }
 
 async function sendViaZeptoMail(recipient: EmailRecipient, email: BuiltEmail): Promise<EmailResponse> {
@@ -232,15 +268,10 @@ async function sendViaZeptoMail(recipient: EmailRecipient, email: BuiltEmail): P
   }
 
   if (!response.ok) {
-    const error =
-      data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
-        ? data.message
-        : text || `ZeptoMail delivery failed with status ${response.status}`;
-
     return {
       success: false,
       provider: 'zeptomail',
-      error,
+      error: getZeptoMailError(data, text || `ZeptoMail delivery failed with status ${response.status}`),
     };
   }
 
