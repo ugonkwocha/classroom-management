@@ -32,6 +32,7 @@ import { ProgramHistoryComparison } from './ProgramHistoryComparison';
 import { RevenueAnalytics } from './RevenueAnalytics';
 import { RevenueForecast } from './RevenueForecast';
 import { DiscountAdoptionAnalysis } from './DiscountAdoptionAnalysis';
+import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
 
 type DashboardTarget = 'students' | 'courses' | 'programs' | 'classes' | 'teachers' | 'pricing';
 
@@ -402,17 +403,34 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
   }, [activeClasses, analyticsViewMode, analyticsYearFilter, getClassProgram, programs, students]);
 
   const programDistribution = useMemo(() => {
+    const paidEnrollmentRows = getConfirmedPaidEnrollmentRows(students);
     const getFilteredStudents = (programLevelName: string) =>
-      students.filter((student) =>
-        activeClasses.some((classItem) => {
-          if (classItem.programLevel !== programLevelName) return false;
-          if (selectedProgram && classItem.programId !== selectedProgram) return false;
+      new Set(
+        paidEnrollmentRows
+          .filter(({ enrollment }) => {
+            if (selectedProgram && enrollment.programId !== selectedProgram) return false;
+            const assignedClass = enrollment.classId
+              ? activeClasses.find((classItem) => classItem.id === enrollment.classId)
+              : null;
 
-          return getEnrollments(student).some(
-            (enrollment) => enrollment.classId === classItem.id && enrollment.status === 'ASSIGNED'
-          );
-        })
-      ).length;
+            if (assignedClass) {
+              return assignedClass.programLevel === programLevelName;
+            }
+
+            const possibleLevels = new Set(
+              activeClasses
+                .filter(
+                  (classItem) =>
+                    classItem.programId === enrollment.programId &&
+                    classItem.batch === enrollment.batchNumber
+                )
+                .map((classItem) => classItem.programLevel)
+            );
+
+            return possibleLevels.size === 1 && possibleLevels.has(programLevelName);
+          })
+          .map(({ student }) => student.id)
+      ).size;
 
     return settings.reduce<Record<string, number>>((acc, setting) => {
       acc[setting.level] = getFilteredStudents(setting.level);
@@ -421,9 +439,11 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
   }, [activeClasses, selectedProgram, settings, students]);
 
   const filteredStudentsCount = selectedProgram
-    ? students.filter((student) =>
-        getEnrollments(student).some((enrollment) => enrollment.programId === selectedProgram && enrollment.status === 'ASSIGNED')
-      ).length
+    ? new Set(
+        getConfirmedPaidEnrollmentRows(students)
+          .filter(({ enrollment }) => enrollment.programId === selectedProgram)
+          .map(({ student }) => student.id)
+      ).size
     : Object.values(programDistribution).reduce((sum, count) => sum + count, 0);
 
   const upcomingClasses = useMemo(

@@ -47,6 +47,9 @@ export async function GET(request: NextRequest) {
                 role: true,
               },
             },
+            paymentRecords: {
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
         courseHistory: true,
@@ -165,6 +168,9 @@ export async function POST(request: NextRequest) {
                   email: true,
                   role: true,
                 },
+              },
+              paymentRecords: {
+                orderBy: { createdAt: 'desc' },
               },
             },
           },

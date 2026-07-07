@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Student, Program, Class } from '@/types';
 import { formatCurrency } from '@/lib/constants/pricing';
+import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
 
 interface RevenueForecastProps {
   students: Student[];
@@ -29,19 +30,13 @@ export function RevenueForecast({ students, programs, classes }: RevenueForecast
       const programClasses = classes.filter((c) => c.programId === program.id && !c.isArchived);
 
       // Count current enrollments
-      const currentEnrollments = students.flatMap((s) => {
-        if (!s.programEnrollments) return [];
-        return s.programEnrollments.filter(
-          (e) =>
-            e.programId === program.id &&
-            e.status === 'ASSIGNED' &&
-            (e.paymentStatus === 'CONFIRMED' || e.paymentStatus === 'COMPLETED')
-        );
-      });
+      const currentEnrollments = getConfirmedPaidEnrollmentRows(students).filter(
+        ({ enrollment }) => enrollment.programId === program.id
+      );
 
       // Calculate confirmed revenue from existing enrollments
       const confirmedRevenue = currentEnrollments.reduce(
-        (sum, e) => sum + (e.priceAmount || 60000),
+        (sum, row) => sum + row.amount,
         0
       );
 

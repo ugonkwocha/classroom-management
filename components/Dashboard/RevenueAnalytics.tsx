@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Student, Program, PriceType } from '@/types';
 import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
 
 interface RevenueAnalyticsProps {
   students: Student[];
@@ -37,19 +38,13 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
 
   // Calculate revenue data
   const revenueData = useMemo(() => {
-    const confirmedEnrollments = students.flatMap((student) => {
-      if (!student.programEnrollments) return [];
-      return student.programEnrollments.filter(
-        (e) =>
-          e.status === 'ASSIGNED' &&
-          (e.paymentStatus === 'CONFIRMED' || e.paymentStatus === 'COMPLETED') &&
-          filteredPrograms.some((p) => p.id === e.programId)
-      );
-    });
+    const confirmedEnrollments = getConfirmedPaidEnrollmentRows(students).filter(({ enrollment }) =>
+      filteredPrograms.some((p) => p.id === enrollment.programId)
+    );
 
     // Calculate totals
     const totalRevenue = confirmedEnrollments.reduce(
-      (sum, e) => sum + (e.priceAmount || 60000),
+      (sum, row) => sum + row.amount,
       0
     );
 
@@ -63,10 +58,10 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
       EARLY_BIRD: { count: 0, revenue: 0 },
     };
 
-    confirmedEnrollments.forEach((e) => {
-      const priceType = (e.priceType || 'FULL_PRICE') as PriceType;
+    confirmedEnrollments.forEach(({ enrollment, amount }) => {
+      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
       byPriceType[priceType].count += 1;
-      byPriceType[priceType].revenue += e.priceAmount || 60000;
+      byPriceType[priceType].revenue += amount;
     });
 
     // Group by program
@@ -80,11 +75,11 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
       }
     > = {};
 
-    confirmedEnrollments.forEach((e) => {
-      if (!byProgram[e.programId]) {
-        const prog = filteredPrograms.find((p) => p.id === e.programId);
-        byProgram[e.programId] = {
-          programName: prog ? `${prog.name} - ${prog.season} ${prog.year}` : e.programId,
+    confirmedEnrollments.forEach(({ enrollment, amount }) => {
+      if (!byProgram[enrollment.programId]) {
+        const prog = filteredPrograms.find((p) => p.id === enrollment.programId);
+        byProgram[enrollment.programId] = {
+          programName: prog ? `${prog.name} - ${prog.season} ${prog.year}` : enrollment.programId,
           count: 0,
           revenue: 0,
           byPriceType: {
@@ -95,17 +90,14 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
         };
       }
 
-      byProgram[e.programId].count += 1;
-      byProgram[e.programId].revenue += e.priceAmount || 60000;
-      const priceType = (e.priceType || 'FULL_PRICE') as PriceType;
-      byProgram[e.programId].byPriceType[priceType] += 1;
+      byProgram[enrollment.programId].count += 1;
+      byProgram[enrollment.programId].revenue += amount;
+      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
+      byProgram[enrollment.programId].byPriceType[priceType] += 1;
     });
 
     const uniqueStudents = new Set(
-      confirmedEnrollments.map((e) => {
-        const student = students.find((s) => s.programEnrollments?.some((en) => en.id === e.id));
-        return student?.id;
-      })
+      confirmedEnrollments.map(({ student }) => student.id)
     ).size;
 
     return {

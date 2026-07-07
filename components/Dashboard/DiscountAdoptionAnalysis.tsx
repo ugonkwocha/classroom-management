@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Student, Program, PriceType } from '@/types';
 import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
 
 interface DiscountAdoptionAnalysisProps {
   students: Student[];
@@ -10,23 +11,11 @@ interface DiscountAdoptionAnalysisProps {
 }
 
 const FULL_PRICE_AMOUNT = 60000;
-const DISCOUNT_PRICES: Record<PriceType, number> = {
-  FULL_PRICE: 60000,
-  SIBLING_DISCOUNT: 56000,
-  EARLY_BIRD: 54000,
-};
 
 export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptionAnalysisProps) {
   const analysisData = useMemo(() => {
     // Get all confirmed enrollments
-    const confirmedEnrollments = students.flatMap((student) => {
-      if (!student.programEnrollments) return [];
-      return student.programEnrollments.filter(
-        (e) =>
-          e.status === 'ASSIGNED' &&
-          (e.paymentStatus === 'CONFIRMED' || e.paymentStatus === 'COMPLETED')
-      );
-    });
+    const confirmedEnrollments = getConfirmedPaidEnrollmentRows(students);
 
     const totalEnrollments = confirmedEnrollments.length;
 
@@ -40,9 +29,8 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
       EARLY_BIRD: { count: 0, revenue: 0, discount: 0 },
     };
 
-    confirmedEnrollments.forEach((e) => {
-      const priceType = (e.priceType || 'FULL_PRICE') as PriceType;
-      const amount = e.priceAmount || DISCOUNT_PRICES[priceType];
+    confirmedEnrollments.forEach(({ enrollment, amount }) => {
+      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
       const discountFromFullPrice = FULL_PRICE_AMOUNT - amount;
 
       byPriceType[priceType].count += 1;
@@ -76,11 +64,11 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
       }
     > = {};
 
-    confirmedEnrollments.forEach((e) => {
-      if (!byProgram[e.programId]) {
-        const prog = programs.find((p) => p.id === e.programId);
-        byProgram[e.programId] = {
-          programName: prog ? `${prog.name} - ${prog.season} ${prog.year}` : e.programId,
+    confirmedEnrollments.forEach(({ enrollment, amount }) => {
+      if (!byProgram[enrollment.programId]) {
+        const prog = programs.find((p) => p.id === enrollment.programId);
+        byProgram[enrollment.programId] = {
+          programName: prog ? `${prog.name} - ${prog.season} ${prog.year}` : enrollment.programId,
           totalEnrollments: 0,
           discountedEnrollments: 0,
           discountRate: 0,
@@ -93,14 +81,14 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
         };
       }
 
-      byProgram[e.programId].totalEnrollments += 1;
-      const priceType = (e.priceType || 'FULL_PRICE') as PriceType;
-      byProgram[e.programId].byPriceType[priceType] += 1;
+      byProgram[enrollment.programId].totalEnrollments += 1;
+      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
+      byProgram[enrollment.programId].byPriceType[priceType] += 1;
 
       if (priceType !== 'FULL_PRICE') {
-        byProgram[e.programId].discountedEnrollments += 1;
-        const discountAmount = FULL_PRICE_AMOUNT - (e.priceAmount || DISCOUNT_PRICES[priceType]);
-        byProgram[e.programId].totalDiscount += discountAmount;
+        byProgram[enrollment.programId].discountedEnrollments += 1;
+        const discountAmount = FULL_PRICE_AMOUNT - amount;
+        byProgram[enrollment.programId].totalDiscount += discountAmount;
       }
     });
 
