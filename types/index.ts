@@ -10,6 +10,7 @@ export type EmailEventType =
   | 'CLASS_ASSIGNMENT'
   | 'PREPARATION_INSTRUCTIONS'
   | 'TEACHER_ASSIGNMENT'
+  | 'TUTOR_ROSTER_UPDATE'
   | 'USER_INVITATION'
   | 'PASSWORD_RESET';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';

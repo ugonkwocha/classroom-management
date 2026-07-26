@@ -30,6 +30,7 @@ const eventLabels: Record<EmailEventType, string> = {
   CLASS_ASSIGNMENT: 'Class assignment',
   PREPARATION_INSTRUCTIONS: 'Preparation instructions',
   TEACHER_ASSIGNMENT: 'Tutor assignment',
+  TUTOR_ROSTER_UPDATE: 'Tutor roster update',
   USER_INVITATION: 'User invitation',
   PASSWORD_RESET: 'Password reset',
 };
@@ -212,6 +213,7 @@ export function EmailLogsManagement() {
               <option value="CLASS_ASSIGNMENT">Class assignment</option>
               <option value="PREPARATION_INSTRUCTIONS">Preparation instructions</option>
               <option value="TEACHER_ASSIGNMENT">Tutor assignment</option>
+              <option value="TUTOR_ROSTER_UPDATE">Tutor roster update</option>
               <option value="USER_INVITATION">User invitation</option>
               <option value="PASSWORD_RESET">Password reset</option>
             </select>

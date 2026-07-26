@@ -30,6 +30,21 @@ interface ClassAssignmentEmailParams {
   };
 }
 
+interface TutorClassEmailParams {
+  recipients: EmailRecipient[];
+  className: string;
+  courseName: string;
+  programName: string;
+  batch: number;
+  slot: string;
+  schedule: string;
+  tutorName: string;
+  meetLink?: string;
+  assignedOn: string;
+  studentNames: string[];
+  emailType: 'assignment' | 'roster_update';
+}
+
 interface EmailResponse {
   success: boolean;
   messageId?: string;
@@ -555,6 +570,142 @@ export async function sendClassAssignmentEmail(
   );
 
   return responses;
+}
+
+function buildTutorClassEmail(params: TutorClassEmailParams, recipient: EmailRecipient): BuiltEmail {
+  const subject =
+    params.emailType === 'roster_update'
+      ? `Updated class roster: ${params.className}`
+      : `Tutor assignment: ${params.className}`;
+  const safeClassName = escapeHtml(params.className);
+  const safeCourseName = escapeHtml(params.courseName);
+  const safeProgramName = escapeHtml(params.programName);
+  const safeSlot = escapeHtml(params.slot);
+  const safeSchedule = escapeHtml(params.schedule);
+  const safeTutorName = escapeHtml(recipient.name || params.tutorName);
+  const safeMeetLink = escapeHtml(params.meetLink);
+  const safeAssignedOn = escapeHtml(params.assignedOn);
+  const safeStudentNames = params.studentNames.map((name) => escapeHtml(name));
+  const rosterCount = safeStudentNames.length;
+  const intro =
+    params.emailType === 'roster_update'
+      ? `Hello ${safeTutorName}, here is the current student roster for your class at 9jacodekids Academy.`
+      : `Hello ${safeTutorName}, you have been assigned as a tutor for a class at 9jacodekids Academy.`;
+  const rosterHtml = rosterCount
+    ? `
+      <ol style="margin:12px 0 0;padding-left:24px;color:#0f172a;font-size:14px;line-height:1.8;">
+        ${safeStudentNames.map((name) => `<li style="padding-left:4px;">${name}</li>`).join('')}
+      </ol>
+    `
+    : '<p style="margin:12px 0 0;color:#64748b;font-size:14px;line-height:1.6;">No students are currently assigned to this class.</p>';
+  const meetLinkHtml = params.meetLink
+    ? `<a href="${safeMeetLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Join Google Meet</a>`
+    : '<span style="color:#64748b;">Meet link will be shared by the academy team.</span>';
+
+  const html = `
+    <div style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+        <div style="background:#06244a;border-radius:18px;padding:24px;color:#ffffff;">
+          <div style="font-size:22px;font-weight:800;letter-spacing:.2px;">9jacodekids Academy</div>
+          <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Class Management System</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;margin-top:18px;padding:28px;">
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#0f172a;">${safeClassName}</h1>
+          <p style="margin:0 0 22px;color:#475569;font-size:15px;line-height:1.65;">${intro}</p>
+
+          <div style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Course</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeCourseName}</div>
+            </div>
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Program</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeProgramName}</div>
+            </div>
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Batch / Slot</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">Batch ${params.batch} · ${safeSlot}</div>
+            </div>
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Schedule</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeSchedule}</div>
+            </div>
+            <div style="display:flex;border-bottom:1px solid #e2e8f0;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">Tutor</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeTutorName}</div>
+            </div>
+            <div style="display:flex;">
+              <div style="width:42%;background:#f8fafc;padding:12px 14px;color:#64748b;font-size:13px;font-weight:700;">${params.emailType === 'roster_update' ? 'Roster Sent On' : 'Assigned On'}</div>
+              <div style="padding:12px 14px;font-size:14px;font-weight:700;">${safeAssignedOn}</div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;padding:18px;">
+            <h2 style="margin:0;color:#1e3a8a;font-size:17px;line-height:1.4;">Current students (${rosterCount})</h2>
+            ${rosterHtml}
+            <p style="margin:14px 0 0;color:#64748b;font-size:12px;line-height:1.6;">
+              This roster reflects the students assigned to the class at the time this email was sent.
+            </p>
+          </div>
+
+          <div style="margin-top:24px;">${meetLinkHtml}</div>
+          ${
+            params.meetLink
+              ? `<p style="margin:18px 0 0;color:#475569;font-size:13px;line-height:1.6;">Meet link: <a href="${safeMeetLink}" style="color:#2563eb;">${safeMeetLink}</a></p>`
+              : ''
+          }
+        </div>
+
+        <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">
+          Sent by 9jacodekids Academy.
+        </p>
+      </div>
+    </div>
+  `;
+
+  const rosterText = params.studentNames.length
+    ? params.studentNames.map((name, index) => `${index + 1}. ${name}`).join('\n')
+    : 'No students are currently assigned to this class.';
+  const text = [
+    '9jacodekids Academy',
+    '',
+    params.emailType === 'roster_update'
+      ? `Hello ${recipient.name || params.tutorName}, here is the current student roster for your class at 9jacodekids Academy.`
+      : `Hello ${recipient.name || params.tutorName}, you have been assigned as a tutor for a class at 9jacodekids Academy.`,
+    '',
+    `Class: ${params.className}`,
+    `Course: ${params.courseName}`,
+    `Program: ${params.programName}`,
+    `Batch / Slot: Batch ${params.batch} - ${params.slot}`,
+    `Schedule: ${params.schedule}`,
+    `Tutor: ${recipient.name || params.tutorName}`,
+    `${params.emailType === 'roster_update' ? 'Roster Sent On' : 'Assigned On'}: ${params.assignedOn}`,
+    '',
+    `Current students (${params.studentNames.length})`,
+    rosterText,
+    '',
+    'This roster reflects the students assigned to the class at the time this email was sent.',
+    params.meetLink ? `Google Meet: ${params.meetLink}` : 'Google Meet: Link will be shared by the academy team.',
+  ].join('\n');
+
+  return { subject, html, text };
+}
+
+export async function sendTutorClassEmail(
+  params: TutorClassEmailParams
+): Promise<EmailResponse[]> {
+  if (!params.recipients || params.recipients.length === 0) {
+    console.warn('[Email] No tutor recipients provided');
+    return [{ success: false, error: 'No tutor recipients provided' }];
+  }
+
+  return Promise.all(
+    params.recipients.map(async (recipient) => {
+      const email = buildTutorClassEmail(params, recipient);
+      return sendTransactionalEmail(recipient, email);
+    })
+  );
 }
 
 function buildUserInvitationEmail(params: UserInvitationEmailParams) {
