@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import {
+  parseProgramBatchSchedules,
+  ProgramBatchScheduleValidationError,
+} from '@/lib/program-batch-schedules';
 
 export async function GET(
   request: NextRequest,
@@ -44,6 +48,9 @@ export async function GET(
             student: true,
             class: true,
           },
+        },
+        batchSchedules: {
+          orderBy: { batchNumber: 'asc' },
         },
       },
     });
@@ -92,30 +99,54 @@ export async function PUT(
 
   try {
     const data = await request.json();
+    const batches = Number(data.batches);
+    const shouldReplaceBatchSchedules = Array.isArray(data.batchSchedules);
+    const batchSchedules = shouldReplaceBatchSchedules
+      ? parseProgramBatchSchedules(data.batchSchedules, batches)
+      : [];
 
-    const program = await prisma.program.update({
-      where: { id: id },
-      data: {
-        name: data.name,
-        type: data.type,
-        season: data.season,
-        year: data.year,
-        batches: data.batches,
-        slots: data.slots,
-        startDate: data.startDate ? new Date(data.startDate) : undefined,
-      },
-      include: {
-        classes: true,
-        enrollments: true,
-      },
+    const program = await prisma.$transaction(async (tx) => {
+      await tx.program.update({
+        where: { id },
+        data: {
+          name: data.name,
+          type: data.type,
+          season: data.season,
+          year: data.year,
+          batches,
+          slots: data.slots,
+          startDate: data.startDate ? new Date(data.startDate) : undefined,
+        },
+      });
+
+      if (shouldReplaceBatchSchedules) {
+        await tx.programBatchSchedule.deleteMany({ where: { programId: id } });
+        if (batchSchedules.length > 0) {
+          await tx.programBatchSchedule.createMany({
+            data: batchSchedules.map((schedule) => ({ ...schedule, programId: id })),
+          });
+        }
+      }
+
+      return tx.program.findUniqueOrThrow({
+        where: { id },
+        include: {
+          classes: true,
+          enrollments: true,
+          batchSchedules: {
+            orderBy: { batchNumber: 'asc' },
+          },
+        },
+      });
     });
 
     return NextResponse.json(program);
   } catch (error) {
     console.error('Error updating program:', error);
+    const isValidationError = error instanceof ProgramBatchScheduleValidationError;
     return NextResponse.json(
-      { error: 'Failed to update program' },
-      { status: 500 }
+      { error: isValidationError ? error.message : 'Failed to update program' },
+      { status: isValidationError ? 400 : 500 }
     );
   }
 }

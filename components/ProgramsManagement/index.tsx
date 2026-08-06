@@ -18,6 +18,7 @@ export function ProgramsManagement() {
   const [editingProgram, setEditingProgram] = useState<Program | undefined>();
   const [viewingProgram, setViewingProgram] = useState<Program | undefined>();
   const [filter, setFilter] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const canCreate = hasPermission(PERMISSIONS.CREATE_PROGRAM);
   const canEdit = hasPermission(PERMISSIONS.UPDATE_PROGRAM);
@@ -28,14 +29,22 @@ export function ProgramsManagement() {
     program.season.toLowerCase().includes(filter.toLowerCase())
   );
 
-  const handleSubmit = (programData: Omit<Program, 'id' | 'createdAt'>) => {
-    if (editingProgram) {
-      updateProgram(editingProgram.id, programData);
-      setEditingProgram(undefined);
-    } else {
-      addProgram(programData);
+  const handleSubmit = async (programData: Omit<Program, 'id' | 'createdAt'>) => {
+    setIsSaving(true);
+    try {
+      if (editingProgram) {
+        await updateProgram(editingProgram.id, programData);
+        setEditingProgram(undefined);
+      } else {
+        await addProgram(programData);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to save program');
+      throw error;
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
   const handleEdit = (program: Program) => {
@@ -164,7 +173,7 @@ export function ProgramsManagement() {
       </section>
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingProgram ? 'Edit Program' : 'Add New Program'}>
-        <ProgramForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingProgram} />
+        <ProgramForm onSubmit={handleSubmit} onCancel={handleCloseModal} initialData={editingProgram} isLoading={isSaving} />
       </Modal>
 
       <Modal isOpen={!!viewingProgram} onClose={handleCloseDetailsView} title="" size="lg">

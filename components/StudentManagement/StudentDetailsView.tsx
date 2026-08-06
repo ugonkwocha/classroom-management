@@ -13,6 +13,10 @@ import { formatCurrency } from '@/lib/constants/pricing';
 import { formatPhoneNumberForDisplay } from '@/lib/constants/countries';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import {
+  BatchEnrollmentAvailability,
+  getBatchEnrollmentAvailability,
+} from '@/lib/program-enrollment-availability';
 
 interface StudentDetailsViewProps {
   student: Student;
@@ -25,6 +29,7 @@ type BatchPaymentSelection = {
   paymentConfirmed: boolean;
   priceType: PriceType;
   existingEnrollment?: ProgramEnrollment;
+  availability: BatchEnrollmentAvailability;
 };
 
 const isActiveProgramEnrollment = (enrollment: ProgramEnrollment) =>
@@ -47,39 +52,6 @@ function formatResendMessage(data: any) {
 
   return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
 }
-
-// Helper function to check if a program can accept new enrollments based on start date
-const canEnrollInProgram = (program: any): { allowed: boolean; reason?: string } => {
-  if (!program.startDate) {
-    return { allowed: false, reason: 'Program start date is missing' };
-  }
-
-  const startDate = new Date(program.startDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (program.type === 'WEEKEND_CLUB') {
-    // Weekend clubs: can enroll up to 4 weeks (28 days) after start
-    if (daysPassed > 28) {
-      return {
-        allowed: false,
-        reason: `Cannot enroll in weekend programs more than 4 weeks after the start date (${daysPassed} days have passed)`,
-      };
-    }
-  } else if (program.type === 'HOLIDAY_CAMP') {
-    // Holiday camps: can enroll up to 5 days after start
-    if (daysPassed > 5) {
-      return {
-        allowed: false,
-        reason: `Cannot enroll in holiday programs more than 5 days after the start date (${daysPassed} days have passed)`,
-      };
-    }
-  }
-
-  return { allowed: true };
-};
 
 export function StudentDetailsView({ student: initialStudent, onClose, onEdit }: StudentDetailsViewProps) {
   const { classes, updateClass } = useClasses();
@@ -726,9 +698,17 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                       .filter((e) => e.programId === program.id && isActiveProgramEnrollment(e))
                       .map((e) => e.batchNumber))).sort((a, b) => a - b);
                     const allBatchesEnrolled = enrolledBatches.length === program.batches;
-                    const enrollmentCheck = canEnrollInProgram(program);
-                    const isDisabled = allBatchesEnrolled || !enrollmentCheck.allowed;
-                    const disabledReason = allBatchesEnrolled ? 'Enrolled in all batches' : enrollmentCheck.reason;
+                    const batchAvailability = Array.from(
+                      { length: program.batches },
+                      (_, index) => getBatchEnrollmentAvailability(program, index + 1)
+                    );
+                    const hasOpenNewBatch = batchAvailability.some(
+                      (availability) => availability.allowed && !enrolledBatches.includes(availability.batchNumber)
+                    );
+                    const isDisabled = allBatchesEnrolled || !hasOpenNewBatch;
+                    const disabledReason = allBatchesEnrolled
+                      ? 'Enrolled in all batches'
+                      : 'No un-enrolled batches are currently open.';
 
                     return (
                       <div key={program.id} title={isDisabled ? disabledReason : ''}>
@@ -753,6 +733,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                                     : false,
                                   priceType: existingEnrollment?.priceType || 'FULL_PRICE',
                                   existingEnrollment,
+                                  availability: batchAvailability[i],
                                 };
                               });
                               setSelectedBatchesForPayment(batchesForPayment);
@@ -829,6 +810,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                 {selectedBatchesForPayment.map((batch) => {
                   const existingEnrollment = batch.existingEnrollment;
                   const isExistingBatch = Boolean(existingEnrollment);
+                  const isClosedNewBatch = !isExistingBatch && !batch.availability.allowed;
                   const existingPaymentStatus = normalizePaymentStatus(existingEnrollment?.paymentStatus);
                   const assignedClass = existingEnrollment?.classId
                     ? classes.find((classItem) => classItem.id === existingEnrollment.classId)
@@ -837,21 +819,26 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     ? existingPaymentStatus === 'CONFIRMED'
                       ? 'bg-green-50 border border-green-200'
                       : 'bg-amber-50 border border-amber-200'
+                    : isClosedNewBatch
+                      ? 'bg-slate-50 border border-slate-200'
                     : 'bg-yellow-50 border border-yellow-200';
                   const labelClassName = isExistingBatch
                     ? existingPaymentStatus === 'CONFIRMED'
                       ? 'text-green-800'
                       : 'text-amber-800'
+                    : isClosedNewBatch
+                      ? 'text-slate-500'
                     : 'text-yellow-800';
+                  const isBatchDisabled = isExistingBatch || isClosedNewBatch;
 
                   return (
                     <div key={batch.batchNumber} className={`${cardClassName} rounded-lg p-4`}>
                       <div className="mb-3">
-                        <label className={`flex items-center gap-3 ${isExistingBatch ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <label className={`flex items-center gap-3 ${isBatchDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                           <input
                             type="checkbox"
                             checked={batch.paymentConfirmed}
-                            disabled={isExistingBatch}
+                            disabled={isBatchDisabled}
                             onChange={() => {
                               setSelectedBatchesForPayment(
                                 selectedBatchesForPayment.map((b) =>
@@ -861,11 +848,13 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                                 )
                               );
                             }}
-                            className={`w-4 h-4 ${isExistingBatch ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            className={`w-4 h-4 ${isBatchDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                           />
                           <span className={`text-sm font-medium ${labelClassName}`}>
                             Batch {batch.batchNumber} - {isExistingBatch
                               ? `Already enrolled / Payment ${existingPaymentStatus === 'CONFIRMED' ? 'Confirmed' : 'Pending'}`
+                              : isClosedNewBatch
+                                ? 'Closed for new enrollment'
                               : `Payment ${batch.paymentConfirmed ? 'Confirmed' : 'Pending'}`}
                           </span>
                         </label>
@@ -878,9 +867,14 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                                 : 'Awaiting class assignment.'}
                           </p>
                         )}
+                        {isClosedNewBatch && (
+                          <p className="ml-7 mt-2 text-xs text-slate-500">
+                            {batch.availability.reason}
+                          </p>
+                        )}
                       </div>
 
-                      {batch.paymentConfirmed && !isExistingBatch && (
+                      {batch.paymentConfirmed && !isBatchDisabled && (
                         <div className="ml-7 space-y-2">
                           <p className="text-xs text-gray-600 mb-2">Select pricing option:</p>
                           {priceOptions.map((option) => (
@@ -932,18 +926,20 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
                     const program = programs.find((p) => p.id === enrollmentFlow.programId);
                     if (!program) return;
 
-                    const enrollmentCheck = canEnrollInProgram(program);
-                    if (!enrollmentCheck.allowed) {
-                      alert(enrollmentCheck.reason);
-                      return;
-                    }
-
                     // Create enrollments only for batches with confirmed payment
                     const batchesWithPayment = selectedBatchesForPayment.filter((b) => b.paymentConfirmed && !b.existingEnrollment);
 
                     // Only enroll in batches with confirmed payment
                     if (batchesWithPayment.length === 0) {
                       alert('Please confirm payment for at least one batch to proceed.');
+                      return;
+                    }
+
+                    const closedBatch = batchesWithPayment
+                      .map((batch) => getBatchEnrollmentAvailability(program, batch.batchNumber))
+                      .find((availability) => !availability.allowed);
+                    if (closedBatch) {
+                      alert(closedBatch.reason || `Batch ${closedBatch.batchNumber} is no longer open for enrollment.`);
                       return;
                     }
 

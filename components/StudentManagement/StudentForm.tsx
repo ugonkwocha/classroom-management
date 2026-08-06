@@ -8,6 +8,7 @@ import { calculateAge, generateId } from '@/lib/utils';
 import { formatCurrency } from '@/lib/constants/pricing';
 import { validatePhoneNumber } from '@/lib/constants/countries';
 import { formatGuardianName, normalizeEmail, normalizePhone } from '@/lib/family-utils';
+import { getBatchEnrollmentAvailability } from '@/lib/program-enrollment-availability';
 
 interface StudentFormProps {
   onSubmit: (studentData: Omit<Student, 'id' | 'createdAt'>) => Promise<void>;
@@ -217,6 +218,17 @@ export function StudentForm({
     }
     if (enrollInProgram && selectedProgram && selectedBatches.length === 0) {
       newErrors.selectedBatches = 'Please select at least one batch and its pricing';
+    }
+    if (enrollInProgram && selectedProgram && selectedBatches.length > 0) {
+      const program = programs.find((item) => item.id === selectedProgram);
+      const closedBatch = program
+        ? selectedBatches
+            .map((batch) => getBatchEnrollmentAvailability(program, batch.batchNumber))
+            .find((availability) => !availability.allowed)
+        : null;
+      if (closedBatch) {
+        newErrors.selectedBatches = closedBatch.reason || `Batch ${closedBatch.batchNumber} is closed.`;
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -598,14 +610,19 @@ export function StudentForm({
                       {Array.from({ length: program?.batches || 1 }, (_, i) => i + 1).map((batchNum) => {
                         const isBatchSelected = selectedBatches.some((b) => b.batchNumber === batchNum);
                         const batchPriceType = selectedBatches.find((b) => b.batchNumber === batchNum)?.priceType || 'FULL_PRICE';
+                        const availability = program
+                          ? getBatchEnrollmentAvailability(program, batchNum)
+                          : null;
+                        const isClosed = availability ? !availability.allowed : true;
 
                         return (
-                          <div key={batchNum} className="border rounded-lg p-4 bg-white">
+                          <div key={batchNum} className={`border rounded-lg p-4 ${isClosed ? 'border-slate-200 bg-slate-50' : 'bg-white'}`}>
                             <div className="mb-3">
-                              <label className="flex items-center gap-3 cursor-pointer">
+                              <label className={`flex items-center gap-3 ${isClosed ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                 <input
                                   type="checkbox"
                                   checked={isBatchSelected}
+                                  disabled={isClosed}
                                   onChange={(e) => {
                                     if (e.target.checked) {
                                       setSelectedBatches([
@@ -624,8 +641,13 @@ export function StudentForm({
                                   }}
                                   className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
                                 />
-                                <span className="font-semibold text-gray-900">Batch {batchNum}</span>
+                                <span className={`font-semibold ${isClosed ? 'text-slate-500' : 'text-gray-900'}`}>
+                                  Batch {batchNum}{isClosed ? ' - Closed' : ''}
+                                </span>
                               </label>
+                              {isClosed && (
+                                <p className="ml-7 mt-2 text-xs text-slate-500">{availability?.reason}</p>
+                              )}
                             </div>
 
                             {isBatchSelected && (

@@ -5,6 +5,7 @@ import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
 import { ensureClassHasActivePreparationTemplate, MISSING_PREPARATION_TEMPLATE_ERROR } from '@/lib/course-email-template-requirements';
+import { getBatchEnrollmentAvailability } from '@/lib/program-enrollment-availability';
 
 export async function GET(request: NextRequest) {
   const sessionUser = await getActiveSessionUser(request);
@@ -95,9 +96,14 @@ export async function POST(request: NextRequest) {
     console.log('[API] Creating enrollment with data:', data);
     console.log('[API] Stack trace:', new Error().stack);
 
-    // Fetch the program to check if enrollment is allowed based on start date
+    const batchNumber = Number(data.batchNumber || 1);
+
+    // Fetch batch schedules with the legacy program date retained as a fallback.
     const program = await prisma.program.findUnique({
       where: { id: data.programId },
+      include: {
+        batchSchedules: true,
+      },
     });
 
     if (!program) {
@@ -107,28 +113,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if program can accept enrollments based on start date
-    if (program.startDate) {
-      const startDate = new Date(program.startDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (program.type === 'WEEKEND_CLUB' && daysPassed > 28) {
-        return NextResponse.json(
-          { error: `Cannot enroll in weekend programs more than 4 weeks after the start date (${daysPassed} days have passed)` },
-          { status: 400 }
-        );
-      } else if (program.type === 'HOLIDAY_CAMP' && daysPassed > 5) {
-        return NextResponse.json(
-          { error: `Cannot enroll in holiday programs more than 5 days after the start date (${daysPassed} days have passed)` },
-          { status: 400 }
-        );
-      }
+    const availability = getBatchEnrollmentAvailability(program, batchNumber);
+    if (!availability.allowed) {
+      return NextResponse.json(
+        { error: availability.reason || `Batch ${batchNumber} is not open for enrollment.` },
+        { status: 400 }
+      );
     }
 
-    const batchNumber = data.batchNumber || 1;
     const existingEnrollment = await prisma.programEnrollment.findFirst({
       where: {
         studentId: data.studentId,

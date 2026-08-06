@@ -106,7 +106,17 @@ export interface Program {
   batches: number;
   slots: string[];
   startDate: string;
+  batchSchedules?: ProgramBatchSchedule[];
   createdAt: string;
+}
+
+export interface ProgramBatchSchedule {
+  id?: string;
+  programId?: string;
+  batchNumber: number;
+  startDate: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FluentFormMapping {

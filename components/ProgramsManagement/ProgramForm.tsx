@@ -5,7 +5,7 @@ import { Program, ProgramType, Season } from '@/types';
 import { Input, Select, Button } from '@/components/ui';
 
 interface ProgramFormProps {
-  onSubmit: (program: Omit<Program, 'id' | 'createdAt'>) => void;
+  onSubmit: (program: Omit<Program, 'id' | 'createdAt'>) => Promise<void>;
   onCancel?: () => void;
   initialData?: Program;
   isLoading?: boolean;
@@ -24,6 +24,13 @@ const seasonOptions = [
   { value: 'OCTOBER', label: 'October (1st Term)' },
 ];
 
+const toDateInputValue = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+};
+
 export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false }: ProgramFormProps) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -32,13 +39,18 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
     year: initialData?.year || 2025,
     batches: initialData?.batches || 1,
     slots: initialData?.slots || [],
-    startDate: initialData?.startDate || '',
+    startDate: toDateInputValue(initialData?.startDate),
+    batchStartDates: Array.from({ length: initialData?.batches || 1 }, (_, index) => {
+      const batchNumber = index + 1;
+      const schedule = initialData?.batchSchedules?.find((item) => item.batchNumber === batchNumber);
+      return toDateInputValue(schedule?.startDate);
+    }),
   });
 
   const [newSlot, setNewSlot] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -51,21 +63,34 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
     if (formData.batches < 1) newErrors.batches = 'Batches must be at least 1';
     if (formData.batches > 10) newErrors.batches = 'Batches cannot exceed 10';
     if (formData.slots.length === 0) newErrors.slots = 'At least one slot is required';
+    if (!initialData) {
+      formData.batchStartDates.slice(0, formData.batches).forEach((date, index) => {
+        if (!date) newErrors[`batchStartDate-${index + 1}`] = `Batch ${index + 1} start date is required`;
+      });
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    onSubmit({
-      name: formData.name,
-      type: formData.type,
-      season: formData.season,
-      year: formData.year,
-      batches: Math.floor(formData.batches),
-      slots: formData.slots,
-      startDate: formData.startDate,
-    });
+    try {
+      await onSubmit({
+        name: formData.name,
+        type: formData.type,
+        season: formData.season,
+        year: formData.year,
+        batches: Math.floor(formData.batches),
+        slots: formData.slots,
+        startDate: formData.startDate,
+        batchSchedules: formData.batchStartDates
+          .slice(0, formData.batches)
+          .map((startDate, index) => ({ batchNumber: index + 1, startDate }))
+          .filter((schedule) => Boolean(schedule.startDate)),
+      });
+    } catch {
+      return;
+    }
 
     setFormData({
       name: '',
@@ -75,6 +100,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       batches: 1,
       slots: [],
       startDate: '',
+      batchStartDates: [''],
     });
     setNewSlot('');
     setErrors({});
@@ -135,12 +161,20 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       />
 
       <Input
-        label="Program Start Date"
+        label="Fallback Program Start Date"
         type="date"
         value={formData.startDate}
-        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+        onChange={(e) => {
+          const startDate = e.target.value;
+          const batchStartDates = [...formData.batchStartDates];
+          if (!batchStartDates[0]) batchStartDates[0] = startDate;
+          setFormData({ ...formData, startDate, batchStartDates });
+        }}
         error={errors.startDate}
       />
+      <p className="-mt-2 text-xs leading-5 text-slate-500">
+        Existing programs use this date only when a batch-specific date has not been configured.
+      </p>
 
       <Input
         label="Number of Batches"
@@ -148,9 +182,44 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
         min="1"
         max="10"
         value={formData.batches}
-        onChange={(e) => setFormData({ ...formData, batches: parseInt(e.target.value) || 1 })}
+        onChange={(e) => {
+          const batches = parseInt(e.target.value) || 1;
+          const batchStartDates = Array.from(
+            { length: batches },
+            (_, index) => formData.batchStartDates[index] || ''
+          );
+          setFormData({ ...formData, batches, batchStartDates });
+        }}
         error={errors.batches}
       />
+
+      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+        <div className="mb-3">
+          <p className="text-sm font-bold text-slate-800">Batch Start Dates</p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            Each configured date controls enrollment availability for that batch. An unconfigured existing batch continues using the fallback date above.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: formData.batches }, (_, index) => {
+            const batchNumber = index + 1;
+            return (
+              <Input
+                key={batchNumber}
+                label={`Batch ${batchNumber} Start Date`}
+                type="date"
+                value={formData.batchStartDates[index] || ''}
+                onChange={(event) => {
+                  const batchStartDates = [...formData.batchStartDates];
+                  batchStartDates[index] = event.target.value;
+                  setFormData({ ...formData, batchStartDates });
+                }}
+                error={errors[`batchStartDate-${batchNumber}`]}
+              />
+            );
+          })}
+        </div>
+      </div>
 
       <div className="border-t border-slate-100 pt-4">
         <label className="mb-3 block text-sm font-bold text-slate-700">Time Slots</label>

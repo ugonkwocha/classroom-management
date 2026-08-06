@@ -33,6 +33,9 @@ export function usePrograms() {
         body: JSON.stringify(program),
       });
       const newProgram = await res.json();
+      if (!res.ok) {
+        throw new Error(newProgram.error || 'Failed to create program');
+      }
       await mutate();
       return newProgram;
     } catch (error) {
@@ -48,6 +51,9 @@ export function usePrograms() {
         body: JSON.stringify(updates),
       });
       const updatedProgram = await res.json();
+      if (!res.ok) {
+        throw new Error(updatedProgram.error || 'Failed to update program');
+      }
       await mutate();
       return updatedProgram;
     } catch (error) {
@@ -58,7 +64,11 @@ export function usePrograms() {
 
   const deleteProgram = async (id: string) => {
     try {
-      await fetchWithAuth(`/api/programs/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/programs/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete program');
+      }
       await mutate();
     } catch (error) {
       console.error('Failed to delete program:', error);

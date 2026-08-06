@@ -13,6 +13,13 @@ interface ProgramListProps {
   canDelete?: boolean;
 }
 
+const formatDate = (value: string) => new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+}).format(new Date(value));
+
 export function ProgramList({ programs, onEdit, onDelete, onView, canEdit = true, canDelete = true }: ProgramListProps) {
   if (programs.length === 0) {
     return (
@@ -35,7 +42,7 @@ export function ProgramList({ programs, onEdit, onDelete, onView, canEdit = true
             <th className="px-5 py-4">Type</th>
             <th className="px-5 py-4">Batches</th>
             <th className="px-5 py-4">Slots</th>
-            <th className="px-5 py-4">Start Date</th>
+            <th className="px-5 py-4">Batch Dates</th>
             <th className="px-5 py-4 text-right">Actions</th>
           </tr>
         </thead>
@@ -68,7 +75,21 @@ export function ProgramList({ programs, onEdit, onDelete, onView, canEdit = true
                   ))}
                 </div>
               </td>
-              <td className="px-5 py-4 text-slate-600">{program.startDate || 'Not set'}</td>
+              <td className="px-5 py-4 text-slate-600">
+                <div className="space-y-1 text-xs">
+                  {Array.from({ length: program.batches }, (_, index) => {
+                    const batchNumber = index + 1;
+                    const schedule = program.batchSchedules?.find((item) => item.batchNumber === batchNumber);
+                    return (
+                      <p key={batchNumber}>
+                        <span className="font-bold text-slate-700">Batch {batchNumber}:</span>{' '}
+                        {formatDate(schedule?.startDate || program.startDate)}
+                        {!schedule && <span className="text-slate-400"> (fallback)</span>}
+                      </p>
+                    );
+                  })}
+                </div>
+              </td>
               <td className="px-5 py-4">
                 <div className="flex justify-end gap-2">
                   <button
