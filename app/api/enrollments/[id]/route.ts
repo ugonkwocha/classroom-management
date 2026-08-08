@@ -140,6 +140,12 @@ export async function PUT(
         ? data.status
         : currentEnrollment.status;
       const effectiveClassId = nextStatus === 'ASSIGNED' ? nextClassId : null;
+      const hasPriceAmountUpdate = Object.prototype.hasOwnProperty.call(data, 'priceAmount');
+      const nextPriceAmount = hasPriceAmountUpdate ? Math.round(Number(data.priceAmount)) : null;
+
+      if (hasPriceAmountUpdate && (!Number.isFinite(nextPriceAmount) || Number(nextPriceAmount) <= 0)) {
+        throw new Error('Price amount must be greater than zero');
+      }
 
       if (effectiveClassId && getActiveClaimConflict(currentEnrollment, sessionUser.userId)) {
         const claimantName = currentEnrollment.claimedBy
@@ -221,7 +227,7 @@ export async function PUT(
       if (Object.prototype.hasOwnProperty.call(data, 'status')) updateData.status = data.status;
       if (Object.prototype.hasOwnProperty.call(data, 'paymentStatus')) updateData.paymentStatus = normalizePaymentStatus(data.paymentStatus);
       if (Object.prototype.hasOwnProperty.call(data, 'priceType')) updateData.priceType = data.priceType;
-      if (Object.prototype.hasOwnProperty.call(data, 'priceAmount')) updateData.priceAmount = data.priceAmount;
+      if (hasPriceAmountUpdate) updateData.priceAmount = nextPriceAmount;
       if (
         Object.prototype.hasOwnProperty.call(data, 'classId') ||
         (Object.prototype.hasOwnProperty.call(data, 'status') && data.status !== 'ASSIGNED')
@@ -255,6 +261,17 @@ export async function PUT(
           },
         },
       });
+
+      if (hasPriceAmountUpdate && nextPriceAmount !== null) {
+        await tx.enrollmentPaymentRecord.updateMany({
+          where: { enrollmentId: id },
+          data: { amountConfirmed: nextPriceAmount },
+        });
+        await tx.confirmedRegistrationImportChild.updateMany({
+          where: { enrollmentId: id },
+          data: { priceAmount: nextPriceAmount },
+        });
+      }
 
       if (currentEnrollment.classId && currentEnrollment.classId !== updatedEnrollment.classId) {
         const oldClass = await tx.class.findUnique({

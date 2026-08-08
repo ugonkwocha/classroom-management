@@ -11,6 +11,7 @@ import {
   toOptionalText,
   toPositiveInt,
 } from '@/lib/paid-registration-utils';
+import { allocateConfirmedAmount } from '@/lib/payment-allocation';
 import { syncPaidCustomerToCrm } from '@/lib/fluent-crm-sync';
 
 type DuplicatePaymentContext = {
@@ -152,7 +153,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No unique paid enrollment batch was found to import' }, { status: 400 });
     }
 
-    const removedDuplicateEnrollmentRequests = resolvedChildren.length < children.length;
+    if (confirmedAmount < resolvedChildren.length) {
+      return NextResponse.json(
+        { error: 'Confirmed amount is too small to allocate across the selected paid enrollments' },
+        { status: 400 }
+      );
+    }
+
+    const allocatedAmounts = allocateConfirmedAmount(confirmedAmount, resolvedChildren.length);
+
     const paidTags = Array.from(new Set(
       resolvedChildren
         .map((child) => toOptionalText(child.crmTag) || mapping.paidTag)
@@ -201,16 +210,13 @@ export async function POST(request: NextRequest) {
       const paymentRecords = [];
       const batchNumbers = new Set<number>();
       const processedEnrollmentKeys = new Set<string>();
-      const fallbackPriceAmount = Math.round(confirmedAmount / resolvedChildren.length);
 
-      for (const child of resolvedChildren) {
+      for (const [childIndex, child] of resolvedChildren.entries()) {
         const childProgramId = child.programId || mapping.programId;
         const childBatch = toPositiveInt(child.batchNumber, 0);
 
         const priceType = child.priceType || data.priceType || 'FULL_PRICE';
-        const priceAmount = removedDuplicateEnrollmentRequests
-          ? fallbackPriceAmount
-          : toPositiveInt(child.priceAmount, fallbackPriceAmount);
+        const priceAmount = allocatedAmounts[childIndex];
         const crmTag = toOptionalText(child.crmTag) || mapping.paidTag;
         batchNumbers.add(childBatch);
         const student = await ensurePaidStudent(tx, family, child);

@@ -18,6 +18,7 @@ import {
 } from 'react-icons/fi';
 import { useCourses, useFamilies, usePrograms } from '@/lib/hooks';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { allocateConfirmedAmount } from '@/lib/payment-allocation';
 import type {
   ConfirmedRegistrationImport,
   Family,
@@ -190,6 +191,7 @@ export function ConfirmedRegistrationsManagement() {
   const [imports, setImports] = useState<ConfirmedRegistrationImport[]>([]);
   const [searchResults, setSearchResults] = useState<ExternalRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<ExternalRegistration | null>(null);
+  const [includedChildIndexes, setIncludedChildIndexes] = useState<number[]>([]);
   const [selectedFamilyId, setSelectedFamilyId] = useState('');
   const [familyImportChoice, setFamilyImportChoice] = useState<'create' | 'existing'>('create');
   const [search, setSearch] = useState({ email: '', phone: '', submissionId: '', formId: '' });
@@ -258,6 +260,17 @@ export function ConfirmedRegistrationsManagement() {
     : null;
   const mappedSelectedOptions = getMappedSelectedOptions(selectedRegistration, matchingMapping || null);
   const hasUnmappedSelectedOptions = mappedSelectedOptions.some((item) => !item.mapping);
+  const selectedChildren = selectedRegistration?.children.filter((_, index) => includedChildIndexes.includes(index)) || [];
+  const mappedBatchCount = new Set(
+    mappedSelectedOptions
+      .map((item) => item.mapping?.batchNumber)
+      .filter((batchNumber): batchNumber is number => typeof batchNumber === 'number')
+  ).size;
+  const allocationItemCount = selectedChildren.length * mappedBatchCount;
+  const hasAllocatableAmount = allocationItemCount > 0 && importForm.confirmedAmount >= allocationItemCount;
+  const allocationPreview = hasAllocatableAmount
+    ? allocateConfirmedAmount(importForm.confirmedAmount, allocationItemCount)
+    : [];
 
   const handleSearch = async (event: FormEvent) => {
     event.preventDefault();
@@ -266,6 +279,7 @@ export function ConfirmedRegistrationsManagement() {
     setSuccessDialog(null);
     setDuplicatePaymentNotice(null);
     setSelectedRegistration(null);
+    setIncludedChildIndexes([]);
     try {
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
@@ -310,6 +324,10 @@ export function ConfirmedRegistrationsManagement() {
         throw new Error('Confirmed amount must be greater than zero.');
       }
 
+      if (selectedChildren.length === 0) {
+        throw new Error('Select at least one child covered by this payment.');
+      }
+
       const hasMatchingFamilies = Boolean(selectedRegistration.matchingFamilies?.length);
       if (hasMatchingFamilies && familyImportChoice === 'existing' && !selectedFamilyId) {
         throw new Error('Choose the existing family to attach this paid registration to.');
@@ -322,8 +340,6 @@ export function ConfirmedRegistrationsManagement() {
         }
       });
       const mappedOptions = Array.from(mappedOptionsByBatch.values());
-      const enrollmentItemsCount = Math.max(selectedRegistration.children.length * mappedOptions.length, 1);
-      const splitAmount = Math.round(confirmedAmount / enrollmentItemsCount);
 
       const response = await fetchWithAuth('/api/confirmed-registrations/import', {
         method: 'POST',
@@ -334,14 +350,13 @@ export function ConfirmedRegistrationsManagement() {
           confirmedAmount,
           paymentProofNote: importForm.paymentProofNote,
           rawPayload: selectedRegistration.rawPayload || selectedRegistration,
-          children: selectedRegistration.children.flatMap((child) =>
+          children: selectedChildren.flatMap((child) =>
             mappedOptions.map((mappedOption) => ({
               ...child,
               programId: matchingMapping.programId,
               sourceOptionText: mappedOption.sourceOptionText,
               batchNumber: mappedOption.batchNumber,
               priceType: importForm.priceType,
-              priceAmount: child.priceAmount || splitAmount,
             }))
           ),
         }),
@@ -374,6 +389,7 @@ export function ConfirmedRegistrationsManagement() {
           : `Paid registration imported successfully${familyName ? ` into ${familyName}` : ''}.`,
       });
       setSelectedRegistration(null);
+      setIncludedChildIndexes([]);
       setSelectedFamilyId('');
       setDuplicatePaymentNotice(null);
       setFamilyImportChoice('create');
@@ -616,6 +632,7 @@ export function ConfirmedRegistrationsManagement() {
                   type="button"
                   onClick={() => {
                     setSelectedRegistration(result);
+                    setIncludedChildIndexes(result.children.map((_, index) => index));
                     setSelectedFamilyId('');
                     setFamilyImportChoice('create');
                     setImportForm((current) => ({
@@ -694,11 +711,38 @@ export function ConfirmedRegistrationsManagement() {
                     </div>
                   )}
                   <div className="rounded-2xl border border-slate-200">
-                    {selectedRegistration.children.map((child, index) => (
-                      <div key={`${child.firstName}-${child.lastName}-${index}`} className="border-b border-slate-100 p-4 last:border-b-0">
-                        <p className="font-bold text-slate-950">{child.firstName} {child.lastName}</p>
-                        <p className="mt-1 text-sm text-slate-500">{child.courseName || matchingMapping?.program?.name || 'No course shown'}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Children covered by this payment</p>
+                        <p className="mt-1 text-xs text-slate-500">Include only the children the confirmed bank transfer paid for.</p>
                       </div>
+                      <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                        {selectedChildren.length} of {selectedRegistration.children.length} selected
+                      </span>
+                    </div>
+                    {selectedRegistration.children.map((child, index) => (
+                      <label
+                        key={`${child.firstName}-${child.lastName}-${index}`}
+                        className={`flex cursor-pointer items-start gap-3 border-b border-slate-100 p-4 last:border-b-0 ${includedChildIndexes.includes(index) ? 'bg-white' : 'bg-slate-50 opacity-70'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={includedChildIndexes.includes(index)}
+                          onChange={(event) => {
+                            setIncludedChildIndexes((current) => event.target.checked
+                              ? [...current, index].sort((a, b) => a - b)
+                              : current.filter((childIndex) => childIndex !== index));
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
+                        />
+                        <span>
+                          <span className="block font-bold text-slate-950">{child.firstName} {child.lastName}</span>
+                          <span className="mt-1 block text-sm text-slate-500">{child.courseName || matchingMapping?.program?.name || 'No course shown'}</span>
+                          <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${includedChildIndexes.includes(index) ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                            {includedChildIndexes.includes(index) ? 'Included in paid import' : 'Not covered by payment'}
+                          </span>
+                        </span>
+                      </label>
                     ))}
                   </div>
                   {!matchingMapping && <p className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">No active form mapping exists for form {selectedRegistration.sourceFormId}.</p>}
@@ -731,6 +775,21 @@ export function ConfirmedRegistrationsManagement() {
                       <input type="number" min={1} value={importForm.confirmedAmount || ''} onChange={(event) => setImportForm((current) => ({ ...current, confirmedAmount: Number(event.target.value) }))} placeholder="Confirmed amount" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                     </label>
                   </div>
+                  {allocationItemCount > 0 && importForm.confirmedAmount > 0 && (
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+                      <p className="font-bold">Payment allocation preview</p>
+                      <p className="mt-1 leading-6">
+                        {formatCurrency(importForm.confirmedAmount)} will be recorded across {allocationItemCount} paid enrollment{allocationItemCount === 1 ? '' : 's'} for {selectedChildren.length} selected child{selectedChildren.length === 1 ? '' : 'ren'}.
+                      </p>
+                      <p className="mt-1 font-semibold">
+                        {!hasAllocatableAmount
+                          ? 'Enter a confirmed amount large enough for the selected enrollments.'
+                          : allocationPreview.every((amount) => amount === allocationPreview[0])
+                          ? `${formatCurrency(allocationPreview[0])} per enrollment.`
+                          : `Allocations: ${allocationPreview.map((amount) => formatCurrency(amount)).join(', ')}.`}
+                      </p>
+                    </div>
+                  )}
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold text-slate-700">Payment proof note</span>
                     <textarea value={importForm.paymentProofNote} onChange={(event) => setImportForm((current) => ({ ...current, paymentProofNote: event.target.value }))} placeholder="Bank transfer confirmation note" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
@@ -739,7 +798,7 @@ export function ConfirmedRegistrationsManagement() {
                     <span className="mb-2 block text-sm font-bold text-slate-700">Payment proof file</span>
                     <input type="file" accept="image/*,application/pdf" onChange={(event) => setProofFile(event.target.files?.[0] || null)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                   </label>
-                  <button disabled={isBusy || !matchingMapping || hasUnmappedSelectedOptions || mappedSelectedOptions.length === 0} onClick={handleImport} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                  <button disabled={isBusy || !matchingMapping || hasUnmappedSelectedOptions || mappedSelectedOptions.length === 0 || selectedChildren.length === 0 || !hasAllocatableAmount} onClick={handleImport} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
                     <FiUpload /> Import paid registration
                   </button>
                 </>
