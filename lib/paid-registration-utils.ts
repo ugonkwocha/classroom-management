@@ -14,7 +14,7 @@ export type PaidRegistrationChildInput = {
   batchNumber?: number | null;
   sourceOptionText?: string | null;
   crmTag?: string | null;
-  priceType?: 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
+  priceType?: string;
   priceAmount?: number | null;
   existingStudentId?: string | null;
 };
@@ -202,7 +202,7 @@ export async function ensureConfirmedEnrollment(
     studentId: string;
     programId: string;
     batchNumber: number;
-    priceType: 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
+    priceType: string;
     priceAmount: number;
   }
 ) {

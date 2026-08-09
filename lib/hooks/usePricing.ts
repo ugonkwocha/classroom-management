@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PriceOption, PriceType } from '@/types';
 import { PRICE_OPTIONS } from '@/lib/constants/pricing';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -10,9 +10,8 @@ export function usePricing() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPricing = async () => {
-      try {
+  const fetchPricing = useCallback(async () => {
+    try {
         setIsLoading(true);
         const response = await fetchWithAuth('/api/pricing');
 
@@ -22,31 +21,38 @@ export function usePricing() {
 
         const pricingConfigs = await response.json();
 
-        // Convert API response to PriceOption format
-        const options: PriceOption[] = PRICE_OPTIONS.map((option) => {
-          const config = pricingConfigs.find(
-            (p: any) => p.priceType === option.type
-          );
-          return {
-            ...option,
-            amount: config?.amount || option.amount,
-          };
-        });
+        const options: PriceOption[] = pricingConfigs.map((config: {
+          priceType: string;
+          label: string;
+          description: string;
+          amount: number;
+          isActive: boolean;
+          isSystem: boolean;
+          displayOrder: number;
+        }) => ({
+          type: config.priceType,
+          label: config.label,
+          description: config.description,
+          amount: config.amount,
+          isActive: config.isActive,
+          isSystem: config.isSystem,
+          displayOrder: config.displayOrder,
+        }));
 
-        setPriceOptions(options);
+        setPriceOptions(options.length > 0 ? options : PRICE_OPTIONS);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching pricing:', err);
-        // Fall back to default PRICE_OPTIONS on error
-        setPriceOptions(PRICE_OPTIONS);
-        setError(err instanceof Error ? err.message : 'Failed to fetch pricing');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPricing();
+    } catch (err) {
+      console.error('Error fetching pricing:', err);
+      setPriceOptions(PRICE_OPTIONS);
+      setError(err instanceof Error ? err.message : 'Failed to fetch pricing');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPricing();
+  }, [fetchPricing]);
 
   const getPriceByType = (priceType: PriceType): number => {
     const option = priceOptions.find((opt) => opt.type === priceType);
@@ -61,6 +67,7 @@ export function usePricing() {
     priceOptions,
     isLoading,
     error,
+    refresh: fetchPricing,
     getPriceByType,
     getPriceOption,
   };

@@ -12,23 +12,23 @@ datasource db {
 
 // ==================== Users (Authentication) ====================
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String   // Hashed with bcrypt
-  firstName     String
-  lastName      String
-  role          UserRole @default(STAFF)
-  isActive      Boolean  @default(true)
-  tokenVersion  Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  sentInvitations UserInvitation[] @relation("UserInvitations")
-  requestedPasswordResets PasswordResetToken[] @relation("PasswordResetRequests")
-  passwordResetTokens PasswordResetToken[] @relation("UserPasswordResetTokens")
+  id                           String                        @id @default(cuid())
+  email                        String                        @unique
+  password                     String // Hashed with bcrypt
+  firstName                    String
+  lastName                     String
+  role                         UserRole                      @default(STAFF)
+  isActive                     Boolean                       @default(true)
+  tokenVersion                 Int                           @default(0)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  sentInvitations              UserInvitation[]              @relation("UserInvitations")
+  requestedPasswordResets      PasswordResetToken[]          @relation("PasswordResetRequests")
+  passwordResetTokens          PasswordResetToken[]          @relation("UserPasswordResetTokens")
   confirmedRegistrationImports ConfirmedRegistrationImport[] @relation("ConfirmedRegistrationImporter")
-  paymentProofs PaymentProof[] @relation("PaymentProofUploader")
-  importActivityLogs ImportActivityLog[] @relation("ImportActivityActor")
-  claimedEnrollments ProgramEnrollment[] @relation("EnrollmentClaims")
+  paymentProofs                PaymentProof[]                @relation("PaymentProofUploader")
+  importActivityLogs           ImportActivityLog[]           @relation("ImportActivityActor")
+  claimedEnrollments           ProgramEnrollment[]           @relation("EnrollmentClaims")
 
   @@index([email])
 }
@@ -87,20 +87,20 @@ model PasswordResetToken {
 
 // ==================== Teachers ====================
 model Teacher {
-  id                String   @id @default(cuid())
-  firstName         String
-  lastName          String
-  email             String   @unique
-  phone             String
-  bio               String?
-  profilePhoto      String?
-  status            TeacherStatus @default(ACTIVE)
-  qualifiedCourses  String[] // Array of course IDs
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String        @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String        @unique
+  phone            String
+  bio              String?
+  profilePhoto     String?
+  status           TeacherStatus @default(ACTIVE)
+  qualifiedCourses String[] // Array of course IDs
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   // Relations
-  classes           Class[]
+  classes Class[]
 
   @@index([email])
   @@index([status])
@@ -114,69 +114,69 @@ enum TeacherStatus {
 
 // ==================== Courses ====================
 model Course {
-  id                String   @id @default(cuid())
-  name              String   @unique
-  description       String?
-  programLevels     String[] // Stable program level codes
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  programLevels String[] // Stable program level codes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
-  classes           Class[]
-  emailTemplate     CourseEmailTemplate?
+  classes                             Class[]
+  emailTemplate                       CourseEmailTemplate?
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
 
   @@index([name])
 }
 
 model CourseEmailTemplate {
-  id                String   @id @default(cuid())
-  courseId          String   @unique
-  subject           String
-  body              String
-  isActive          Boolean  @default(true)
-  updatedById       String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id          String   @id @default(cuid())
+  courseId    String   @unique
+  subject     String
+  body        String
+  isActive    Boolean  @default(true)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([updatedById])
 }
 
 model ProgramLevelSetting {
-  id                String       @id @default(cuid())
-  level             String       @unique
-  displayName       String
-  ageRange          String?
-  description       String?
-  sortOrder         Int          @default(0)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id          String   @id @default(cuid())
+  level       String   @unique
+  displayName String
+  ageRange    String?
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([sortOrder])
 }
 
 // ==================== Programs ====================
 model Program {
-  id                String   @id @default(cuid())
-  name              String
-  type              ProgramType
-  season            Season
-  year              Int
-  batches           Int
-  slots             String[] // Time slots for this program
-  startDate         DateTime // Start date of the program
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id        String      @id @default(cuid())
+  name      String
+  type      ProgramType
+  season    Season
+  year      Int
+  batches   Int
+  slots     String[] // Time slots for this program
+  startDate DateTime // Start date of the program
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   // Relations
-  classes           Class[]
-  enrollments       ProgramEnrollment[]
-  batchSchedules    ProgramBatchSchedule[]
-  fluentFormMappings FluentFormMapping[]
-  confirmedRegistrationImports ConfirmedRegistrationImport[]
+  classes                             Class[]
+  enrollments                         ProgramEnrollment[]
+  batchSchedules                      ProgramBatchSchedule[]
+  fluentFormMappings                  FluentFormMapping[]
+  confirmedRegistrationImports        ConfirmedRegistrationImport[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
 
   @@unique([name, season, year])
@@ -185,14 +185,14 @@ model Program {
 }
 
 model ProgramBatchSchedule {
-  id           String   @id @default(cuid())
-  programId    String
-  batchNumber  Int
-  startDate    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  programId   String
+  batchNumber Int
+  startDate   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  program      Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   @@unique([programId, batchNumber])
   @@index([programId])
@@ -214,39 +214,39 @@ enum Season {
 
 // ==================== Families ====================
 model Family {
-  id                String   @id @default(cuid())
-  displayName       String
-  isArchived        Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id          String   @id @default(cuid())
+  displayName String
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  guardians         ParentGuardian[]
-  students          Student[]
+  guardians                    ParentGuardian[]
+  students                     Student[]
   confirmedRegistrationImports ConfirmedRegistrationImport[]
-  paymentRecords    EnrollmentPaymentRecord[]
+  paymentRecords               EnrollmentPaymentRecord[]
 
   @@index([displayName])
   @@index([isArchived])
 }
 
 model ParentGuardian {
-  id                String   @id @default(cuid())
-  familyId          String
-  firstName         String
-  lastName          String
-  email             String?
-  emailNormalized   String?
-  phone             String?
-  phoneNormalized   String?
-  phoneCountryCode  String?
-  relationship      GuardianRelationship @default(PARENT)
-  isPrimary         Boolean  @default(false)
-  isActive          Boolean  @default(true)
-  needsReview       Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String               @id @default(cuid())
+  familyId         String
+  firstName        String
+  lastName         String
+  email            String?
+  emailNormalized  String?
+  phone            String?
+  phoneNormalized  String?
+  phoneCountryCode String?
+  relationship     GuardianRelationship @default(PARENT)
+  isPrimary        Boolean              @default(false)
+  isActive         Boolean              @default(true)
+  needsReview      Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-  family            Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([familyId])
   @@index([emailNormalized])
@@ -266,27 +266,27 @@ enum GuardianRelationship {
 
 // ==================== Classes ====================
 model Class {
-  id                String   @id @default(cuid())
-  name              String
-  courseId          String
-  programId         String
-  programLevel      String
-  batch             Int
-  slot              String
-  schedule          String
-  capacity          Int
-  students          String[] // Array of student IDs
-  teacherId         String?
-  meetLink          String?  // Google Meet link for this class
-  isArchived        Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  courseId     String
+  programId    String
+  programLevel String
+  batch        Int
+  slot         String
+  schedule     String
+  capacity     Int
+  students     String[] // Array of student IDs
+  teacherId    String?
+  meetLink     String? // Google Meet link for this class
+  isArchived   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  teacher           Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  enrollments       ProgramEnrollment[]
+  course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  program     Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  teacher     Teacher?            @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  enrollments ProgramEnrollment[]
 
   @@unique([name])
   @@index([programId])
@@ -297,27 +297,27 @@ model Class {
 
 // ==================== Students ====================
 model Student {
-  id                String   @id @default(cuid())
-  firstName         String
-  lastName          String
-  email             String?   @unique
-  phone             String?   @unique
-  phoneCountryCode  String?   // Country code for student phone (e.g., 'NG', 'US')
-  dateOfBirth       DateTime?
-  isReturningStudent Boolean  @default(false)
-  paymentStatus     PaymentStatus @default(PENDING)
-  familyId          String?
-  parentEmail       String?
-  parentPhone       String?
+  id                     String        @id @default(cuid())
+  firstName              String
+  lastName               String
+  email                  String?       @unique
+  phone                  String?       @unique
+  phoneCountryCode       String? // Country code for student phone (e.g., 'NG', 'US')
+  dateOfBirth            DateTime?
+  isReturningStudent     Boolean       @default(false)
+  paymentStatus          PaymentStatus @default(PENDING)
+  familyId               String?
+  parentEmail            String?
+  parentPhone            String?
   parentPhoneCountryCode String? // Country code for parent phone
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
   // Relations
-  family            Family?  @relation(fields: [familyId], references: [id], onDelete: SetNull)
-  enrollments       ProgramEnrollment[]
-  courseHistory     CourseHistory[]
-  paymentRecords    EnrollmentPaymentRecord[]
+  family                              Family?                            @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  enrollments                         ProgramEnrollment[]
+  courseHistory                       CourseHistory[]
+  paymentRecords                      EnrollmentPaymentRecord[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
 
   @@index([familyId])
@@ -331,28 +331,28 @@ model Student {
 
 // ==================== Program Enrollments ====================
 model ProgramEnrollment {
-  id                String   @id @default(cuid())
-  studentId         String
-  programId         String
-  classId           String?  // Null for waitlist
-  batchNumber       Int      @default(1)
-  enrollmentDate    DateTime @default(now())
-  status            EnrollmentStatus
-  paymentStatus     PaymentStatus @default(PENDING)
-  priceType         PriceType @default(FULL_PRICE)
-  priceAmount       Int      @default(60000)
-  claimedById       String?
-  claimExpiresAt    DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id             String           @id @default(cuid())
+  studentId      String
+  programId      String
+  classId        String? // Null for waitlist
+  batchNumber    Int              @default(1)
+  enrollmentDate DateTime         @default(now())
+  status         EnrollmentStatus
+  paymentStatus  PaymentStatus    @default(PENDING)
+  priceType      String           @default("FULL_PRICE")
+  priceAmount    Int              @default(60000)
+  claimedById    String?
+  claimExpiresAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   // Relations
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  class             Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
-  claimedBy         User?    @relation("EnrollmentClaims", fields: [claimedById], references: [id], onDelete: SetNull)
-  paymentRecords    EnrollmentPaymentRecord[]
-  paymentProofs     PaymentProof[]
+  student        Student                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program        Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  class          Class?                    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  claimedBy      User?                     @relation("EnrollmentClaims", fields: [claimedById], references: [id], onDelete: SetNull)
+  paymentRecords EnrollmentPaymentRecord[]
+  paymentProofs  PaymentProof[]
 
   // Indexes - No unique constraint on (studentId, classId) since we allow multiple NULL classIds
   // A student can have multiple ASSIGNED or WAITLIST enrollments (waiting for class assignment)
@@ -377,45 +377,39 @@ enum PaymentStatus {
   COMPLETED
 }
 
-enum PriceType {
-  FULL_PRICE
-  SIBLING_DISCOUNT
-  EARLY_BIRD
-}
-
 // ==================== Paid Registration Imports ====================
 model FluentFormMapping {
-  id                 String    @id @default(cuid())
-  formId             String    @unique
-  formName           String
-  programId          String
-  defaultBatch       Int       @default(1)
-  defaultPriceType   PriceType @default(FULL_PRICE)
-  leadTag            String?
-  paidTag            String
+  id                  String   @id @default(cuid())
+  formId              String   @unique
+  formName            String
+  programId           String
+  defaultBatch        Int      @default(1)
+  defaultPriceType    String   @default("FULL_PRICE")
+  leadTag             String?
+  paidTag             String
   removeLeadTagOnPaid Boolean  @default(false)
-  isActive           Boolean   @default(true)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  optionMappings     FluentFormOptionMapping[]
+  program        Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  optionMappings FluentFormOptionMapping[]
 
   @@index([programId])
   @@index([isActive])
 }
 
 model FluentFormOptionMapping {
-  id                 String   @id @default(cuid())
-  formMappingId      String
-  sourceOptionText   String
-  batchNumber        Int
-  paidTag            String?
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id               String   @id @default(cuid())
+  formMappingId    String
+  sourceOptionText String
+  batchNumber      Int
+  paidTag          String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  formMapping        FluentFormMapping @relation(fields: [formMappingId], references: [id], onDelete: Cascade)
+  formMapping FluentFormMapping @relation(fields: [formMappingId], references: [id], onDelete: Cascade)
 
   @@unique([formMappingId, sourceOptionText])
   @@index([formMappingId])
@@ -424,39 +418,39 @@ model FluentFormOptionMapping {
 }
 
 model ConfirmedRegistrationImport {
-  id                 String    @id @default(cuid())
-  source             RegistrationImportSource @default(FLUENT_FORM_IMPORT)
-  sourceFormId       String?
-  sourceSubmissionId String?
-  formMappingId      String?
-  parentFirstName    String
-  parentLastName     String
-  parentEmail        String?
-  parentPhone        String?
+  id                     String                            @id @default(cuid())
+  source                 RegistrationImportSource          @default(FLUENT_FORM_IMPORT)
+  sourceFormId           String?
+  sourceSubmissionId     String?
+  formMappingId          String?
+  parentFirstName        String
+  parentLastName         String
+  parentEmail            String?
+  parentPhone            String?
   parentPhoneCountryCode String?
-  programId          String
-  defaultBatch       Int       @default(1)
-  expectedAmount     Int?
-  confirmedAmount    Int
-  paymentProofNote   String?
-  rawPayload         Json?
-  status             ConfirmedRegistrationImportStatus @default(PROCESSED)
-  crmSyncStatus      CrmSyncStatus @default(PENDING)
-  crmContactId       String?
-  crmTag             String?
-  crmError           String?
-  familyId           String?
-  importedById       String
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  programId              String
+  defaultBatch           Int                               @default(1)
+  expectedAmount         Int?
+  confirmedAmount        Int
+  paymentProofNote       String?
+  rawPayload             Json?
+  status                 ConfirmedRegistrationImportStatus @default(PROCESSED)
+  crmSyncStatus          CrmSyncStatus                     @default(PENDING)
+  crmContactId           String?
+  crmTag                 String?
+  crmError               String?
+  familyId               String?
+  importedById           String
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
 
-  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  family             Family?   @relation(fields: [familyId], references: [id], onDelete: SetNull)
-  importedBy         User      @relation("ConfirmedRegistrationImporter", fields: [importedById], references: [id], onDelete: Cascade)
-  children           ConfirmedRegistrationImportChild[]
-  paymentProofs      PaymentProof[]
-  paymentRecords     EnrollmentPaymentRecord[]
-  activityLogs       ImportActivityLog[]
+  program        Program                            @relation(fields: [programId], references: [id], onDelete: Cascade)
+  family         Family?                            @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  importedBy     User                               @relation("ConfirmedRegistrationImporter", fields: [importedById], references: [id], onDelete: Cascade)
+  children       ConfirmedRegistrationImportChild[]
+  paymentProofs  PaymentProof[]
+  paymentRecords EnrollmentPaymentRecord[]
+  activityLogs   ImportActivityLog[]
 
   @@unique([source, sourceFormId, sourceSubmissionId])
   @@index([programId])
@@ -467,28 +461,28 @@ model ConfirmedRegistrationImport {
 }
 
 model ConfirmedRegistrationImportChild {
-  id                 String    @id @default(cuid())
-  importId           String
-  firstName          String
-  lastName           String
-  email              String?
-  phone              String?
-  phoneCountryCode   String?
-  dateOfBirth        DateTime?
-  courseId           String?
-  programId          String
-  batchNumber        Int       @default(1)
-  priceType          PriceType @default(FULL_PRICE)
-  priceAmount        Int       @default(0)
-  studentId          String?
-  enrollmentId       String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  importId         String
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  phoneCountryCode String?
+  dateOfBirth      DateTime?
+  courseId         String?
+  programId        String
+  batchNumber      Int       @default(1)
+  priceType        String    @default("FULL_PRICE")
+  priceAmount      Int       @default(0)
+  studentId        String?
+  enrollmentId     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  import             ConfirmedRegistrationImport @relation(fields: [importId], references: [id], onDelete: Cascade)
-  student            Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  course             Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  import  ConfirmedRegistrationImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  student Student?                    @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  program Program                     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  course  Course?                     @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([importId])
   @@index([studentId])
@@ -497,27 +491,27 @@ model ConfirmedRegistrationImportChild {
 }
 
 model EnrollmentPaymentRecord {
-  id                 String    @id @default(cuid())
-  source             RegistrationImportSource
-  familyId           String
-  studentId          String
-  enrollmentId       String
-  importId           String?
-  amountConfirmed    Int
-  paymentProofNote   String?
-  crmSyncStatus      CrmSyncStatus @default(PENDING)
-  crmContactId       String?
-  crmTag             String?
-  crmError           String?
-  confirmedById      String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id               String                   @id @default(cuid())
+  source           RegistrationImportSource
+  familyId         String
+  studentId        String
+  enrollmentId     String
+  importId         String?
+  amountConfirmed  Int
+  paymentProofNote String?
+  crmSyncStatus    CrmSyncStatus            @default(PENDING)
+  crmContactId     String?
+  crmTag           String?
+  crmError         String?
+  confirmedById    String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
-  family             Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  enrollment         ProgramEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  import             ConfirmedRegistrationImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
-  paymentProofs      PaymentProof[]
+  family        Family                       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  student       Student                      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment    ProgramEnrollment            @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  import        ConfirmedRegistrationImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  paymentProofs PaymentProof[]
 
   @@index([familyId])
   @@index([studentId])
@@ -528,24 +522,24 @@ model EnrollmentPaymentRecord {
 }
 
 model PaymentProof {
-  id                 String    @id @default(cuid())
-  importId           String?
-  paymentRecordId    String?
-  enrollmentId       String?
-  originalName       String
-  fileName           String
-  mimeType           String
-  size               Int
-  storagePath        String
-  note               String?
-  uploadedById       String
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id              String   @id @default(cuid())
+  importId        String?
+  paymentRecordId String?
+  enrollmentId    String?
+  originalName    String
+  fileName        String
+  mimeType        String
+  size            Int
+  storagePath     String
+  note            String?
+  uploadedById    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  import             ConfirmedRegistrationImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
-  paymentRecord      EnrollmentPaymentRecord? @relation(fields: [paymentRecordId], references: [id], onDelete: Cascade)
-  enrollment         ProgramEnrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
-  uploadedBy         User      @relation("PaymentProofUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  import        ConfirmedRegistrationImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
+  paymentRecord EnrollmentPaymentRecord?     @relation(fields: [paymentRecordId], references: [id], onDelete: Cascade)
+  enrollment    ProgramEnrollment?           @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  uploadedBy    User                         @relation("PaymentProofUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([importId])
   @@index([paymentRecordId])
@@ -554,16 +548,16 @@ model PaymentProof {
 }
 
 model ImportActivityLog {
-  id                 String    @id @default(cuid())
-  importId           String
-  action             String
-  message            String
-  metadata           Json?
-  actorId            String?
-  createdAt          DateTime  @default(now())
+  id        String   @id @default(cuid())
+  importId  String
+  action    String
+  message   String
+  metadata  Json?
+  actorId   String?
+  createdAt DateTime @default(now())
 
-  import             ConfirmedRegistrationImport @relation(fields: [importId], references: [id], onDelete: Cascade)
-  actor              User?     @relation("ImportActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  import ConfirmedRegistrationImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  actor  User?                       @relation("ImportActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([importId])
   @@index([actorId])
@@ -639,36 +633,43 @@ enum EmailLogStatus {
 
 // ==================== Pricing Configuration ====================
 model PricingConfig {
-  id                String   @id @default(cuid())
-  priceType         PriceType @unique
-  amount            Int
-  updatedBy         String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String   @id @default(cuid())
+  priceType    String   @unique
+  label        String
+  description  String
+  amount       Int
+  isActive     Boolean  @default(true)
+  isSystem     Boolean  @default(false)
+  displayOrder Int      @default(0)
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([priceType])
+  @@index([isActive])
+  @@index([displayOrder])
 }
 
 // ==================== Course History ====================
 model CourseHistory {
-  id                String   @id @default(cuid())
-  studentId         String
-  courseId          String
-  courseName        String
-  programId         String?
-  programName       String?
-  batch             Int      @default(1)
-  year              Int?
-  completionStatus  CompletionStatus
-  startDate         DateTime?
-  endDate           DateTime?
-  performanceNotes  String?
-  dateAdded         DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String           @id @default(cuid())
+  studentId        String
+  courseId         String
+  courseName       String
+  programId        String?
+  programName      String?
+  batch            Int              @default(1)
+  year             Int?
+  completionStatus CompletionStatus
+  startDate        DateTime?
+  endDate          DateTime?
+  performanceNotes String?
+  dateAdded        DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   // Relations
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([completionStatus])

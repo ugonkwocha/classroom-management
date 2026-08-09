@@ -319,20 +319,20 @@ async function main() {
   console.log('Setting up pricing configuration...');
   await prisma.pricingConfig.upsert({
     where: { priceType: 'FULL_PRICE' },
-    update: { amount: 60000 },
-    create: { priceType: 'FULL_PRICE', amount: 60000 },
+    update: { label: 'Full Price', description: 'Standard enrollment price', amount: 60000, isSystem: true, displayOrder: 1 },
+    create: { priceType: 'FULL_PRICE', label: 'Full Price', description: 'Standard enrollment price', amount: 60000, isSystem: true, displayOrder: 1 },
   });
 
   await prisma.pricingConfig.upsert({
     where: { priceType: 'SIBLING_DISCOUNT' },
-    update: { amount: 56000 },
-    create: { priceType: 'SIBLING_DISCOUNT', amount: 56000 },
+    update: { label: 'Sibling Discount', description: 'For siblings enrolled in the same program', amount: 56000, isSystem: true, displayOrder: 2 },
+    create: { priceType: 'SIBLING_DISCOUNT', label: 'Sibling Discount', description: 'For siblings enrolled in the same program', amount: 56000, isSystem: true, displayOrder: 2 },
   });
 
   await prisma.pricingConfig.upsert({
     where: { priceType: 'EARLY_BIRD' },
-    update: { amount: 54000 },
-    create: { priceType: 'EARLY_BIRD', amount: 54000 },
+    update: { label: 'Early Bird', description: 'Early registration discount', amount: 54000, isSystem: true, displayOrder: 3 },
+    create: { priceType: 'EARLY_BIRD', label: 'Early Bird', description: 'Early registration discount', amount: 54000, isSystem: true, displayOrder: 3 },
   });
 
   // Create Course History

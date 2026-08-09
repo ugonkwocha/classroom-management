@@ -16,7 +16,7 @@ import {
   FiUsers,
   FiX,
 } from 'react-icons/fi';
-import { useCourses, useFamilies, usePrograms } from '@/lib/hooks';
+import { useCourses, useFamilies, usePricing, usePrograms } from '@/lib/hooks';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { allocateConfirmedAmount } from '@/lib/payment-allocation';
 import type {
@@ -66,8 +66,6 @@ type ExternalRegistration = {
   matchingFamilies?: Family[];
   rawPayload?: unknown;
 };
-
-const priceTypes: PriceType[] = ['FULL_PRICE', 'SIBLING_DISCOUNT', 'EARLY_BIRD'];
 
 function formatCurrency(amount?: number | null) {
   return new Intl.NumberFormat('en-NG', {
@@ -208,6 +206,7 @@ export function ConfirmedRegistrationsManagement() {
   const { programs } = usePrograms();
   const { courses } = useCourses();
   const { families, mutate: mutateFamilies } = useFamilies();
+  const { priceOptions } = usePricing();
 
   const [mappingForm, setMappingForm] = useState({
     id: '',
@@ -767,7 +766,7 @@ export function ConfirmedRegistrationsManagement() {
                     <label className="block">
                       <span className="mb-2 block text-sm font-bold text-slate-700">Confirmed price option</span>
                       <select value={importForm.priceType} onChange={(event) => setImportForm((current) => ({ ...current, priceType: event.target.value as PriceType }))} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm">
-                        {priceTypes.map((type) => <option key={type} value={type}>{formatLabel(type)}</option>)}
+                        {priceOptions.map((option) => <option key={option.type} value={option.type}>{option.label}</option>)}
                       </select>
                     </label>
                     <label className="block">
@@ -833,7 +832,7 @@ export function ConfirmedRegistrationsManagement() {
             </select>
             <input type="number" min={1} value={existingFamilyForm.batchNumber} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, batchNumber: Number(event.target.value) }))} placeholder="Batch" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
             <select value={existingFamilyForm.priceType} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, priceType: event.target.value as PriceType }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-              {priceTypes.map((type) => <option key={type} value={type}>{formatLabel(type)}</option>)}
+              {priceOptions.map((option) => <option key={option.type} value={option.type}>{option.label}</option>)}
             </select>
             <input required type="number" min={1} value={existingFamilyForm.confirmedAmount || ''} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, confirmedAmount: Number(event.target.value) }))} placeholder="Confirmed amount" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
             <input value={existingFamilyForm.paidTag} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, paidTag: event.target.value }))} placeholder="FluentCRM paid tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />

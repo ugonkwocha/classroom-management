@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Student, Program, PriceType } from '@/types';
-import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { Student, Program } from '@/types';
+import { formatCurrency } from '@/lib/constants/pricing';
 import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
+import { usePricing } from '@/lib/hooks';
 
 interface RevenueAnalyticsProps {
   students: Student[];
@@ -11,6 +12,7 @@ interface RevenueAnalyticsProps {
 }
 
 export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) {
+  const { priceOptions } = usePricing();
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
   const [selectedProgram, setSelectedProgram] = useState<string>('all');
@@ -49,17 +51,13 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
     );
 
     // Group by price type
-    const byPriceType: Record<
-      PriceType,
-      { count: number; revenue: number }
-    > = {
-      FULL_PRICE: { count: 0, revenue: 0 },
-      SIBLING_DISCOUNT: { count: 0, revenue: 0 },
-      EARLY_BIRD: { count: 0, revenue: 0 },
-    };
+    const byPriceType: Record<string, { count: number; revenue: number }> = Object.fromEntries(
+      priceOptions.map((option) => [option.type, { count: 0, revenue: 0 }])
+    );
 
     confirmedEnrollments.forEach(({ enrollment, amount }) => {
-      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
+      const priceType = enrollment.priceType || 'FULL_PRICE';
+      byPriceType[priceType] ||= { count: 0, revenue: 0 };
       byPriceType[priceType].count += 1;
       byPriceType[priceType].revenue += amount;
     });
@@ -71,7 +69,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
         programName: string;
         count: number;
         revenue: number;
-        byPriceType: Record<PriceType, number>;
+        byPriceType: Record<string, number>;
       }
     > = {};
 
@@ -82,17 +80,14 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
           programName: prog ? `${prog.name} - ${prog.season} ${prog.year}` : enrollment.programId,
           count: 0,
           revenue: 0,
-          byPriceType: {
-            FULL_PRICE: 0,
-            SIBLING_DISCOUNT: 0,
-            EARLY_BIRD: 0,
-          },
+          byPriceType: Object.fromEntries(priceOptions.map((option) => [option.type, 0])),
         };
       }
 
       byProgram[enrollment.programId].count += 1;
       byProgram[enrollment.programId].revenue += amount;
-      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
+      const priceType = enrollment.priceType || 'FULL_PRICE';
+      byProgram[enrollment.programId].byPriceType[priceType] ||= 0;
       byProgram[enrollment.programId].byPriceType[priceType] += 1;
     });
 
@@ -108,7 +103,7 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
       byPriceType,
       byProgram: Object.values(byProgram).sort((a, b) => b.revenue - a.revenue),
     };
-  }, [students, filteredPrograms]);
+  }, [students, filteredPrograms, priceOptions]);
 
   return (
     <div className="space-y-6">
@@ -192,8 +187,8 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
 
       {/* Revenue by Price Type */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PRICE_OPTIONS.map((option) => {
-          const data = revenueData.byPriceType[option.type];
+        {priceOptions.map((option) => {
+          const data = revenueData.byPriceType[option.type] || { count: 0, revenue: 0 };
           const percentage =
             revenueData.enrollmentCount > 0
               ? Math.round((data.count / revenueData.enrollmentCount) * 100)
@@ -254,10 +249,10 @@ export function RevenueAnalytics({ students, programs }: RevenueAnalyticsProps) 
 
                 {/* Price type distribution for this program */}
                 <div className="grid grid-cols-3 gap-2 text-xs">
-                  {PRICE_OPTIONS.map((option) => (
+                  {priceOptions.map((option) => (
                     <div key={option.type} className="bg-gray-50 p-2 rounded">
                       <p className="text-gray-600 mb-1">{option.label}</p>
-                      <p className="font-bold text-gray-900">{prog.byPriceType[option.type]}</p>
+                      <p className="font-bold text-gray-900">{prog.byPriceType[option.type] || 0}</p>
                     </div>
                   ))}
                 </div>

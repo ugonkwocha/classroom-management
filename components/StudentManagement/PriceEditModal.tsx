@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui';
 import { ProgramEnrollment, Student, Program, PriceType } from '@/types';
-import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { usePricing } from '@/lib/hooks';
 
 interface PriceEditModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export function PriceEditModal({
   program,
   onSave,
 }: PriceEditModalProps) {
+  const { priceOptions, getPriceOption } = usePricing();
   const [selectedPriceType, setSelectedPriceType] = useState<PriceType>(
     enrollment?.priceType || 'FULL_PRICE'
   );
@@ -41,7 +43,7 @@ export function PriceEditModal({
     return null;
   }
 
-  const currentPriceLabel = getPriceLabel(enrollment.priceType || 'FULL_PRICE');
+  const currentPriceLabel = getPriceOption(enrollment.priceType || 'FULL_PRICE')?.label || getPriceLabel(enrollment.priceType || 'FULL_PRICE');
   const currentAmount = enrollment.priceAmount || 60000;
   const newAmount = selectedAmount;
   const hasChanges =
@@ -93,7 +95,7 @@ export function PriceEditModal({
               <div>
                 <p className="text-xs text-gray-600">New Price</p>
                 <div>
-                  <p className="text-xs text-gray-700">{getPriceLabel(selectedPriceType)}</p>
+                  <p className="text-xs text-gray-700">{getPriceOption(selectedPriceType)?.label || getPriceLabel(selectedPriceType)}</p>
                   <p className="text-lg font-bold text-blue-600">{formatCurrency(newAmount)}</p>
                 </div>
               </div>
@@ -114,7 +116,7 @@ export function PriceEditModal({
             Pricing Option
           </label>
           <div className="space-y-2">
-            {PRICE_OPTIONS.map((option) => (
+            {priceOptions.map((option) => (
               <label
                 key={option.type}
                 className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50"
@@ -130,7 +132,7 @@ export function PriceEditModal({
                   checked={selectedPriceType === option.type}
                   onChange={(e) => {
                     const nextType = e.target.value as PriceType;
-                    const option = PRICE_OPTIONS.find((item) => item.type === nextType);
+                    const option = priceOptions.find((item) => item.type === nextType);
                     setSelectedPriceType(nextType);
                     if (option) setSelectedAmount(option.amount);
                   }}

@@ -4,7 +4,7 @@ export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
-export type PriceType = 'FULL_PRICE' | 'SIBLING_DISCOUNT' | 'EARLY_BIRD';
+export type PriceType = string;
 export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
 export type EmailEventType =
   | 'CLASS_ASSIGNMENT'
@@ -188,13 +188,21 @@ export interface PriceOption {
   label: string;
   amount: number;
   description: string;
+  isActive?: boolean;
+  isSystem?: boolean;
+  displayOrder?: number;
 }
 
 // Pricing configuration for super admin management
 export interface PricingConfig {
   id: string;
   priceType: PriceType;
+  label: string;
+  description: string;
   amount: number;
+  isActive: boolean;
+  isSystem: boolean;
+  displayOrder: number;
   updatedBy?: string;
   createdAt: string;
   updatedAt: string;

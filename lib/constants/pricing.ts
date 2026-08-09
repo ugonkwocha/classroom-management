@@ -60,5 +60,10 @@ export const formatCurrency = (amount: number): string => {
  */
 export const getPriceLabel = (priceType: PriceType): string => {
   const option = PRICE_OPTIONS.find((opt) => opt.type === priceType);
-  return option?.label || 'Full Price';
+  return option?.label || priceType
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 };

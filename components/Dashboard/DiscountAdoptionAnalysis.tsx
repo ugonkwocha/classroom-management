@@ -1,18 +1,20 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Student, Program, PriceType } from '@/types';
-import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
+import { Student, Program } from '@/types';
+import { formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
 import { getConfirmedPaidEnrollmentRows } from '@/lib/dashboard-enrollment-metrics';
+import { usePricing } from '@/lib/hooks';
 
 interface DiscountAdoptionAnalysisProps {
   students: Student[];
   programs: Program[];
 }
 
-const FULL_PRICE_AMOUNT = 60000;
-
 export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptionAnalysisProps) {
+  const { priceOptions } = usePricing();
+  const fullPriceAmount = priceOptions.find((option) => option.type === 'FULL_PRICE')?.amount || 60000;
+
   const analysisData = useMemo(() => {
     // Get all confirmed enrollments
     const confirmedEnrollments = getConfirmedPaidEnrollmentRows(students);
@@ -20,34 +22,31 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
     const totalEnrollments = confirmedEnrollments.length;
 
     // Group by price type
-    const byPriceType: Record<
-      PriceType,
-      { count: number; revenue: number; discount: number }
-    > = {
-      FULL_PRICE: { count: 0, revenue: 0, discount: 0 },
-      SIBLING_DISCOUNT: { count: 0, revenue: 0, discount: 0 },
-      EARLY_BIRD: { count: 0, revenue: 0, discount: 0 },
-    };
+    const byPriceType: Record<string, { count: number; revenue: number; discount: number }> = Object.fromEntries(
+      priceOptions.map((option) => [option.type, { count: 0, revenue: 0, discount: 0 }])
+    );
 
     confirmedEnrollments.forEach(({ enrollment, amount }) => {
-      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
-      const discountFromFullPrice = FULL_PRICE_AMOUNT - amount;
+      const priceType = enrollment.priceType || 'FULL_PRICE';
+      const discountFromFullPrice = Math.max(0, fullPriceAmount - amount);
 
+      byPriceType[priceType] ||= { count: 0, revenue: 0, discount: 0 };
       byPriceType[priceType].count += 1;
       byPriceType[priceType].revenue += amount;
       byPriceType[priceType].discount += discountFromFullPrice;
     });
 
     // Calculate discount statistics
-    const totalDiscounts = byPriceType.SIBLING_DISCOUNT.discount + byPriceType.EARLY_BIRD.discount;
-    const totalDiscountedEnrollments = byPriceType.SIBLING_DISCOUNT.count + byPriceType.EARLY_BIRD.count;
+    const discountEntries = Object.entries(byPriceType).filter(([type]) => type !== 'FULL_PRICE');
+    const totalDiscounts = discountEntries.reduce((sum, [, data]) => sum + data.discount, 0);
+    const totalDiscountedEnrollments = discountEntries.reduce((sum, [, data]) => sum + data.count, 0);
     const averageDiscount =
       totalDiscountedEnrollments > 0 ? Math.round(totalDiscounts / totalDiscountedEnrollments) : 0;
     const discountAdoptionRate =
       totalEnrollments > 0 ? Math.round((totalDiscountedEnrollments / totalEnrollments) * 100) : 0;
 
     // Calculate potential lost revenue if all were full price
-    const potentialFullPrice = confirmedEnrollments.length * FULL_PRICE_AMOUNT;
+    const potentialFullPrice = confirmedEnrollments.length * fullPriceAmount;
     const actualRevenue = Object.values(byPriceType).reduce((sum, p) => sum + p.revenue, 0);
     const totalDiscountedRevenue = potentialFullPrice - actualRevenue;
 
@@ -60,7 +59,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
         discountedEnrollments: number;
         discountRate: number;
         totalDiscount: number;
-        byPriceType: Record<PriceType, number>;
+        byPriceType: Record<string, number>;
       }
     > = {};
 
@@ -73,21 +72,18 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
           discountedEnrollments: 0,
           discountRate: 0,
           totalDiscount: 0,
-          byPriceType: {
-            FULL_PRICE: 0,
-            SIBLING_DISCOUNT: 0,
-            EARLY_BIRD: 0,
-          },
+          byPriceType: Object.fromEntries(priceOptions.map((option) => [option.type, 0])),
         };
       }
 
       byProgram[enrollment.programId].totalEnrollments += 1;
-      const priceType = (enrollment.priceType || 'FULL_PRICE') as PriceType;
+      const priceType = enrollment.priceType || 'FULL_PRICE';
+      byProgram[enrollment.programId].byPriceType[priceType] ||= 0;
       byProgram[enrollment.programId].byPriceType[priceType] += 1;
 
       if (priceType !== 'FULL_PRICE') {
         byProgram[enrollment.programId].discountedEnrollments += 1;
-        const discountAmount = FULL_PRICE_AMOUNT - amount;
+        const discountAmount = Math.max(0, fullPriceAmount - amount);
         byProgram[enrollment.programId].totalDiscount += discountAmount;
       }
     });
@@ -103,13 +99,10 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
     const programList = Object.values(byProgram).sort((a, b) => b.discountRate - a.discountRate);
 
     // Find most popular discount
-    const discountCounts = [
-      { type: 'SIBLING_DISCOUNT' as PriceType, count: byPriceType.SIBLING_DISCOUNT.count },
-      { type: 'EARLY_BIRD' as PriceType, count: byPriceType.EARLY_BIRD.count },
-    ];
+    const discountCounts = discountEntries.map(([type, data]) => ({ type, count: data.count }));
     const mostPopular = discountCounts.reduce((max, current) =>
       current.count > max.count ? current : max
-    );
+    , { type: 'FULL_PRICE', count: 0 });
 
     return {
       totalEnrollments,
@@ -123,7 +116,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
       potentialFullPrice,
       actualRevenue,
     };
-  }, [students, programs]);
+  }, [students, programs, priceOptions, fullPriceAmount]);
 
   return (
     <div className="space-y-6">
@@ -165,7 +158,7 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
             <div>
               <p className="text-sm text-gray-600 mb-1">Most Popular Discount</p>
               <p className="text-lg font-bold text-gray-900">
-                {getPriceLabel(analysisData.mostPopular.type)}
+                {priceOptions.find((option) => option.type === analysisData.mostPopular.type)?.label || getPriceLabel(analysisData.mostPopular.type)}
               </p>
             </div>
             <div className="text-right">
@@ -182,8 +175,8 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
       <div>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Discount Breakdown by Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PRICE_OPTIONS.map((option) => {
-            const data = analysisData.byPriceType[option.type];
+          {priceOptions.map((option) => {
+            const data = analysisData.byPriceType[option.type] || { count: 0, revenue: 0, discount: 0 };
             const percentage =
               analysisData.totalEnrollments > 0
                 ? Math.round((data.count / analysisData.totalEnrollments) * 100)
@@ -256,10 +249,10 @@ export function DiscountAdoptionAnalysis({ students, programs }: DiscountAdoptio
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                  {PRICE_OPTIONS.map((option) => (
+                  {priceOptions.map((option) => (
                     <div key={option.type} className="bg-white p-2 rounded border border-gray-200">
                       <p className="text-gray-600 mb-1">{option.label}</p>
-                      <p className="font-bold text-gray-900">{prog.byPriceType[option.type]}</p>
+                      <p className="font-bold text-gray-900">{prog.byPriceType[option.type] || 0}</p>
                     </div>
                   ))}
                 </div>
