@@ -344,12 +344,30 @@ export function EnrollmentManagement() {
     });
   }, [assignmentFilter, courses, paymentFilter, programFilter, rows, search, statusFilter, teachers, yearFilter]);
 
+  const metricRows = useMemo(
+    () =>
+      rows.filter(
+        (row) =>
+          (programFilter === 'ALL' || row.enrollment.programId === programFilter) &&
+          (yearFilter === 'ALL' || String(row.program?.year) === yearFilter)
+      ),
+    [programFilter, rows, yearFilter]
+  );
+
   const metrics = useMemo(() => {
-    const total = rows.length;
-    const pendingPayment = rows.filter((row) => normalizePaymentStatus(row.enrollment.paymentStatus) === 'PENDING').length;
-    const waitlist = rows.filter((row) => row.enrollment.status === 'WAITLIST').length;
-    const assigned = rows.filter((row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId).length;
-    const activeCapacity = classes.filter((classItem) => !classItem.isArchived).reduce((sum, classItem) => sum + classItem.capacity, 0);
+    const total = metricRows.length;
+    const pendingPayment = metricRows.filter((row) => normalizePaymentStatus(row.enrollment.paymentStatus) === 'PENDING').length;
+    const waitlist = metricRows.filter((row) => row.enrollment.status === 'WAITLIST').length;
+    const assigned = metricRows.filter((row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId).length;
+    const activeCapacity = classes
+      .filter((classItem) => {
+        if (classItem.isArchived) return false;
+        if (programFilter !== 'ALL' && classItem.programId !== programFilter) return false;
+        if (yearFilter === 'ALL') return true;
+        const program = classItem.program || programs.find((item) => item.id === classItem.programId);
+        return String(program?.year) === yearFilter;
+      })
+      .reduce((sum, classItem) => sum + classItem.capacity, 0);
     const availableSeats = Math.max(activeCapacity - assigned, 0);
 
     return {
@@ -359,7 +377,7 @@ export function EnrollmentManagement() {
       assigned,
       availableSeats,
     };
-  }, [classes, rows]);
+  }, [classes, metricRows, programFilter, programs, yearFilter]);
 
   const fetchWaitlistQueue = useCallback(async () => {
     setWaitlistLoading(true);
@@ -881,7 +899,7 @@ export function EnrollmentManagement() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Total Enrollments" value={metrics.total} helper="Across all programs" icon={FiClipboard} tone="bg-blue-50 text-blue-600" />
+        <MetricCard label="Total Enrollment Records" value={metrics.total} helper={programFilter === 'ALL' && yearFilter === 'ALL' ? 'Across all programs' : 'For selected program/year'} icon={FiClipboard} tone="bg-blue-50 text-blue-600" />
         <MetricCard label="Pending Payment" value={metrics.pendingPayment} helper="Needs confirmation" icon={FiCreditCard} tone="bg-amber-50 text-amber-600" />
         <MetricCard label="Waitlist" value={metrics.waitlist} helper="Not yet placed" icon={FiUsers} tone="bg-indigo-50 text-indigo-600" />
         <MetricCard label="Assigned" value={metrics.assigned} helper="Placed in classes" icon={FiUserCheck} tone="bg-emerald-50 text-emerald-600" />

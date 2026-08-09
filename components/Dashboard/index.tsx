@@ -493,7 +493,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
         />
         <MetricCard
           icon={FiBookOpen}
-          label="Active Enrollments"
+          label="Assigned Students"
           value={totalUniqueEnrolled}
           helper={`${totalEnrollmentSlots} assigned class slots`}
           accent="green"
