@@ -84,6 +84,7 @@ export function ProgramList({ programs, onEdit, onDelete, onView, canEdit = true
                       <p key={batchNumber}>
                         <span className="font-bold text-slate-700">Batch {batchNumber}:</span>{' '}
                         {formatDate(schedule?.startDate || program.startDate)}
+                        {schedule?.endDate ? ` - ${formatDate(schedule.endDate)}` : ' - end date not set'}
                         {!schedule && <span className="text-slate-400"> (fallback)</span>}
                       </p>
                     );

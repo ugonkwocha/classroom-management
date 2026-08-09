@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
+import { sendStoredCertificate } from '@/lib/certificate-service';
 
 export async function POST(
   request: NextRequest,
@@ -28,6 +29,14 @@ export async function POST(
 
     if (!log) {
       return NextResponse.json({ error: 'Email log not found' }, { status: 404 });
+    }
+
+    if (log.eventType === 'CERTIFICATE_DELIVERY') {
+      if (!log.certificateId) {
+        return NextResponse.json({ error: 'This certificate log is missing its certificate reference' }, { status: 400 });
+      }
+      const notification = await sendStoredCertificate(log.certificateId, sessionUser.userId);
+      return NextResponse.json({ success: notification.success, notification });
     }
 
     if (log.eventType !== 'CLASS_ASSIGNMENT') {

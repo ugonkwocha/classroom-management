@@ -34,8 +34,8 @@ interface ClassManagementProps {
 }
 
 export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: ClassManagementProps) {
-  const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
-  const { students, updateStudent } = useStudents();
+  const { classes, isLoaded, addClass, updateClass, deleteClass, refreshClasses } = useClasses();
+  const { students, updateStudent, refreshStudents } = useStudents();
   const { teachers } = useTeachers();
   const { programs } = usePrograms();
   const { courses } = useCourses();
@@ -233,81 +233,7 @@ export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: Cla
     if (!archiveConfirmationClass) return;
 
     try {
-      // Get all students enrolled in this class
-      const enrolledStudents = students.filter((student) =>
-        student.programEnrollments && student.programEnrollments.some((enrollment) => enrollment.classId === archiveConfirmationClass.id)
-      );
-
-      console.log(`[handleConfirmArchive] Archiving class ${archiveConfirmationClass.name} with ${enrolledStudents.length} students`);
-
-      // For each student, mark the course as completed in their course history
-      for (const student of enrolledStudents) {
-        if (!student.programEnrollments) continue;
-
-        // Find the enrollment for this class
-        const enrollment = student.programEnrollments.find((e) => e.classId === archiveConfirmationClass.id);
-        if (!enrollment) continue;
-
-        console.log(`[handleConfirmArchive] Processing student ${student.id} with enrollment:`, enrollment);
-
-        // Find program data for this enrollment
-        const program = programs.find((p) => p.id === enrollment.programId);
-
-        // Update course history: mark as COMPLETED if IN_PROGRESS, or create entry if doesn't exist
-        let updatedCourseHistory = (student.courseHistory || []).slice(); // Clone the array
-
-        // Check if this course already exists in history
-        const existingCourseHistoryIndex = updatedCourseHistory.findIndex(
-          (history) => history.courseId === archiveConfirmationClass.courseId
-        );
-
-        if (existingCourseHistoryIndex >= 0) {
-          // Update existing entry only if it's IN_PROGRESS (don't overwrite COMPLETED entries)
-          const existingHistory = updatedCourseHistory[existingCourseHistoryIndex];
-          if (existingHistory.completionStatus === 'IN_PROGRESS') {
-            console.log(`[handleConfirmArchive] Marking existing course history as COMPLETED for student ${student.id}`);
-            updatedCourseHistory[existingCourseHistoryIndex] = {
-              ...existingHistory,
-              completionStatus: 'COMPLETED' as const,
-              endDate: new Date().toISOString(),
-            };
-          } else {
-            console.log(`[handleConfirmArchive] Course history already ${existingHistory.completionStatus}, skipping update`);
-          }
-        } else {
-          // Create new course history entry as COMPLETED
-          console.log(`[handleConfirmArchive] Creating new course history entry as COMPLETED for student ${student.id}`);
-          const newCourseHistory = {
-            id: Math.random().toString(36).substr(2, 9),
-            courseId: archiveConfirmationClass.courseId,
-            courseName: archiveConfirmationClass.name,
-            programId: program?.id || '',
-            programName: program?.name || '',
-            batch: enrollment.batchNumber || 1,
-            year: program?.year,
-            completionStatus: 'COMPLETED' as const,
-            startDate: enrollment.enrollmentDate || new Date().toISOString(),
-            endDate: new Date().toISOString(),
-            dateAdded: new Date().toISOString(),
-          };
-          updatedCourseHistory.push(newCourseHistory);
-        }
-
-        // Remove the enrollment from the class and mark as COMPLETED
-        const updatedEnrollments = student.programEnrollments.map((e) =>
-          e.classId === archiveConfirmationClass.id
-            ? { ...e, classId: undefined, status: 'COMPLETED' as const }
-            : e
-        );
-
-        await updateStudent(student.id, {
-          programEnrollments: updatedEnrollments,
-          courseHistory: updatedCourseHistory,
-        });
-      }
-
-      // Now archive the class
-      updateClass(archiveConfirmationClass.id, { isArchived: true });
+      await updateClass(archiveConfirmationClass.id, { isArchived: true });
 
       // Close modal
       setIsArchiveConfirmOpen(false);
@@ -315,7 +241,7 @@ export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: Cla
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to archive class';
       console.error('Error archiving class:', error);
-      alert(`Error archiving class: ${errorMessage}`);
+      alert(errorMessage);
     }
   };
 
@@ -873,6 +799,9 @@ export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: Cla
             classData={selectedClassForStudents}
             students={students}
             programs={programs}
+            onDataChanged={async () => {
+              await Promise.all([refreshClasses(), refreshStudents()]);
+            }}
           />
         )}
       </Modal>
@@ -902,22 +831,18 @@ export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: Cla
               <ul className="space-y-2 text-sm text-blue-800">
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold">1.</span>
-                  <span>All {students.filter((s) => s.programEnrollments?.some((e) => e.classId === archiveConfirmationClass.id)).length} student(s) currently in this class will be unassigned</span>
+                  <span>The class can only be archived after every student has been reviewed in Completion &amp; Certificates</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold">2.</span>
-                  <span>The course will be marked as <span className="font-semibold">COMPLETED</span> in their course history</span>
+                  <span>Archiving will not change student outcomes, course history, or certificate records</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold">3.</span>
-                  <span>Their enrollment status will be marked as <span className="font-semibold">COMPLETED</span></span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold">4.</span>
                   <span>The class will be hidden from the class assignment menu</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold">5.</span>
+                  <span className="text-blue-600 font-bold">4.</span>
                   <span>You can unarchive this class later if needed</span>
                 </li>
               </ul>

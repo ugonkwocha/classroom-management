@@ -11,6 +11,7 @@ const VALID_EVENT_TYPES = [
   'TUTOR_ROSTER_UPDATE',
   'USER_INVITATION',
   'PASSWORD_RESET',
+  'CERTIFICATE_DELIVERY',
 ] as const;
 
 export async function GET(request: NextRequest) {

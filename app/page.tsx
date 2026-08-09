@@ -48,6 +48,7 @@ import { EnrollmentManagement } from '@/components/EnrollmentManagement';
 import { EmailLogsManagement } from '@/components/EmailLogsManagement';
 import { EmailTemplatesManagement } from '@/components/EmailTemplatesManagement';
 import { ConfirmedRegistrationsManagement } from '@/components/ConfirmedRegistrationsManagement';
+import { CertificateSettingsManagement } from '@/components/CertificateSettingsManagement';
 
 type Tab =
   | 'dashboard'
@@ -461,7 +462,9 @@ function HomeContent() {
     ...(canReadEmailLogs ? [{ id: 'emails' as Tab, label: 'Email Logs', icon: FiMail }] : []),
     ...(canReadUsers ? [{ id: 'users' as Tab, label: 'Users', icon: FiUsers }] : []),
     { id: 'reports', label: 'Reports', icon: FiBarChart2, disabled: true },
-    { id: 'settings', label: 'Settings', icon: FiSettings, disabled: true },
+    ...(hasPermission(PERMISSIONS.MANAGE_COURSE_CERTIFICATE_TEMPLATES)
+      ? [{ id: 'settings' as Tab, label: 'Settings', icon: FiSettings }]
+      : []),
   ];
 
   useEffect(() => {
@@ -1017,10 +1020,7 @@ function HomeContent() {
                 />
               )}
               {activeTab === 'settings' && (
-                <ComingSoonPanel
-                  title="Settings"
-                  description="Settings are reserved for a later phase so this dashboard refresh stays focused and low-risk."
-                />
+                <CertificateSettingsManagement />
               )}
             </>
           )}

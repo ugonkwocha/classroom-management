@@ -102,5 +102,6 @@ export function useClasses() {
     getClass,
     addStudentToClass,
     removeStudentFromClass,
+    refreshClasses: mutate,
   };
 }

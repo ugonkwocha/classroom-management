@@ -1,6 +1,7 @@
 export type ProgramBatchSchedulePayload = {
   batchNumber: number;
   startDate: Date;
+  endDate: Date | null;
 };
 
 export class ProgramBatchScheduleValidationError extends Error {
@@ -25,6 +26,7 @@ export function parseProgramBatchSchedules(
   for (const item of value) {
     const batchNumber = Number(item?.batchNumber);
     const startDate = new Date(item?.startDate);
+    const endDate = item?.endDate ? new Date(item.endDate) : null;
 
     if (!Number.isInteger(batchNumber) || batchNumber < 1 || batchNumber > batches) {
       throw new ProgramBatchScheduleValidationError(
@@ -36,7 +38,15 @@ export function parseProgramBatchSchedules(
       throw new ProgramBatchScheduleValidationError(`Batch ${batchNumber} must have a valid start date.`);
     }
 
-    schedules.set(batchNumber, { batchNumber, startDate });
+    if (endDate && Number.isNaN(endDate.getTime())) {
+      throw new ProgramBatchScheduleValidationError(`Batch ${batchNumber} must have a valid end date.`);
+    }
+
+    if (endDate && endDate < startDate) {
+      throw new ProgramBatchScheduleValidationError(`Batch ${batchNumber} end date cannot be before its start date.`);
+    }
+
+    schedules.set(batchNumber, { batchNumber, startDate, endDate });
   }
 
   return [...schedules.values()].sort((a, b) => a.batchNumber - b.batchNumber);

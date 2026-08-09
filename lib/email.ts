@@ -69,12 +69,28 @@ interface PasswordResetEmailParams {
   expiresAt: string;
 }
 
+interface CertificateEmailParams {
+  recipient: EmailRecipient;
+  studentName: string;
+  courseName: string;
+  certificateNumber: string;
+  verificationUrl: string;
+  subjectTemplate: string;
+  messageTemplate: string;
+  pdf: Uint8Array;
+}
+
 type EmailProvider = 'zeptomail' | 'resend' | 'disabled';
 
 type BuiltEmail = {
   subject: string;
   html: string;
   text: string;
+  attachments?: Array<{
+    filename: string;
+    content: Uint8Array;
+    mimeType: string;
+  }>;
 };
 
 const EMAIL_PROVIDER = normalizeProvider(
@@ -168,6 +184,14 @@ async function sendViaResend(recipient: EmailRecipient, email: BuiltEmail): Prom
     html: email.html,
     text: email.text,
     ...(EMAIL_REPLY_TO ? { replyTo: EMAIL_REPLY_TO } : {}),
+    ...(email.attachments?.length
+      ? {
+          attachments: email.attachments.map((attachment) => ({
+            filename: attachment.filename,
+            content: Buffer.from(attachment.content),
+          })),
+        }
+      : {}),
   });
 
   if (error) {
@@ -258,6 +282,15 @@ async function sendViaZeptoMail(recipient: EmailRecipient, email: BuiltEmail): P
       subject: email.subject,
       htmlbody: email.html,
       textbody: email.text,
+      ...(email.attachments?.length
+        ? {
+            attachments: email.attachments.map((attachment) => ({
+              name: attachment.filename,
+              mime_type: attachment.mimeType,
+              content: Buffer.from(attachment.content).toString('base64'),
+            })),
+          }
+        : {}),
       ...(ZEPTOMAIL_REPLY_TO.email
         ? {
             reply_to: [
@@ -820,6 +853,50 @@ function buildPasswordResetEmail(params: PasswordResetEmailParams) {
 export async function sendPasswordResetEmail(params: PasswordResetEmailParams): Promise<EmailResponse> {
   const email = buildPasswordResetEmail(params);
   return sendTransactionalEmail(params.recipient, email);
+}
+
+function renderCertificateText(template: string, params: CertificateEmailParams) {
+  return template
+    .replace(/{{studentName}}/g, params.studentName)
+    .replace(/{{courseName}}/g, params.courseName)
+    .replace(/{{certificateNumber}}/g, params.certificateNumber)
+    .replace(/{{verificationUrl}}/g, params.verificationUrl);
+}
+
+export async function sendCertificateEmail(params: CertificateEmailParams): Promise<EmailResponse> {
+  const subject = renderCertificateText(params.subjectTemplate, params).trim() || `Your certificate - ${params.courseName}`;
+  const message = renderCertificateText(params.messageTemplate, params);
+  const safeName = escapeHtml(params.recipient.name || 'there');
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+  const safeVerificationUrl = escapeHtml(params.verificationUrl);
+  const html = `
+    <div style="margin:0;padding:0;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+        <div style="background:#06244a;border-radius:16px;padding:24px;color:#fff;">
+          <div style="font-size:22px;font-weight:800;">9jacodekids Academy</div>
+          <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Certificate of completion</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;margin-top:18px;padding:28px;">
+          <h1 style="margin:0 0 14px;font-size:24px;">Congratulations, ${safeName}</h1>
+          <p style="margin:0;color:#475569;font-size:15px;line-height:1.7;">${safeMessage}</p>
+          <p style="margin:22px 0 0;color:#475569;font-size:14px;">Certificate number: <strong>${escapeHtml(params.certificateNumber)}</strong></p>
+          <a href="${safeVerificationUrl}" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Verify certificate</a>
+          <p style="margin:18px 0 0;color:#64748b;font-size:13px;">The certificate PDF is attached to this email.</p>
+        </div>
+      </div>
+    </div>`;
+  const text = [`Hello ${params.recipient.name || 'there'},`, '', message, '', `Certificate: ${params.certificateNumber}`, `Verify: ${params.verificationUrl}`].join('\n');
+
+  return sendTransactionalEmail(params.recipient, {
+    subject,
+    html,
+    text,
+    attachments: [{
+      filename: `${params.certificateNumber}.pdf`,
+      content: params.pdf,
+      mimeType: 'application/pdf',
+    }],
+  });
 }
 
 /**

@@ -9,11 +9,13 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
+import { CertificateWorkspace } from './CertificateWorkspace';
 
 interface ClassStudentsModalProps {
   classData: Class;
   students: Student[];
   programs: Program[];
+  onDataChanged?: () => void | Promise<void>;
 }
 
 function formatResendMessage(data: any) {
@@ -34,13 +36,14 @@ function formatResendMessage(data: any) {
   return `${data.error || data.notification?.error || 'Assignment email resend did not complete.'}${failedCount ? ` Failed recipients: ${failedCount}.` : ''}`;
 }
 
-export function ClassStudentsModal({ classData, students, programs }: ClassStudentsModalProps) {
+export function ClassStudentsModal({ classData, students, programs, onDataChanged }: ClassStudentsModalProps) {
   const { hasPermission } = useAuth();
   const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
   const [resendingStudentId, setResendingStudentId] = useState<string | null>(null);
   const [isRosterConfirmOpen, setIsRosterConfirmOpen] = useState(false);
   const [isSendingRoster, setIsSendingRoster] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'roster' | 'certificates'>('roster');
   // Get students enrolled in this class
   const enrolledStudentIds = classData.students;
   const enrolledStudents = students.filter((student) =>
@@ -218,6 +221,14 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
 
   return (
     <>
+      <div className="mb-5 flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <button type="button" onClick={() => setActiveTab('roster')} className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${activeTab === 'roster' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}>Roster</button>
+        <button type="button" onClick={() => setActiveTab('certificates')} className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${activeTab === 'certificates' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}>Completion & Certificates</button>
+      </div>
+      {activeTab === 'certificates' ? (
+        <CertificateWorkspace classId={classData.id} onDataChanged={onDataChanged} />
+      ) : (
+      <>
       <div className="space-y-4">
       {message && (
         <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>
@@ -367,6 +378,8 @@ export function ClassStudentsModal({ classData, students, programs }: ClassStude
       )}
       </div>
       {confirmationDialog}
+      </>
+      )}
     </>
   );
 }

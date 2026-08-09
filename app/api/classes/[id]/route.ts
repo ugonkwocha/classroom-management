@@ -137,6 +137,18 @@ export async function PUT(
       ? updateData.isArchived
       : existingClass.isArchived;
 
+    if (!existingClass.isArchived && finalIsArchived) {
+      const unresolvedCount = await prisma.programEnrollment.count({
+        where: { classId: id, status: 'ASSIGNED' },
+      });
+      if (unresolvedCount > 0) {
+        return NextResponse.json(
+          { error: `Review completion for all ${unresolvedCount} assigned student${unresolvedCount === 1 ? '' : 's'} before archiving this class.` },
+          { status: 409 }
+        );
+      }
+    }
+
     if (finalTeacherId && !finalIsArchived) {
       const teacher = await prisma.teacher.findUnique({
         where: { id: finalTeacherId },

@@ -556,5 +556,6 @@ export function useStudents() {
     updateEnrollmentPrice,
     getStudentEnrollmentsForProgram,
     getWaitlistedStudents,
+    refreshStudents: mutate,
   };
 }

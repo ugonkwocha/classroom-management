@@ -29,6 +29,9 @@ model User {
   paymentProofs                PaymentProof[]                @relation("PaymentProofUploader")
   importActivityLogs           ImportActivityLog[]           @relation("ImportActivityActor")
   claimedEnrollments           ProgramEnrollment[]           @relation("EnrollmentClaims")
+  completionDecisions          ClassCompletionDecision[]     @relation("CompletionReviewer")
+  issuedCertificates           StudentCertificate[]          @relation("CertificateIssuer")
+  revokedCertificates          StudentCertificate[]          @relation("CertificateRevoker")
 
   @@index([email])
 }
@@ -124,6 +127,8 @@ model Course {
   // Relations
   classes                             Class[]
   emailTemplate                       CourseEmailTemplate?
+  certificateTemplate                 CourseCertificateTemplate?
+  certificates                        StudentCertificate[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
 
   @@index([name])
@@ -178,6 +183,7 @@ model Program {
   fluentFormMappings                  FluentFormMapping[]
   confirmedRegistrationImports        ConfirmedRegistrationImport[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
+  certificates                        StudentCertificate[]
 
   @@unique([name, season, year])
   @@index([season])
@@ -185,12 +191,13 @@ model Program {
 }
 
 model ProgramBatchSchedule {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   programId   String
   batchNumber Int
   startDate   DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
@@ -283,10 +290,12 @@ model Class {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  program     Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
-  teacher     Teacher?            @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  enrollments ProgramEnrollment[]
+  course              Course                    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  program             Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  teacher             Teacher?                  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  enrollments         ProgramEnrollment[]
+  completionDecisions ClassCompletionDecision[]
+  certificates        StudentCertificate[]
 
   @@unique([name])
   @@index([programId])
@@ -319,6 +328,8 @@ model Student {
   courseHistory                       CourseHistory[]
   paymentRecords                      EnrollmentPaymentRecord[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
+  completionDecisions                 ClassCompletionDecision[]
+  certificates                        StudentCertificate[]
 
   @@index([familyId])
   @@index([email])
@@ -347,12 +358,14 @@ model ProgramEnrollment {
   updatedAt      DateTime         @updatedAt
 
   // Relations
-  student        Student                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  program        Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  class          Class?                    @relation(fields: [classId], references: [id], onDelete: SetNull)
-  claimedBy      User?                     @relation("EnrollmentClaims", fields: [claimedById], references: [id], onDelete: SetNull)
-  paymentRecords EnrollmentPaymentRecord[]
-  paymentProofs  PaymentProof[]
+  student             Student                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program             Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  class               Class?                    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  claimedBy           User?                     @relation("EnrollmentClaims", fields: [claimedById], references: [id], onDelete: SetNull)
+  paymentRecords      EnrollmentPaymentRecord[]
+  paymentProofs       PaymentProof[]
+  completionDecisions ClassCompletionDecision[]
+  certificates        StudentCertificate[]
 
   // Indexes - No unique constraint on (studentId, classId) since we allow multiple NULL classIds
   // A student can have multiple ASSIGNED or WAITLIST enrollments (waiting for class assignment)
@@ -597,6 +610,7 @@ model EmailLog {
   studentId         String?
   classId           String?
   enrollmentId      String?
+  certificateId     String?
   triggeredById     String?
   payload           Json?
   sentAt            DateTime?
@@ -611,6 +625,7 @@ model EmailLog {
   @@index([studentId])
   @@index([classId])
   @@index([enrollmentId])
+  @@index([certificateId])
   @@index([createdAt])
 }
 
@@ -621,6 +636,116 @@ enum EmailEventType {
   TUTOR_ROSTER_UPDATE
   USER_INVITATION
   PASSWORD_RESET
+  CERTIFICATE_DELIVERY
+}
+
+// ==================== Class Completion & Certificates ====================
+model CertificateSettings {
+  id             String   @id @default("default")
+  signatoryName  String   @default("")
+  signatoryTitle String   @default("")
+  signaturePath  String?
+  emailSubject   String   @default("Your 9jacodekids certificate - {{courseName}}")
+  emailMessage   String   @default("Congratulations {{studentName}} on completing {{courseName}}. Your certificate is attached.")
+  isActive       Boolean  @default(false)
+  updatedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model CourseCertificateTemplate {
+  id                 String   @id @default(cuid())
+  courseId           String   @unique
+  certificateTitle   String
+  achievementWording String
+  isActive           Boolean  @default(false)
+  updatedById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+}
+
+model ClassCompletionDecision {
+  id           String            @id @default(cuid())
+  classId      String
+  studentId    String
+  enrollmentId String
+  outcome      CompletionOutcome
+  reason       String?
+  reviewedById String
+  reviewedAt   DateTime          @default(now())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  class      Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment ProgramEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  reviewedBy User              @relation("CompletionReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@unique([classId, studentId])
+  @@index([classId, outcome])
+  @@index([studentId])
+  @@index([enrollmentId])
+}
+
+enum CompletionOutcome {
+  COMPLETED
+  NOT_COMPLETED
+}
+
+model StudentCertificate {
+  id                     String            @id @default(cuid())
+  classId                String
+  studentId              String
+  enrollmentId           String
+  courseId               String
+  programId              String
+  certificateNumber      String            @unique
+  verificationToken      String            @unique
+  version                Int               @default(1)
+  status                 CertificateStatus @default(ISSUED)
+  studentNameSnapshot    String
+  courseTitleSnapshot    String
+  achievementSnapshot    String
+  classNameSnapshot      String
+  programNameSnapshot    String
+  completionDate         DateTime
+  signatoryNameSnapshot  String
+  signatoryTitleSnapshot String
+  signaturePathSnapshot  String?
+  pdfPath                String
+  issuedById             String
+  issuedAt               DateTime          @default(now())
+  revokedById            String?
+  revokedAt              DateTime?
+  revocationReason       String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  class      Class             @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student    Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment ProgramEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  course     Course            @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  program    Program           @relation(fields: [programId], references: [id], onDelete: Restrict)
+  issuedBy   User              @relation("CertificateIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  revokedBy  User?             @relation("CertificateRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+
+  @@unique([classId, studentId, version])
+  @@index([classId, status])
+  @@index([studentId, status])
+  @@index([enrollmentId])
+  @@index([courseId])
+  @@index([programId])
+}
+
+enum CertificateStatus {
+  ISSUED
+  REVOKED
 }
 
 enum EmailLogStatus {

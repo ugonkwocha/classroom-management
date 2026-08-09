@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 type EmailLogInput = {
-  eventType: 'CLASS_ASSIGNMENT' | 'PREPARATION_INSTRUCTIONS' | 'TEACHER_ASSIGNMENT' | 'TUTOR_ROSTER_UPDATE' | 'USER_INVITATION' | 'PASSWORD_RESET';
+  eventType: 'CLASS_ASSIGNMENT' | 'PREPARATION_INSTRUCTIONS' | 'TEACHER_ASSIGNMENT' | 'TUTOR_ROSTER_UPDATE' | 'USER_INVITATION' | 'PASSWORD_RESET' | 'CERTIFICATE_DELIVERY';
   recipientEmail: string;
   recipientName?: string;
   recipientRole?: string;
@@ -14,6 +14,7 @@ type EmailLogInput = {
   studentId?: string | null;
   classId?: string | null;
   enrollmentId?: string | null;
+  certificateId?: string | null;
   triggeredById?: string | null;
   payload?: Prisma.InputJsonValue;
 };
@@ -33,6 +34,7 @@ export async function logEmailDelivery(input: EmailLogInput) {
       studentId: input.studentId || null,
       classId: input.classId || null,
       enrollmentId: input.enrollmentId || null,
+      certificateId: input.certificateId || null,
       triggeredById: input.triggeredById || null,
       payload: input.payload,
       sentAt: input.success ? new Date() : null,

@@ -12,7 +12,8 @@ export type EmailEventType =
   | 'TEACHER_ASSIGNMENT'
   | 'TUTOR_ROSTER_UPDATE'
   | 'USER_INVITATION'
-  | 'PASSWORD_RESET';
+  | 'PASSWORD_RESET'
+  | 'CERTIFICATE_DELIVERY';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
 export type RegistrationImportSource = 'FLUENT_FORM_IMPORT' | 'EXISTING_FAMILY';
 export type ConfirmedRegistrationImportStatus = 'PROCESSED' | 'NEEDS_REVIEW' | 'FAILED';
@@ -57,6 +58,7 @@ export interface EmailLog {
   studentId?: string | null;
   classId?: string | null;
   enrollmentId?: string | null;
+  certificateId?: string | null;
   triggeredById?: string | null;
   payload?: unknown;
   sentAt?: string | null;
@@ -71,7 +73,18 @@ export interface Course {
   description: string;
   programLevels: ProgramLevel[];
   emailTemplate?: CourseEmailTemplate | null;
+  certificateTemplate?: CourseCertificateTemplate | null;
   createdAt: string;
+}
+
+export interface CourseCertificateTemplate {
+  id: string;
+  courseId: string;
+  certificateTitle: string;
+  achievementWording: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CourseEmailTemplate {
@@ -115,6 +128,7 @@ export interface ProgramBatchSchedule {
   programId?: string;
   batchNumber: number;
   startDate: string;
+  endDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

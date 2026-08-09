@@ -33,6 +33,7 @@ const eventLabels: Record<EmailEventType, string> = {
   TUTOR_ROSTER_UPDATE: 'Tutor roster update',
   USER_INVITATION: 'User invitation',
   PASSWORD_RESET: 'Password reset',
+  CERTIFICATE_DELIVERY: 'Certificate delivery',
 };
 
 function formatLabel(value: string) {
@@ -216,6 +217,7 @@ export function EmailLogsManagement() {
               <option value="TUTOR_ROSTER_UPDATE">Tutor roster update</option>
               <option value="USER_INVITATION">User invitation</option>
               <option value="PASSWORD_RESET">Password reset</option>
+              <option value="CERTIFICATE_DELIVERY">Certificate delivery</option>
             </select>
 
             <button

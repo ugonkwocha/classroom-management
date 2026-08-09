@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/constants/pricing';
 import { formatPhoneNumberForDisplay } from '@/lib/constants/countries';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { StudentCertificatesSection } from './StudentCertificatesSection';
 import {
   BatchEnrollmentAvailability,
   getBatchEnrollmentAvailability,
@@ -665,6 +666,8 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         resendingEnrollmentId={resendingEnrollmentId}
         studentId={student.id}
       />
+
+      <StudentCertificatesSection studentId={student.id} />
 
       {/* Assignment Modal */}
       <Modal

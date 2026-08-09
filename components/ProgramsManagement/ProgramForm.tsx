@@ -45,6 +45,11 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       const schedule = initialData?.batchSchedules?.find((item) => item.batchNumber === batchNumber);
       return toDateInputValue(schedule?.startDate);
     }),
+    batchEndDates: Array.from({ length: initialData?.batches || 1 }, (_, index) => {
+      const batchNumber = index + 1;
+      const schedule = initialData?.batchSchedules?.find((item) => item.batchNumber === batchNumber);
+      return toDateInputValue(schedule?.endDate);
+    }),
   });
 
   const [newSlot, setNewSlot] = useState('');
@@ -67,7 +72,16 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       formData.batchStartDates.slice(0, formData.batches).forEach((date, index) => {
         if (!date) newErrors[`batchStartDate-${index + 1}`] = `Batch ${index + 1} start date is required`;
       });
+      formData.batchEndDates.slice(0, formData.batches).forEach((date, index) => {
+        if (!date) newErrors[`batchEndDate-${index + 1}`] = `Batch ${index + 1} end date is required`;
+      });
     }
+    formData.batchStartDates.slice(0, formData.batches).forEach((startDate, index) => {
+      const endDate = formData.batchEndDates[index];
+      if (startDate && endDate && endDate < startDate) {
+        newErrors[`batchEndDate-${index + 1}`] = `Batch ${index + 1} end date cannot be before its start date`;
+      }
+    });
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -85,7 +99,11 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
         startDate: formData.startDate,
         batchSchedules: formData.batchStartDates
           .slice(0, formData.batches)
-          .map((startDate, index) => ({ batchNumber: index + 1, startDate }))
+          .map((startDate, index) => ({
+            batchNumber: index + 1,
+            startDate,
+            endDate: formData.batchEndDates[index] || null,
+          }))
           .filter((schedule) => Boolean(schedule.startDate)),
       });
     } catch {
@@ -101,6 +119,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       slots: [],
       startDate: '',
       batchStartDates: [''],
+      batchEndDates: [''],
     });
     setNewSlot('');
     setErrors({});
@@ -188,35 +207,52 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
             { length: batches },
             (_, index) => formData.batchStartDates[index] || ''
           );
-          setFormData({ ...formData, batches, batchStartDates });
+          const batchEndDates = Array.from(
+            { length: batches },
+            (_, index) => formData.batchEndDates[index] || ''
+          );
+          setFormData({ ...formData, batches, batchStartDates, batchEndDates });
         }}
         error={errors.batches}
       />
 
       <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
         <div className="mb-3">
-          <p className="text-sm font-bold text-slate-800">Batch Start Dates</p>
+          <p className="text-sm font-bold text-slate-800">Batch Dates</p>
           <p className="mt-1 text-xs leading-5 text-slate-600">
-            Each configured date controls enrollment availability for that batch. An unconfigured existing batch continues using the fallback date above.
+            Start dates control enrollment availability. End dates become the default completion date on certificates.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: formData.batches }, (_, index) => {
             const batchNumber = index + 1;
-            return (
-              <Input
-                key={batchNumber}
-                label={`Batch ${batchNumber} Start Date`}
-                type="date"
-                value={formData.batchStartDates[index] || ''}
-                onChange={(event) => {
-                  const batchStartDates = [...formData.batchStartDates];
-                  batchStartDates[index] = event.target.value;
-                  setFormData({ ...formData, batchStartDates });
-                }}
-                error={errors[`batchStartDate-${batchNumber}`]}
-              />
-            );
+            return <div key={batchNumber} className="rounded-xl border border-blue-100 bg-white p-3">
+              <p className="mb-3 text-sm font-bold text-slate-700">Batch {batchNumber}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Start Date"
+                  type="date"
+                  value={formData.batchStartDates[index] || ''}
+                  onChange={(event) => {
+                    const batchStartDates = [...formData.batchStartDates];
+                    batchStartDates[index] = event.target.value;
+                    setFormData({ ...formData, batchStartDates });
+                  }}
+                  error={errors[`batchStartDate-${batchNumber}`]}
+                />
+                <Input
+                  label="End Date"
+                  type="date"
+                  value={formData.batchEndDates[index] || ''}
+                  onChange={(event) => {
+                    const batchEndDates = [...formData.batchEndDates];
+                    batchEndDates[index] = event.target.value;
+                    setFormData({ ...formData, batchEndDates });
+                  }}
+                  error={errors[`batchEndDate-${batchNumber}`]}
+                />
+              </div>
+            </div>;
           })}
         </div>
       </div>
