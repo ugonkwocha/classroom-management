@@ -504,6 +504,26 @@ export function useStudents() {
     }
   };
 
+  const updateEnrollmentPrice = async (
+    enrollmentId: string,
+    priceType: ProgramEnrollment['priceType'],
+    priceAmount: number
+  ) => {
+    const res = await fetchWithAuth(`/api/enrollments/${enrollmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ priceType, priceAmount }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to update payment details');
+    }
+
+    const updatedEnrollment = await res.json();
+    await mutate(undefined, { revalidate: true });
+    return updatedEnrollment;
+  };
+
   // Get student's enrollments for a specific program
   const getStudentEnrollmentsForProgram = (studentId: string, programId: string) => {
     const student = getStudent(studentId);
@@ -533,6 +553,7 @@ export function useStudents() {
     addProgramEnrollment,
     removeProgramEnrollment,
     updateProgramEnrollment,
+    updateEnrollmentPrice,
     getStudentEnrollmentsForProgram,
     getWaitlistedStudents,
   };

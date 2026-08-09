@@ -105,6 +105,16 @@ export async function PUT(
 
   try {
     const data = await request.json();
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'priceType') ||
+      Object.prototype.hasOwnProperty.call(data, 'priceAmount')
+    ) {
+      try {
+        checkPermission(sessionUser.role, PERMISSIONS.EDIT_PRICE);
+      } catch {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
     console.log('[PUT /api/enrollments/:id] Updating enrollment:', id, 'with data:', { classId: data.classId, batchNumber: data.batchNumber, status: data.status });
 
     let shouldSendAssignmentNotification = false;

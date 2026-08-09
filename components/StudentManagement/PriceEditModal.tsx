@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui';
 import { ProgramEnrollment, Student, Program, PriceType } from '@/types';
 import { PRICE_OPTIONS, formatCurrency, getPriceLabel } from '@/lib/constants/pricing';
@@ -25,8 +25,17 @@ export function PriceEditModal({
   const [selectedPriceType, setSelectedPriceType] = useState<PriceType>(
     enrollment?.priceType || 'FULL_PRICE'
   );
+  const [selectedAmount, setSelectedAmount] = useState(enrollment?.priceAmount || 60000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !enrollment) return;
+
+    setSelectedPriceType(enrollment.priceType || 'FULL_PRICE');
+    setSelectedAmount(enrollment.priceAmount || 60000);
+    setError(null);
+  }, [isOpen, enrollment]);
 
   if (!isOpen || !student || !enrollment || !program) {
     return null;
@@ -34,12 +43,17 @@ export function PriceEditModal({
 
   const currentPriceLabel = getPriceLabel(enrollment.priceType || 'FULL_PRICE');
   const currentAmount = enrollment.priceAmount || 60000;
-  const newPriceOption = PRICE_OPTIONS.find((opt) => opt.type === selectedPriceType);
-  const newAmount = newPriceOption?.amount || 60000;
+  const newAmount = selectedAmount;
+  const hasChanges =
+    selectedPriceType !== enrollment.priceType || newAmount !== currentAmount;
 
   const handleSave = async () => {
     try {
       setError(null);
+      if (!Number.isFinite(newAmount) || newAmount <= 0) {
+        setError('Confirmed amount must be greater than zero.');
+        return;
+      }
       setIsLoading(true);
       await onSave(enrollment.id, selectedPriceType, newAmount);
       onClose();
@@ -50,16 +64,8 @@ export function PriceEditModal({
     }
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setSelectedPriceType(enrollment?.priceType || 'FULL_PRICE');
-      setError(null);
-      onClose();
-    }
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Enrollment Price">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Payment Details">
       <div className="space-y-4">
         {/* Student and Program Info */}
         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
@@ -83,7 +89,7 @@ export function PriceEditModal({
                 <p className="text-lg font-bold text-purple-600">{formatCurrency(currentAmount)}</p>
               </div>
             </div>
-            {newAmount !== currentAmount && (
+            {hasChanges && (
               <div>
                 <p className="text-xs text-gray-600">New Price</p>
                 <div>
@@ -105,7 +111,7 @@ export function PriceEditModal({
         {/* Price Selection */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Select New Pricing Option
+            Pricing Option
           </label>
           <div className="space-y-2">
             {PRICE_OPTIONS.map((option) => (
@@ -122,7 +128,12 @@ export function PriceEditModal({
                   name="priceType"
                   value={option.type}
                   checked={selectedPriceType === option.type}
-                  onChange={(e) => setSelectedPriceType(e.target.value as PriceType)}
+                  onChange={(e) => {
+                    const nextType = e.target.value as PriceType;
+                    const option = PRICE_OPTIONS.find((item) => item.type === nextType);
+                    setSelectedPriceType(nextType);
+                    if (option) setSelectedAmount(option.amount);
+                  }}
                   className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 mt-0.5"
                   disabled={isLoading}
                 />
@@ -140,17 +151,39 @@ export function PriceEditModal({
           </div>
         </div>
 
+        <div>
+          <label htmlFor="confirmedAmount" className="block text-sm font-semibold text-gray-700 mb-2">
+            Confirmed Amount
+          </label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₦</span>
+            <input
+              id="confirmedAmount"
+              type="number"
+              min="1"
+              step="1"
+              value={selectedAmount}
+              onChange={(event) => setSelectedAmount(Number(event.target.value))}
+              disabled={isLoading}
+              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-8 pr-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-gray-600">
+            Enter the exact bank-transfer amount confirmed for this enrollment.
+          </p>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4 border-t border-gray-200">
           <button
             onClick={handleSave}
-            disabled={isLoading || selectedPriceType === enrollment.priceType}
+            disabled={isLoading || !hasChanges || !Number.isFinite(newAmount) || newAmount <= 0}
             className="flex-1 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:bg-gray-400 text-sm"
           >
-            {isLoading ? 'Updating...' : 'Update Price'}
+            {isLoading ? 'Updating...' : 'Update payment details'}
           </button>
           <button
-            onClick={() => handleOpenChange(false)}
+            onClick={onClose}
             disabled={isLoading}
             className="flex-1 px-4 py-2 bg-gray-200 text-gray-900 font-medium rounded-lg hover:bg-gray-300 disabled:bg-gray-400 text-sm"
           >

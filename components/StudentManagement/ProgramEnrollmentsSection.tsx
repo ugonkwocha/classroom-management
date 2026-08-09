@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ProgramEnrollment, Class, Program, PriceType } from '@/types';
+import { ProgramEnrollment, Class, Program, PriceType, Student } from '@/types';
 import { Card, Button } from '@/components/ui';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
@@ -10,6 +10,7 @@ import { getPriceLabel, formatCurrency } from '@/lib/constants/pricing';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 
 interface ProgramEnrollmentsSectionProps {
+  student: Student;
   enrollments: ProgramEnrollment[];
   classes: Class[];
   programs: Program[];
@@ -35,6 +36,7 @@ function paymentBadgeLabel(paymentStatus: ProgramEnrollment['paymentStatus']) {
 }
 
 export function ProgramEnrollmentsSection({
+  student,
   enrollments,
   classes,
   programs,
@@ -48,8 +50,8 @@ export function ProgramEnrollmentsSection({
   resendingEnrollmentId,
   studentId,
 }: ProgramEnrollmentsSectionProps) {
-  const { user, hasPermission } = useAuth();
-  const canEditPrice = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const { hasPermission } = useAuth();
+  const canEditPrice = hasPermission(PERMISSIONS.EDIT_PRICE);
   const canResendEmail = hasPermission(PERMISSIONS.RESEND_EMAIL);
   const [priceModalState, setPriceModalState] = useState<{ isOpen: boolean; enrollmentId: string | null }>({
     isOpen: false,
@@ -183,9 +185,21 @@ export function ProgramEnrollmentsSection({
                       <p className="text-xs text-gray-600 font-semibold">Price</p>
                       <p className="text-sm text-gray-900">{getPriceLabel(enrollment.priceType)}</p>
                     </div>
-                    <p className="text-lg font-bold text-purple-600">
-                      {formatCurrency(enrollment.priceAmount || 60000)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-bold text-purple-600">
+                        {formatCurrency(enrollment.priceAmount || 60000)}
+                      </p>
+                      {canEditPrice && onEditPrice && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPriceModalState({ isOpen: true, enrollmentId: enrollment.id })}
+                          className="text-purple-700 hover:bg-purple-50 hover:text-purple-800"
+                        >
+                          Edit payment details
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -211,16 +225,6 @@ export function ProgramEnrollmentsSection({
 
               {/* Actions */}
               <div className="mt-4 pt-4 border-t border-current border-opacity-20 space-y-2">
-                {canEditPrice && onEditPrice && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPriceModalState({ isOpen: true, enrollmentId: enrollment.id })}
-                    className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                  >
-                    Edit Price
-                  </Button>
-                )}
                 {canResendEmail && classData && enrollment.status === 'ASSIGNED' && onResendAssignmentEmail && (
                   <Button
                     variant="outline"
@@ -454,7 +458,7 @@ export function ProgramEnrollmentsSection({
         <PriceEditModal
           isOpen={priceModalState.isOpen}
           onClose={() => setPriceModalState({ isOpen: false, enrollmentId: null })}
-          student={selectedEnrollment ? { id: studentId || '', ...({} as any) } : null}
+          student={selectedEnrollment ? student : null}
           enrollment={selectedEnrollment || null}
           program={selectedProgram || null}
           onSave={async (enrollmentId, priceType, priceAmount) => {

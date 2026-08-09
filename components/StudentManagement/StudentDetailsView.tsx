@@ -57,7 +57,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
   const { classes, updateClass } = useClasses();
   const { programs } = usePrograms();
   const { courses } = useCourses();
-  const { updateStudent, students, getStudent } = useStudents();
+  const { updateStudent, updateEnrollmentPrice, students, getStudent } = useStudents();
   const { priceOptions } = usePricing();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
@@ -155,6 +155,25 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
       e.id === enrollmentId ? { ...e, paymentStatus } : e
     );
     updateStudent(student.id, { programEnrollments: updatedEnrollments });
+  };
+
+  const handleEditPrice = async (enrollmentId: string, priceType: PriceType, priceAmount: number) => {
+    const updatedEnrollments = getEnrollments().map((enrollment) =>
+      enrollment.id === enrollmentId
+        ? { ...enrollment, priceType, priceAmount }
+        : enrollment
+    );
+
+    await updateEnrollmentPrice(enrollmentId, priceType, priceAmount);
+    setDisplayStudent((current) => ({
+      ...current,
+      enrollments: updatedEnrollments,
+      programEnrollments: updatedEnrollments,
+    }));
+    setSuccessMessage(`Payment details updated to ${formatCurrency(priceAmount)}.`);
+    setShowSuccessMessage(true);
+    if (successMessageTimeoutRef.current) clearTimeout(successMessageTimeoutRef.current);
+    successMessageTimeoutRef.current = setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
   // Unassign student from a class (keep program enrollment)
@@ -632,6 +651,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
 
       {/* Program Enrollments Section */}
       <ProgramEnrollmentsSection
+        student={student}
         enrollments={getEnrollments()}
         classes={classes}
         programs={programs}
@@ -640,6 +660,7 @@ export function StudentDetailsView({ student: initialStudent, onClose, onEdit }:
         onUnassignFromClass={handleUnassignFromClass}
         onUnassignFromProgram={handleUnassignFromProgram}
         onMarkAsCompleted={handleMarkAsCompleted}
+        onEditPrice={handleEditPrice}
         onResendAssignmentEmail={handleResendAssignmentEmail}
         resendingEnrollmentId={resendingEnrollmentId}
         studentId={student.id}
