@@ -30,6 +30,7 @@ const securityHeaders = [
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
+      "frame-src 'self' blob:",
       "object-src 'none'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
