@@ -5,8 +5,17 @@ import { readCertificateAsset, saveCertificatePdf } from '@/lib/certificate-stor
 import { sendCertificateEmail } from '@/lib/email';
 import { logEmailDelivery } from '@/lib/email-logs';
 
-export function getApplicationUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+export function getApplicationUrl(requestOrigin?: string | null) {
+  const configuredUrl = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    requestOrigin,
+    process.env.COOLIFY_URL,
+    process.env.COOLIFY_FQDN,
+  ].find((value) => value?.trim());
+  const firstUrl = configuredUrl?.split(',')[0].trim() || 'http://localhost:3000';
+  const withProtocol = /^https?:\/\//i.test(firstUrl) ? firstUrl : `https://${firstUrl}`;
+  return withProtocol.replace(/\/$/, '');
 }
 
 export async function getCertificateRoster(classId: string) {
@@ -103,7 +112,7 @@ function replaceTemplateVariables(value: string, studentName: string, courseName
   return value.replace(/{{studentName}}/g, studentName).replace(/{{courseName}}/g, courseName);
 }
 
-export async function sendStoredCertificate(certificateId: string, triggeredById: string | null) {
+export async function sendStoredCertificate(certificateId: string, triggeredById: string | null, requestOrigin?: string | null) {
   const certificate = await prisma.studentCertificate.findUnique({
     where: { id: certificateId },
     include: { student: { include: { family: { include: { guardians: true } } } } },
@@ -119,7 +128,7 @@ export async function sendStoredCertificate(certificateId: string, triggeredById
   }
 
   const pdf = await readCertificateAsset(certificate.pdfPath);
-  const verificationUrl = `${getApplicationUrl()}/verify/certificate/${certificate.verificationToken}`;
+  const verificationUrl = `${getApplicationUrl(requestOrigin)}/verify/certificate/${certificate.verificationToken}`;
   const results = [];
   for (const recipient of recipients) {
     const result = await sendCertificateEmail({
@@ -166,6 +175,7 @@ export async function createCertificate(params: {
   completionDate: Date;
   issuedById: string;
   reissue?: boolean;
+  requestOrigin?: string | null;
 }) {
   const roster = await getCertificateRoster(params.classId);
   if (!roster) throw new Error('Class not found');
@@ -195,7 +205,7 @@ export async function createCertificate(params: {
   const token = randomBytes(24).toString('base64url');
   const number = `9CK-${params.completionDate.getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
   const studentName = `${row.student.firstName} ${row.student.lastName}`.trim();
-  const verificationUrl = `${getApplicationUrl()}/verify/certificate/${token}`;
+  const verificationUrl = `${getApplicationUrl(params.requestOrigin)}/verify/certificate/${token}`;
   const bytes = await generateCertificatePdf({
     studentName,
     courseTitle: template.certificateTitle,

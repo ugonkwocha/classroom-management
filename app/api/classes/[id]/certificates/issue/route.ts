@@ -29,8 +29,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const row = roster.rows.find((item) => item.student.id === studentId);
     const studentName = row ? `${row.student.firstName} ${row.student.lastName}`.trim() : studentId;
     try {
-      const issued = await createCertificate({ classId: id, studentId, completionDate, issuedById: user.userId });
-      const delivery = await sendStoredCertificate(issued.certificate.id, user.userId);
+      const issued = await createCertificate({ classId: id, studentId, completionDate, issuedById: user.userId, requestOrigin: request.nextUrl.origin });
+      const delivery = await sendStoredCertificate(issued.certificate.id, user.userId, request.nextUrl.origin);
       results.push({ studentId, studentName, certificateId: issued.certificate.id, certificateNumber: issued.certificate.certificateNumber, created: issued.created, ...delivery });
     } catch (error) {
       results.push({ studentId, studentName, success: false, sent: 0, failed: 0, error: error instanceof Error ? error.message : 'Certificate issuance failed' });

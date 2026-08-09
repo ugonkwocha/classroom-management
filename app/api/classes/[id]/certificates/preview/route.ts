@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     signatoryTitle: settings.signatoryTitle,
     signaturePath: settings.signaturePath,
     certificateNumber: '9CK-PREVIEW',
-    verificationUrl: `${getApplicationUrl()}/verify/certificate/preview`,
+    verificationUrl: `${getApplicationUrl(request.nextUrl.origin)}/verify/certificate/preview`,
     preview: true,
   });
   return new NextResponse(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="certificate-preview.pdf"', 'Cache-Control': 'no-store' } });

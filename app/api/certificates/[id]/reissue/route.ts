@@ -15,8 +15,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const body = await request.json().catch(() => ({}));
   const completionDate = body.completionDate ? new Date(`${body.completionDate}T12:00:00.000Z`) : previous.completionDate;
   try {
-    const issued = await createCertificate({ classId: previous.classId, studentId: previous.studentId, completionDate, issuedById: user.userId, reissue: true });
-    const delivery = await sendStoredCertificate(issued.certificate.id, user.userId);
+    const issued = await createCertificate({ classId: previous.classId, studentId: previous.studentId, completionDate, issuedById: user.userId, reissue: true, requestOrigin: request.nextUrl.origin });
+    const delivery = await sendStoredCertificate(issued.certificate.id, user.userId, request.nextUrl.origin);
     return NextResponse.json({ success: delivery.success, certificate: issued.certificate, delivery });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to reissue certificate' }, { status: 400 });

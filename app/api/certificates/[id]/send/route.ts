@@ -8,6 +8,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { checkPermission(user.role, PERMISSIONS.RESEND_CERTIFICATE); } catch { return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); }
   const { id } = await params;
-  try { return NextResponse.json(await sendStoredCertificate(id, user.userId)); }
+  try { return NextResponse.json(await sendStoredCertificate(id, user.userId, request.nextUrl.origin)); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to send certificate' }, { status: 400 }); }
 }

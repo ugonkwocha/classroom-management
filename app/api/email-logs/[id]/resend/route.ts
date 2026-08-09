@@ -35,7 +35,7 @@ export async function POST(
       if (!log.certificateId) {
         return NextResponse.json({ error: 'This certificate log is missing its certificate reference' }, { status: 400 });
       }
-      const notification = await sendStoredCertificate(log.certificateId, sessionUser.userId);
+      const notification = await sendStoredCertificate(log.certificateId, sessionUser.userId, request.nextUrl.origin);
       return NextResponse.json({ success: notification.success, notification });
     }
 
