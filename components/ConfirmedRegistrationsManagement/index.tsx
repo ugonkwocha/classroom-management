@@ -5,6 +5,7 @@ import {
   FiCheckCircle,
   FiCreditCard,
   FiDatabase,
+  FiEdit3,
   FiExternalLink,
   FiLink,
   FiPlus,
@@ -37,6 +38,22 @@ type DuplicatePaymentNotice = {
   studentName?: string;
   programName?: string;
   batchNumber?: number;
+};
+
+type ImportPaymentEditRow = {
+  paymentRecordId: string;
+  studentName: string;
+  programName: string;
+  batchNumber: number;
+  priceType: PriceType;
+  amountConfirmed: number;
+};
+
+type ImportPaymentEditor = {
+  importId: string;
+  parentName: string;
+  paymentProofNote: string;
+  rows: ImportPaymentEditRow[];
 };
 
 type ExternalRegistration = {
@@ -183,7 +200,7 @@ async function uploadProof(file: File | null, payload: Record<string, string>) {
   return response.json();
 }
 
-export function ConfirmedRegistrationsManagement() {
+export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { canEditPayments?: boolean }) {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('import');
   const [mappings, setMappings] = useState<FluentFormMapping[]>([]);
   const [imports, setImports] = useState<ConfirmedRegistrationImport[]>([]);
@@ -198,6 +215,7 @@ export function ConfirmedRegistrationsManagement() {
   const [successDialog, setSuccessDialog] = useState<{ title: string; text: string } | null>(null);
   const [duplicatePaymentNotice, setDuplicatePaymentNotice] = useState<DuplicatePaymentNotice | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [paymentEditor, setPaymentEditor] = useState<ImportPaymentEditor | null>(null);
   const [importForm, setImportForm] = useState({
     priceType: 'FULL_PRICE' as PriceType,
     confirmedAmount: 0,
@@ -248,6 +266,69 @@ export function ConfirmedRegistrationsManagement() {
     const response = await fetchWithAuth('/api/confirmed-registrations');
     if (response.ok) setImports(await response.json());
   }, []);
+
+  const openPaymentEditor = (item: ConfirmedRegistrationImport) => {
+    const rows = (item.paymentRecords || []).map((record) => ({
+      paymentRecordId: record.id,
+      studentName: record.student
+        ? `${record.student.firstName} ${record.student.lastName}`
+        : 'Unknown student',
+      programName: record.enrollment?.program?.name || item.program?.name || 'Program',
+      batchNumber: record.enrollment?.batchNumber || item.defaultBatch,
+      priceType: record.enrollment?.priceType || 'FULL_PRICE',
+      amountConfirmed: record.amountConfirmed,
+    }));
+
+    if (rows.length === 0) {
+      setMessage({ type: 'error', text: 'This import has no linked enrollment payment records to edit.' });
+      return;
+    }
+
+    setMessage(null);
+    setPaymentEditor({
+      importId: item.id,
+      parentName: `${item.parentFirstName} ${item.parentLastName}`,
+      paymentProofNote: item.paymentProofNote || '',
+      rows,
+    });
+  };
+
+  const handleSavePaymentCorrections = async () => {
+    if (!paymentEditor) return;
+    if (paymentEditor.rows.some((row) => !Number.isInteger(row.amountConfirmed) || row.amountConfirmed <= 0)) {
+      setMessage({ type: 'error', text: 'Every enrollment amount must be a whole number greater than zero.' });
+      return;
+    }
+
+    setIsBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetchWithAuth(`/api/confirmed-registrations/${paymentEditor.importId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          paymentProofNote: paymentEditor.paymentProofNote,
+          records: paymentEditor.rows.map((row) => ({
+            paymentRecordId: row.paymentRecordId,
+            priceType: row.priceType,
+            amountConfirmed: row.amountConfirmed,
+          })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update enrollment payment details');
+
+      setPaymentEditor(null);
+      await loadImports();
+      setSuccessDialog({
+        title: 'Payment details corrected',
+        text: `The imported payment total is now ${formatCurrency(data.newTotal)}. Enrollment records and dashboard revenue were updated together.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to update enrollment payment details' });
+    } finally {
+      setIsBusy(false);
+    }
+  };
 
   useEffect(() => {
     loadMappings();
@@ -500,6 +581,71 @@ export function ConfirmedRegistrationsManagement() {
 
   return (
     <div className="space-y-6">
+      {paymentEditor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-8">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-import-payment-title" className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
+              <div>
+                <h2 id="edit-import-payment-title" className="text-xl font-bold text-slate-950">Edit enrollment payment details</h2>
+                <p className="mt-1 text-sm text-slate-500">{paymentEditor.parentName}</p>
+              </div>
+              <button type="button" onClick={() => setPaymentEditor(null)} disabled={isBusy} aria-label="Close payment editor" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50">
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5 p-6">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                Correct the amount allocated to each child and batch. The total below is calculated automatically and will replace the imported total.
+              </div>
+
+              <div className="space-y-3">
+                {paymentEditor.rows.map((row, index) => (
+                  <div key={row.paymentRecordId} className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-[1.4fr_1fr_1fr] md:items-end">
+                    <div>
+                      <p className="font-bold text-slate-950">{row.studentName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{row.programName} · Batch {row.batchNumber}</p>
+                    </div>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase text-slate-500">Pricing option</span>
+                      <select value={row.priceType} onChange={(event) => setPaymentEditor((current) => current ? ({ ...current, rows: current.rows.map((currentRow, rowIndex) => rowIndex === index ? { ...currentRow, priceType: event.target.value } : currentRow) }) : current)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+                        {priceOptions.map((option) => <option key={option.type} value={option.type}>{option.label}</option>)}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase text-slate-500">Confirmed amount</span>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-slate-500">₦</span>
+                        <input type="number" min={1} max={10000000} step={1} value={row.amountConfirmed} onChange={(event) => setPaymentEditor((current) => current ? ({ ...current, rows: current.rows.map((currentRow, rowIndex) => rowIndex === index ? { ...currentRow, amountConfirmed: Number(event.target.value) } : currentRow) }) : current)} className="w-full rounded-xl border border-slate-200 py-2.5 pl-8 pr-3 text-sm" />
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">Payment confirmation note</span>
+                <textarea maxLength={2000} value={paymentEditor.paymentProofNote} onChange={(event) => setPaymentEditor((current) => current ? { ...current, paymentProofNote: event.target.value } : current)} placeholder="Reason for correction or bank transfer note" className="min-h-24 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              </label>
+
+              <div className="flex flex-col gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase text-blue-700">Corrected total</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-950">{formatCurrency(paymentEditor.rows.reduce((sum, row) => sum + (Number.isFinite(row.amountConfirmed) ? row.amountConfirmed : 0), 0))}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setPaymentEditor(null)} disabled={isBusy} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">Cancel</button>
+                  <button type="button" onClick={handleSavePaymentCorrections} disabled={isBusy} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
+                    <FiCheckCircle className="h-4 w-4" />
+                    {isBusy ? 'Saving...' : 'Save corrections'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {successDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-8">
           <div
@@ -1041,6 +1187,16 @@ export function ConfirmedRegistrationsManagement() {
                       {item.crmError && <p className="mt-1 max-w-xs text-xs text-slate-500">{item.crmError}</p>}
                     </td>
                     <td className="px-4 py-4">
+                      <div className="flex flex-wrap gap-2">
+                      {canEditPayments && item.paymentRecords?.length ? (
+                        <button
+                          type="button"
+                          onClick={() => openPaymentEditor(item)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700"
+                        >
+                          <FiEdit3 /> Edit payments
+                        </button>
+                      ) : null}
                       {item.paymentRecords?.[0] && (
                         <button
                           type="button"
@@ -1055,6 +1211,7 @@ export function ConfirmedRegistrationsManagement() {
                           <FiRefreshCw /> Retry CRM
                         </button>
                       )}
+                      </div>
                     </td>
                   </tr>
                 ))}

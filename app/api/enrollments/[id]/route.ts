@@ -125,6 +125,12 @@ export async function PUT(
       const currentEnrollment = await tx.programEnrollment.findUnique({
         where: { id: id },
         include: {
+          student: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
           claimedBy: {
             select: {
               id: true,
@@ -272,14 +278,67 @@ export async function PUT(
         },
       });
 
+      const linkedPaymentRecord = (
+        hasPriceAmountUpdate || Object.prototype.hasOwnProperty.call(data, 'priceType')
+      )
+        ? await tx.enrollmentPaymentRecord.findFirst({
+            where: { enrollmentId: id },
+            select: { importId: true },
+          })
+        : null;
+
       if (hasPriceAmountUpdate && nextPriceAmount !== null) {
         await tx.enrollmentPaymentRecord.updateMany({
           where: { enrollmentId: id },
           data: { amountConfirmed: nextPriceAmount },
         });
+      }
+
+      if (
+        hasPriceAmountUpdate ||
+        Object.prototype.hasOwnProperty.call(data, 'priceType')
+      ) {
         await tx.confirmedRegistrationImportChild.updateMany({
           where: { enrollmentId: id },
-          data: { priceAmount: nextPriceAmount },
+          data: {
+            ...(hasPriceAmountUpdate && nextPriceAmount !== null
+              ? { priceAmount: nextPriceAmount }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(data, 'priceType')
+              ? { priceType: data.priceType }
+              : {}),
+          },
+        });
+      }
+
+      if (linkedPaymentRecord?.importId) {
+        const paymentTotal = await tx.enrollmentPaymentRecord.aggregate({
+          where: { importId: linkedPaymentRecord.importId },
+          _sum: { amountConfirmed: true },
+        });
+        const correctedTotal = paymentTotal._sum.amountConfirmed || 0;
+
+        await tx.confirmedRegistrationImport.update({
+          where: { id: linkedPaymentRecord.importId },
+          data: { confirmedAmount: correctedTotal },
+        });
+        await tx.importActivityLog.create({
+          data: {
+            importId: linkedPaymentRecord.importId,
+            action: 'PAYMENT_CORRECTED',
+            message: `Updated payment details for ${currentEnrollment.student.firstName} ${currentEnrollment.student.lastName}`,
+            metadata: {
+              enrollmentId: id,
+              priceType: Object.prototype.hasOwnProperty.call(data, 'priceType')
+                ? data.priceType
+                : currentEnrollment.priceType,
+              amountConfirmed: hasPriceAmountUpdate
+                ? nextPriceAmount
+                : currentEnrollment.priceAmount,
+              correctedImportTotal: correctedTotal,
+            },
+            actorId: sessionUser.userId,
+          },
         });
       }
 

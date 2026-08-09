@@ -985,7 +985,11 @@ function HomeContent() {
               )}
               {activeTab === 'students' && <StudentManagement selectedStudentId={selectedStudentId} />}
               {activeTab === 'families' && <FamiliesManagement />}
-              {activeTab === 'confirmed-registrations' && <ConfirmedRegistrationsManagement />}
+              {activeTab === 'confirmed-registrations' && (
+                <ConfirmedRegistrationsManagement
+                  canEditPayments={user?.role === 'SUPERADMIN' || user?.role === 'ADMIN'}
+                />
+              )}
               {activeTab === 'enrollments' && <EnrollmentManagement />}
               {activeTab === 'courses' && (
                 <CoursesManagement
