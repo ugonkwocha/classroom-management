@@ -6,10 +6,13 @@ export function fetchWithAuth(
   url: string,
   options?: RequestInit
 ): Promise<Response> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(options?.headers || {}),
-  };
+  const headers = new Headers(options?.headers);
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+
+  // The browser must add the multipart boundary for FormData requests.
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   return fetch(url, {
     ...options,
