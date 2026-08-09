@@ -28,7 +28,12 @@ import {
 import { generateClassNameWithNextSuffix } from '@/lib/utils';
 import { getProgramLevelLabel } from '@/lib/program-levels';
 
-export function ClassManagement() {
+interface ClassManagementProps {
+  initialSearch?: string;
+  searchRequestId?: number;
+}
+
+export function ClassManagement({ initialSearch = '', searchRequestId = 0 }: ClassManagementProps) {
   const { classes, isLoaded, addClass, updateClass, deleteClass } = useClasses();
   const { students, updateStudent } = useStudents();
   const { teachers } = useTeachers();
@@ -46,6 +51,13 @@ export function ClassManagement() {
   const [openActionMenuId, setOpenActionMenuId] = useState<string | undefined>();
   const [archiveConfirmationClass, setArchiveConfirmationClass] = useState<Class | undefined>();
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchRequestId > 0) {
+      setFilter(initialSearch);
+      setShowArchived(false);
+    }
+  }, [initialSearch, searchRequestId]);
 
   const canCreate = hasPermission(PERMISSIONS.CREATE_CLASS);
   const canEdit = hasPermission(PERMISSIONS.UPDATE_CLASS);

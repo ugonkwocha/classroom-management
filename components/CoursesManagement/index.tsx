@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCourses, useProgramLevelSettings } from '@/lib/hooks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Course } from '@/types';
@@ -11,13 +11,24 @@ import { CourseForm } from './CourseForm';
 import { CourseList } from './CourseList';
 import { FiBookOpen, FiLayers, FiPlus, FiSearch, FiTarget } from 'react-icons/fi';
 
-export function CoursesManagement() {
+interface CoursesManagementProps {
+  initialSearch?: string;
+  searchRequestId?: number;
+}
+
+export function CoursesManagement({ initialSearch = '', searchRequestId = 0 }: CoursesManagementProps) {
   const { courses, isLoaded, addCourse, updateCourse, deleteCourse } = useCourses();
   const { settings } = useProgramLevelSettings();
   const { hasPermission } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | undefined>();
   const [filter, setFilter] = useState<string>('');
+
+  useEffect(() => {
+    if (searchRequestId > 0) {
+      setFilter(initialSearch);
+    }
+  }, [initialSearch, searchRequestId]);
 
   const canCreate = hasPermission(PERMISSIONS.CREATE_COURSE);
   const canEdit = hasPermission(PERMISSIONS.UPDATE_COURSE);

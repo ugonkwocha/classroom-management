@@ -33,7 +33,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
-import type { Class, ConfirmedRegistrationImport, EmailLog, Family, Student, UserInvitation } from '@/types';
+import type { Class, ConfirmedRegistrationImport, Course, EmailLog, Family, Student, UserInvitation } from '@/types';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentManagement } from '@/components/StudentManagement';
 import { ClassManagement } from '@/components/ClassManagement';
@@ -82,6 +82,13 @@ type OperationalAlert = {
   tab: Tab;
   priority: 'high' | 'medium' | 'low';
   icon: ComponentType<{ className?: string }>;
+};
+
+type GlobalSearchResult = {
+  id: string;
+  type: 'student' | 'class' | 'course';
+  label: string;
+  detail: string;
 };
 
 const pageMeta: Record<Tab, { title: string; subtitle: string }> = {
@@ -413,7 +420,24 @@ function HomeContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
   const [areAlertsLoading, setAreAlertsLoading] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isGlobalSearchLoading, setIsGlobalSearchLoading] = useState(false);
+  const [globalSearchError, setGlobalSearchError] = useState('');
+  const [searchCatalog, setSearchCatalog] = useState<{
+    students: Student[];
+    classes: Class[];
+    courses: Course[];
+  }>({ students: [], classes: [], courses: [] });
+  const [directorySearch, setDirectorySearch] = useState<{
+    tab: 'classes' | 'courses';
+    query: string;
+    requestId: number;
+  } | null>(null);
   const hasLoadedAlertsRef = useRef(false);
+  const hasLoadedGlobalSearchRef = useRef(false);
+  const globalSearchRef = useRef<HTMLDivElement>(null);
+  const globalSearchInputRef = useRef<HTMLInputElement>(null);
   const canReadUsers = hasPermission(PERMISSIONS.READ_USERS);
   const canReadEmailLogs = hasPermission(PERMISSIONS.READ_EMAIL_LOGS);
   const canReadEmailTemplates = hasPermission(PERMISSIONS.READ_EMAIL_TEMPLATES);
@@ -574,10 +598,73 @@ function HomeContent() {
     };
   }, [canReadConfirmedRegistrations, canReadEmailLogs, canReadUsers, isAuthenticated, isLoading]);
 
-  const handleTabChange = (tab: Tab) => {
+  useEffect(() => {
+    const handleGlobalShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        globalSearchInputRef.current?.focus();
+      }
+
+      if (event.key === 'Escape') {
+        setIsGlobalSearchOpen(false);
+      }
+    };
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (globalSearchRef.current && !globalSearchRef.current.contains(event.target as Node)) {
+        setIsGlobalSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalShortcut);
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalShortcut);
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
+  const loadGlobalSearchCatalog = async () => {
+    if (hasLoadedGlobalSearchRef.current || isGlobalSearchLoading || !isAuthenticated) return;
+
+    hasLoadedGlobalSearchRef.current = true;
+    setIsGlobalSearchLoading(true);
+    setGlobalSearchError('');
+
+    try {
+      const [studentsResponse, classesResponse, coursesResponse] = await Promise.all([
+        fetch('/api/students'),
+        fetch('/api/classes?archived=false'),
+        fetch('/api/courses'),
+      ]);
+
+      if (!studentsResponse.ok || !classesResponse.ok || !coursesResponse.ok) {
+        throw new Error('Search data could not be loaded');
+      }
+
+      const [students, classes, courses] = await Promise.all([
+        studentsResponse.json() as Promise<Student[]>,
+        classesResponse.json() as Promise<Class[]>,
+        coursesResponse.json() as Promise<Course[]>,
+      ]);
+
+      setSearchCatalog({ students, classes, courses });
+    } catch (error) {
+      console.warn('Failed to load global search data:', error);
+      hasLoadedGlobalSearchRef.current = false;
+      setGlobalSearchError('Search is temporarily unavailable. Click the field to try again.');
+    } finally {
+      setIsGlobalSearchLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: Tab, options?: { preserveDirectorySearch?: boolean }) => {
     const navItem = navItems.find((item) => item.id === tab);
     if (navItem?.disabled) return;
 
+    if (!options?.preserveDirectorySearch) {
+      setDirectorySearch(null);
+    }
     setActiveTab(tab);
     setIsSidebarOpen(false);
     if (tab !== 'students') {
@@ -589,6 +676,71 @@ function HomeContent() {
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const normalizedGlobalSearch = globalSearchQuery.trim().toLowerCase();
+  const globalSearchResults: GlobalSearchResult[] = normalizedGlobalSearch
+    ? [
+        ...searchCatalog.students
+          .filter((student) =>
+            [
+              `${student.firstName} ${student.lastName}`,
+              student.email,
+              student.parentEmail,
+              student.parentPhone,
+            ].some((value) => value?.toLowerCase().includes(normalizedGlobalSearch))
+          )
+          .slice(0, 5)
+          .map((student) => ({
+            id: student.id,
+            type: 'student' as const,
+            label: `${student.firstName} ${student.lastName}`.trim(),
+            detail: student.email || student.parentEmail || 'Student record',
+          })),
+        ...searchCatalog.classes
+          .filter((classItem) =>
+            [classItem.name, classItem.slot, classItem.programLevel].some((value) =>
+              value?.toLowerCase().includes(normalizedGlobalSearch)
+            )
+          )
+          .slice(0, 5)
+          .map((classItem) => ({
+            id: classItem.id,
+            type: 'class' as const,
+            label: classItem.name,
+            detail: classItem.slot || 'Class record',
+          })),
+        ...searchCatalog.courses
+          .filter((course) =>
+            [course.name, course.description].some((value) =>
+              value?.toLowerCase().includes(normalizedGlobalSearch)
+            )
+          )
+          .slice(0, 5)
+          .map((course) => ({
+            id: course.id,
+            type: 'course' as const,
+            label: course.name,
+            detail: course.description || 'Course record',
+          })),
+      ].slice(0, 10)
+    : [];
+
+  const handleGlobalSearchSelect = (result: GlobalSearchResult) => {
+    setGlobalSearchQuery('');
+    setIsGlobalSearchOpen(false);
+
+    if (result.type === 'student') {
+      setDirectorySearch(null);
+      setSelectedStudentId(result.id);
+      setActiveTab('students');
+      router.push(`/?tab=students&id=${result.id}`);
+      return;
+    }
+
+    const tab = result.type === 'class' ? 'classes' : 'courses';
+    setDirectorySearch({ tab, query: result.label, requestId: Date.now() });
+    handleTabChange(tab, { preserveDirectorySearch: true });
   };
 
   const currentPage = pageMeta[activeTab];
@@ -700,14 +852,85 @@ function HomeContent() {
               <p className="mt-1 text-sm text-slate-500">{currentPage.subtitle}</p>
             </div>
 
-            <div className="hidden w-full max-w-xs items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm md:flex xl:max-w-sm 2xl:max-w-md">
+            <div
+              ref={globalSearchRef}
+              className="relative hidden w-full max-w-xs items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 shadow-sm md:flex xl:max-w-sm 2xl:max-w-md"
+            >
               <FiSearch className="mr-3 h-5 w-5 text-slate-400" />
               <input
+                ref={globalSearchInputRef}
                 type="search"
                 placeholder="Search students, classes, courses..."
+                value={globalSearchQuery}
+                onFocus={() => {
+                  setIsGlobalSearchOpen(true);
+                  void loadGlobalSearchCatalog();
+                }}
+                onChange={(event) => {
+                  setGlobalSearchQuery(event.target.value);
+                  setIsGlobalSearchOpen(true);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && globalSearchResults[0]) {
+                    event.preventDefault();
+                    handleGlobalSearchSelect(globalSearchResults[0]);
+                  }
+                }}
+                aria-label="Search students, classes, and courses"
+                role="combobox"
+                aria-controls="global-search-results"
+                aria-autocomplete="list"
+                aria-expanded={isGlobalSearchOpen}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
               />
               <span className="ml-3 text-xs text-slate-400">⌘K</span>
+
+              {isGlobalSearchOpen && (globalSearchQuery.trim() || isGlobalSearchLoading || globalSearchError) && (
+                <div
+                  id="global-search-results"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+                >
+                  {isGlobalSearchLoading ? (
+                    <p className="px-3 py-4 text-center text-sm text-slate-500">Loading search...</p>
+                  ) : globalSearchError ? (
+                    <button
+                      type="button"
+                      onClick={() => void loadGlobalSearchCatalog()}
+                      className="w-full rounded-lg px-3 py-4 text-center text-sm text-rose-600 hover:bg-rose-50"
+                    >
+                      {globalSearchError}
+                    </button>
+                  ) : globalSearchResults.length ? (
+                    globalSearchResults.map((result) => {
+                      const ResultIcon = result.type === 'student'
+                        ? FiUsers
+                        : result.type === 'class'
+                        ? FiCalendar
+                        : FiBookOpen;
+
+                      return (
+                        <button
+                          key={`${result.type}-${result.id}`}
+                          type="button"
+                          onClick={() => handleGlobalSearchSelect(result)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-blue-50"
+                        >
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                            <ResultIcon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-slate-900">{result.label}</span>
+                            <span className="block truncate text-xs text-slate-500">{result.detail}</span>
+                          </span>
+                          <span className="text-[11px] font-semibold uppercase text-slate-400">{result.type}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className="px-3 py-4 text-center text-sm text-slate-500">No matching records found.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <OperationalAlertsBell
@@ -764,10 +987,20 @@ function HomeContent() {
               {activeTab === 'families' && <FamiliesManagement />}
               {activeTab === 'confirmed-registrations' && <ConfirmedRegistrationsManagement />}
               {activeTab === 'enrollments' && <EnrollmentManagement />}
-              {activeTab === 'courses' && <CoursesManagement />}
+              {activeTab === 'courses' && (
+                <CoursesManagement
+                  initialSearch={directorySearch?.tab === 'courses' ? directorySearch.query : ''}
+                  searchRequestId={directorySearch?.tab === 'courses' ? directorySearch.requestId : 0}
+                />
+              )}
               {activeTab === 'program-levels' && <ProgramLevelsManagement />}
               {activeTab === 'programs' && <ProgramsManagement />}
-              {activeTab === 'classes' && <ClassManagement />}
+              {activeTab === 'classes' && (
+                <ClassManagement
+                  initialSearch={directorySearch?.tab === 'classes' ? directorySearch.query : ''}
+                  searchRequestId={directorySearch?.tab === 'classes' ? directorySearch.requestId : 0}
+                />
+              )}
               {activeTab === 'teachers' && <TeachersManagement />}
               {activeTab === 'pricing' && <PricingPage />}
               {activeTab === 'email-templates' && canReadEmailTemplates && <EmailTemplatesManagement />}
