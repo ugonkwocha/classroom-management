@@ -8,7 +8,6 @@ import {
   FiAlertTriangle,
   FiCheckCircle,
   FiClock,
-  FiClipboard,
   FiCreditCard,
   FiFilter,
   FiLock,
@@ -24,6 +23,7 @@ import { useClasses, useCourses, usePrograms, useStudents, useTeachers } from '@
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PERMISSIONS } from '@/lib/permissions';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { getConfirmedEnrollmentAmount, isConfirmedPaidEnrollment } from '@/lib/dashboard-enrollment-metrics';
 import { normalizePaymentStatus } from '@/lib/student-payment-status';
 import type { Class, CourseHistory, Program, ProgramEnrollment, Student, User } from '@/types';
 
@@ -354,11 +354,38 @@ export function EnrollmentManagement() {
     [programFilter, rows, yearFilter]
   );
 
+  const confirmedPaidRows = useMemo(
+    () => metricRows.filter((row) => isConfirmedPaidEnrollment(row.enrollment)),
+    [metricRows]
+  );
+
   const metrics = useMemo(() => {
-    const total = metricRows.length;
-    const pendingPayment = metricRows.filter((row) => normalizePaymentStatus(row.enrollment.paymentStatus) === 'PENDING').length;
-    const waitlist = metricRows.filter((row) => row.enrollment.status === 'WAITLIST').length;
-    const assigned = metricRows.filter((row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId).length;
+    const confirmedPaidEnrollments = confirmedPaidRows.length;
+    const uniquePayingStudents = new Set(confirmedPaidRows.map((row) => row.student.id)).size;
+    const assignedSeats = confirmedPaidRows.filter(
+      (row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId
+    ).length;
+    const awaitingAssignment = confirmedPaidRows.filter(
+      (row) => row.enrollment.status !== 'COMPLETED' && !row.enrollment.classId
+    ).length;
+    const completed = confirmedPaidRows.filter((row) => row.enrollment.status === 'COMPLETED').length;
+    const droppedOrNotCompleted = metricRows.filter(
+      (row) =>
+        normalizePaymentStatus(row.enrollment.paymentStatus) === 'CONFIRMED' &&
+        row.enrollment.status === 'DROPPED'
+    ).length;
+    const pendingPayment = metricRows.filter(
+      (row) =>
+        normalizePaymentStatus(row.enrollment.paymentStatus) === 'PENDING' &&
+        row.enrollment.status !== 'DROPPED'
+    ).length;
+    const confirmedRevenue = confirmedPaidRows.reduce(
+      (sum, row) => sum + getConfirmedEnrollmentAmount(row.enrollment),
+      0
+    );
+    const occupiedSeats = metricRows.filter(
+      (row) => row.enrollment.status === 'ASSIGNED' && row.enrollment.classId
+    ).length;
     const activeCapacity = classes
       .filter((classItem) => {
         if (classItem.isArchived) return false;
@@ -368,16 +395,69 @@ export function EnrollmentManagement() {
         return String(program?.year) === yearFilter;
       })
       .reduce((sum, classItem) => sum + classItem.capacity, 0);
-    const availableSeats = Math.max(activeCapacity - assigned, 0);
+    const availableSeats = Math.max(activeCapacity - occupiedSeats, 0);
 
     return {
-      total,
+      confirmedPaidEnrollments,
+      uniquePayingStudents,
+      assignedSeats,
+      awaitingAssignment,
+      completed,
+      droppedOrNotCompleted,
       pendingPayment,
-      waitlist,
-      assigned,
+      confirmedRevenue,
       availableSeats,
     };
-  }, [classes, metricRows, programFilter, programs, yearFilter]);
+  }, [classes, confirmedPaidRows, metricRows, programFilter, programs, yearFilter]);
+
+  const batchSummaries = useMemo(() => {
+    const summaries = new Map<
+      string,
+      {
+        key: string;
+        programName: string;
+        year?: number;
+        batchNumber: number;
+        enrollments: number;
+        studentIds: Set<string>;
+        assigned: number;
+        awaiting: number;
+        completed: number;
+        revenue: number;
+      }
+    >();
+
+    for (const row of confirmedPaidRows) {
+      const key = `${row.enrollment.programId}-${row.enrollment.batchNumber}`;
+      const existing = summaries.get(key) || {
+        key,
+        programName: row.program?.name || 'Unknown program',
+        year: row.program?.year,
+        batchNumber: row.enrollment.batchNumber,
+        enrollments: 0,
+        studentIds: new Set<string>(),
+        assigned: 0,
+        awaiting: 0,
+        completed: 0,
+        revenue: 0,
+      };
+
+      existing.enrollments += 1;
+      existing.studentIds.add(row.student.id);
+      existing.revenue += getConfirmedEnrollmentAmount(row.enrollment);
+      if (row.enrollment.status === 'COMPLETED') existing.completed += 1;
+      else if (row.enrollment.status === 'ASSIGNED' && row.enrollment.classId) existing.assigned += 1;
+      else if (!row.enrollment.classId) existing.awaiting += 1;
+      summaries.set(key, existing);
+    }
+
+    return Array.from(summaries.values()).sort(
+      (a, b) =>
+        a.programName.localeCompare(b.programName) ||
+        (a.year || 0) - (b.year || 0) ||
+        a.batchNumber - b.batchNumber
+    );
+  }, [confirmedPaidRows]);
 
   const fetchWaitlistQueue = useCallback(async () => {
     setWaitlistLoading(true);
@@ -898,13 +978,104 @@ export function EnrollmentManagement() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Total Enrollment Records" value={metrics.total} helper={programFilter === 'ALL' && yearFilter === 'ALL' ? 'Across all programs' : 'For selected program/year'} icon={FiClipboard} tone="bg-blue-50 text-blue-600" />
-        <MetricCard label="Pending Payment" value={metrics.pendingPayment} helper="Needs confirmation" icon={FiCreditCard} tone="bg-amber-50 text-amber-600" />
-        <MetricCard label="Waitlist" value={metrics.waitlist} helper="Not yet placed" icon={FiUsers} tone="bg-indigo-50 text-indigo-600" />
-        <MetricCard label="Assigned" value={metrics.assigned} helper="Placed in classes" icon={FiUserCheck} tone="bg-emerald-50 text-emerald-600" />
-        <MetricCard label="Available Seats" value={metrics.availableSeats} helper="Open class capacity" icon={FiCheckCircle} tone="bg-sky-50 text-sky-600" />
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">Program Enrollment Summary</h2>
+          <p className="mt-1 text-sm text-slate-500">Confirmed Paid Enrollments is the official end-of-program enrollment total.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:w-[560px]">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            Program
+            <select
+              value={programFilter}
+              onChange={(event) => setProgramFilter(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold normal-case text-slate-700 outline-none focus:border-blue-400"
+            >
+              <option value="ALL">All programs</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name} {program.year}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            Year
+            <select
+              value={yearFilter}
+              onChange={(event) => setYearFilter(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold normal-case text-slate-700 outline-none focus:border-blue-400"
+            >
+              <option value="ALL">All years</option>
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <MetricCard label="Confirmed Paid Enrollments" value={metrics.confirmedPaidEnrollments} helper="Official student-batch total" icon={FiCreditCard} tone="bg-blue-50 text-blue-600" />
+        <MetricCard label="Unique Paying Students" value={metrics.uniquePayingStudents} helper="Individual children" icon={FiUsers} tone="bg-indigo-50 text-indigo-600" />
+        <MetricCard label="Assigned Seats" value={metrics.assignedSeats} helper="Paid seats placed in classes" icon={FiUserCheck} tone="bg-emerald-50 text-emerald-600" />
+        <MetricCard label="Awaiting Assignment" value={metrics.awaitingAssignment} helper="Paid enrollments needing a class" icon={FiClock} tone="bg-amber-50 text-amber-600" />
+        <MetricCard label="Available Seats" value={metrics.availableSeats} helper="Open active class capacity" icon={FiCheckCircle} tone="bg-sky-50 text-sky-600" />
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+          <div className="p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Confirmed Revenue</p>
+            <p className="mt-2 text-2xl font-bold text-slate-950">{formatCurrency(metrics.confirmedRevenue)}</p>
+            <p className="mt-1 text-xs text-slate-500">From confirmed, non-dropped enrollments</p>
+          </div>
+          <div className="p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Completed</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-700">{metrics.completed}</p>
+            <p className="mt-1 text-xs text-slate-500">Completed student-batch enrollments</p>
+          </div>
+          <div className="p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Dropped / Not Completed</p>
+            <p className="mt-2 text-2xl font-bold text-slate-950">{metrics.droppedOrNotCompleted}</p>
+            <p className="mt-1 text-xs text-slate-500">Reported separately from paid enrollment totals</p>
+          </div>
+          <div className="p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Pending Payment</p>
+            <p className={`mt-2 text-2xl font-bold ${metrics.pendingPayment > 0 ? 'text-amber-700' : 'text-slate-950'}`}>{metrics.pendingPayment}</p>
+            <p className="mt-1 text-xs text-slate-500">Requires payment confirmation</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 p-5">
+          <h2 className="text-lg font-bold text-slate-950">Program and Batch Breakdown</h2>
+          <p className="mt-1 text-sm text-slate-500">Confirmed paid enrollments and revenue by batch.</p>
+        </div>
+        {batchSummaries.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {batchSummaries.map((summary) => (
+              <div key={summary.key} className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_repeat(6,minmax(80px,1fr))] xl:items-center">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-950">{summary.programName} {summary.year || ''}</p>
+                  <p className="mt-1 text-sm font-semibold text-blue-600">Batch {summary.batchNumber}</p>
+                </div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Enrollments</p><p className="mt-1 font-bold text-slate-950">{summary.enrollments}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Students</p><p className="mt-1 font-bold text-slate-950">{summary.studentIds.size}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Assigned</p><p className="mt-1 font-bold text-slate-950">{summary.assigned}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Awaiting</p><p className="mt-1 font-bold text-slate-950">{summary.awaiting}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Completed</p><p className="mt-1 font-bold text-slate-950">{summary.completed}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-400">Revenue</p><p className="mt-1 font-bold text-slate-950">{formatCurrency(summary.revenue)}</p></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center text-sm font-medium text-slate-500">No confirmed paid enrollments for this program and year.</div>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 p-5">
@@ -961,31 +1132,7 @@ export function EnrollmentManagement() {
             </button>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <select
-              value={programFilter}
-              onChange={(event) => setProgramFilter(event.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
-            >
-              <option value="ALL">All programs</option>
-              {programs.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.name} {program.year}
-                </option>
-              ))}
-            </select>
-            <select
-              value={yearFilter}
-              onChange={(event) => setYearFilter(event.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
-            >
-              <option value="ALL">All years</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as 'ALL' | EnrollmentStatus)}

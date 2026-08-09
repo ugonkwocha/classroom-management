@@ -370,7 +370,7 @@ export function Dashboard({ onSelectStudent, onNavigate }: DashboardProps) {
       getEnrollments(student).forEach((enrollment) => {
         const program = programs.find((item) => item.id === enrollment.programId);
         const isVisibleProgram = visiblePrograms.some((item) => item.id === enrollment.programId);
-        const isAssigned = enrollment.status === 'ASSIGNED';
+        const isAssigned = enrollment.status === 'ASSIGNED' && Boolean(enrollment.classId);
         const isVisibleYear =
           analyticsViewMode !== 'year' ||
           analyticsYearFilter === 'all' ||
