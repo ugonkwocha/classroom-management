@@ -32,8 +32,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install runtime utilities, including su-exec so the entrypoint can prepare
+# mounted storage and then drop privileges before starting the application.
+RUN apk add --no-cache curl postgresql-client su-exec
 
 # Copy node_modules and built application from builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -42,15 +43,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/prisma ./prisma
 
-# Install postgresql client for database operations
-RUN apk add --no-cache postgresql-client
-
 # Copy init script
 COPY scripts/init-db.js ./scripts/init-db.js
 COPY scripts/seed-admin.js ./scripts/seed-admin.js
 COPY scripts/backfill-families.js ./scripts/backfill-families.js
+COPY scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
-RUN chown -R node:node /app
+RUN chmod +x ./scripts/docker-entrypoint.sh && chown -R node:node /app
 
 # Expose port
 EXPOSE 3000
@@ -59,6 +58,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# Start with npm - which will run the init script first
-USER node
+# Prepare mounted storage as root, then start npm as the unprivileged node user.
+ENTRYPOINT ["./scripts/docker-entrypoint.sh"]
 CMD ["npm", "start"]
