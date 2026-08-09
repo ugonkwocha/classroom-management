@@ -6,14 +6,27 @@ import { sendCertificateEmail } from '@/lib/email';
 import { logEmailDelivery } from '@/lib/email-logs';
 
 export function getApplicationUrl(requestOrigin?: string | null) {
-  const configuredUrl = [
-    process.env.NEXT_PUBLIC_APP_URL,
+  const configuredUrls = [
     process.env.APP_URL,
     requestOrigin,
     process.env.COOLIFY_URL,
     process.env.COOLIFY_FQDN,
-  ].find((value) => value?.trim());
-  const firstUrl = configuredUrl?.split(',')[0].trim() || 'http://localhost:3000';
+    process.env.NEXT_PUBLIC_APP_URL,
+  ]
+    .flatMap((value) => value?.split(',') ?? [])
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const isDeployed = process.env.NODE_ENV === 'production';
+  const firstUrl = configuredUrls.find((value) => {
+    if (!isDeployed) return true;
+    try {
+      const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+      return url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && url.hostname !== '::1';
+    } catch {
+      return false;
+    }
+  }) || 'http://localhost:3000';
   const withProtocol = /^https?:\/\//i.test(firstUrl) ? firstUrl : `https://${firstUrl}`;
   return withProtocol.replace(/\/$/, '');
 }
