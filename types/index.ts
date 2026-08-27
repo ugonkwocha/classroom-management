@@ -2,7 +2,8 @@ export type ProgramLevel = string;
 export type ProgramType = 'WEEKEND_CLUB' | 'HOLIDAY_CAMP';
 export type Season = 'JANUARY' | 'EASTER' | 'MAY' | 'SUMMER' | 'OCTOBER';
 export type TeacherStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
-export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF';
+export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'STAFF' | 'PARENT' | 'TUTOR' | 'STUDENT';
+export type RoleSlug = 'superadmin' | 'admin' | 'staff' | 'parent' | 'tutor' | 'student';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
 export type PriceType = string;
 export type GuardianRelationship = 'PARENT' | 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'OTHER';
@@ -25,6 +26,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+  roleSlugs?: RoleSlug[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

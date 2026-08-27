@@ -288,6 +288,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     PERMISSIONS.READ_CERTIFICATES,
     PERMISSIONS.RESEND_CERTIFICATE,
   ],
+  PARENT: [],
+  TUTOR: [],
+  STUDENT: [],
 };
 
 export function hasPermission(role: UserRole | undefined, permission: Permission): boolean {

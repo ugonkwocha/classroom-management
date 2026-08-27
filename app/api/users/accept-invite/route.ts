@@ -72,6 +72,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      await tx.userRoleAssignment.create({
+        data: {
+          userId: createdUser.id,
+          roleSlug: invitation.role.toLowerCase(),
+          grantedById: invitation.invitedById,
+        },
+      });
+
       await tx.userInvitation.update({
         where: { id: invitation.id },
         data: {

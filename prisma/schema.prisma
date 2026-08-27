@@ -32,6 +32,10 @@ model User {
   completionDecisions          ClassCompletionDecision[]     @relation("CompletionReviewer")
   issuedCertificates           StudentCertificate[]          @relation("CertificateIssuer")
   revokedCertificates          StudentCertificate[]          @relation("CertificateRevoker")
+  assignedRoles                UserRoleAssignment[]          @relation("AssignedUserRoles")
+  grantedRoles                 UserRoleAssignment[]          @relation("GrantedUserRoles")
+  guardianProfiles             ParentGuardian[]
+  teacherProfile               Teacher?
 
   @@index([email])
 }
@@ -40,6 +44,34 @@ enum UserRole {
   SUPERADMIN
   ADMIN
   STAFF
+  PARENT
+  TUTOR
+  STUDENT
+}
+
+model Role {
+  slug        String   @id
+  label       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments UserRoleAssignment[]
+}
+
+model UserRoleAssignment {
+  userId      String
+  roleSlug    String
+  grantedById String?
+  grantedAt   DateTime @default(now())
+
+  user      User  @relation("AssignedUserRoles", fields: [userId], references: [id], onDelete: Cascade)
+  role      Role  @relation(fields: [roleSlug], references: [slug], onDelete: Restrict)
+  grantedBy User? @relation("GrantedUserRoles", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleSlug])
+  @@index([roleSlug])
+  @@index([grantedById])
 }
 
 model UserInvitation {
@@ -99,11 +131,13 @@ model Teacher {
   profilePhoto     String?
   status           TeacherStatus @default(ACTIVE)
   qualifiedCourses String[] // Array of course IDs
+  userId           String?       @unique
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
   // Relations
   classes Class[]
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([status])
@@ -250,10 +284,12 @@ model ParentGuardian {
   isPrimary        Boolean              @default(false)
   isActive         Boolean              @default(true)
   needsReview      Boolean              @default(false)
+  userId           String?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([familyId])
   @@index([emailNormalized])
@@ -261,6 +297,7 @@ model ParentGuardian {
   @@index([isPrimary])
   @@index([isActive])
   @@index([needsReview])
+  @@index([userId])
 }
 
 enum GuardianRelationship {

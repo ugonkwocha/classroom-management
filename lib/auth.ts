@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, UserRole } from '@/types';
 import prisma from '@/lib/prisma';
+import { mergeRoleSlugs } from '@/lib/access-control';
+import type { RoleSlug } from '@/types';
 
 const JWT_EXPIRY = '12h';
 export const AUTH_COOKIE_NAME = 'academy_session';
@@ -50,6 +52,10 @@ export interface TokenPayload {
   exp: number;
 }
 
+export interface ActiveSessionUser extends TokenPayload {
+  roleSlugs: RoleSlug[];
+}
+
 export function verifyToken(token: string): TokenPayload | null {
   try {
     const payload = jwt.verify(token, getJwtSecret()) as TokenPayload;
@@ -92,7 +98,7 @@ export function getSessionUser(request: Request): TokenPayload | null {
   return verifyToken(token);
 }
 
-export async function getActiveSessionUser(request: Request): Promise<TokenPayload | null> {
+export async function getActiveSessionUser(request: Request): Promise<ActiveSessionUser | null> {
   const sessionUser = getSessionUser(request);
 
   if (!sessionUser) {
@@ -107,6 +113,11 @@ export async function getActiveSessionUser(request: Request): Promise<TokenPaylo
       role: true,
       isActive: true,
       tokenVersion: true,
+      assignedRoles: {
+        select: {
+          roleSlug: true,
+        },
+      },
     },
   });
 
@@ -114,9 +125,19 @@ export async function getActiveSessionUser(request: Request): Promise<TokenPaylo
     return null;
   }
 
+  const roleSlugs = mergeRoleSlugs(
+    user.assignedRoles.map((assignment) => assignment.roleSlug),
+    user.role as UserRole
+  );
+
+  if (roleSlugs.length === 0) {
+    return null;
+  }
+
   return {
     ...sessionUser,
     email: user.email,
     role: user.role as UserRole,
+    roleSlugs,
   };
 }

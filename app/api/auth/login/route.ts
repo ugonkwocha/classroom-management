@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { AUTH_COOKIE_NAME, JWT_MAX_AGE_SECONDS, verifyPassword, generateToken } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { getUserRoleSlugs } from '@/lib/access-control';
 
 const prisma = new PrismaClient();
 
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       role: user.role as any,
       tokenVersion: user.tokenVersion,
     });
+    const roleSlugs = await getUserRoleSlugs(user.id);
 
     const response = NextResponse.json({
       token,
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        roleSlugs,
       },
     });
 

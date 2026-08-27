@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
+import type { UserRole } from '@/types';
 
 const prisma = new PrismaClient();
+const INTERNAL_USER_ROLES: UserRole[] = ['SUPERADMIN', 'ADMIN', 'STAFF'];
 
 export async function GET(
   request: NextRequest,
@@ -88,6 +90,13 @@ export async function PUT(
     const body = await request.json();
     const { email, firstName, lastName, role, isActive } = body;
 
+    if (role && !INTERNAL_USER_ROLES.includes(role as UserRole)) {
+      return NextResponse.json(
+        { error: 'Parent, tutor, and student accounts must be created through their portal onboarding flow' },
+        { status: 400 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: id },
     });
@@ -132,25 +141,62 @@ export async function PUT(
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: id },
-      data: {
-        ...(email && { email }),
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName }),
-        ...(role && { role }),
-        ...(isActive !== undefined && { isActive }),
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const shouldInvalidateSessions = (role && role !== user.role) ||
+      (isActive !== undefined && isActive !== user.isActive);
+
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: id },
+        data: {
+          ...(email && { email }),
+          ...(firstName && { firstName }),
+          ...(lastName && { lastName }),
+          ...(role && { role }),
+          ...(isActive !== undefined && { isActive }),
+          ...(shouldInvalidateSessions && { tokenVersion: { increment: 1 } }),
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (role && role !== user.role) {
+        const roleSlug = String(role).toLowerCase();
+
+        await tx.userRoleAssignment.deleteMany({
+          where: {
+            userId: id,
+            roleSlug: { in: ['superadmin', 'admin', 'staff'] },
+          },
+        });
+
+        await tx.userRoleAssignment.upsert({
+          where: {
+            userId_roleSlug: {
+              userId: id,
+              roleSlug,
+            },
+          },
+          update: {
+            grantedById: sessionUser.userId,
+            grantedAt: new Date(),
+          },
+          create: {
+            userId: id,
+            roleSlug,
+            grantedById: sessionUser.userId,
+          },
+        });
+      }
+
+      return updated;
     });
 
     return NextResponse.json(updatedUser);

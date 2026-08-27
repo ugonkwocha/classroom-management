@@ -23,7 +23,19 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(password || 'Admin@123', 10);
 
-  await prisma.user.upsert({
+  await prisma.role.createMany({
+    data: [
+      { slug: 'superadmin', label: 'Super Admin' },
+      { slug: 'admin', label: 'Admin' },
+      { slug: 'staff', label: 'Staff' },
+      { slug: 'parent', label: 'Parent' },
+      { slug: 'tutor', label: 'Tutor' },
+      { slug: 'student', label: 'Student' },
+    ],
+    skipDuplicates: true,
+  });
+
+  const user = await prisma.user.upsert({
     where: { email },
     update: {
       password: passwordHash,
@@ -39,6 +51,27 @@ async function main() {
       lastName,
       role: 'SUPERADMIN',
       isActive: true,
+    },
+  });
+
+  await prisma.userRoleAssignment.deleteMany({
+    where: {
+      userId: user.id,
+      roleSlug: { in: ['admin', 'staff'] },
+    },
+  });
+
+  await prisma.userRoleAssignment.upsert({
+    where: {
+      userId_roleSlug: {
+        userId: user.id,
+        roleSlug: 'superadmin',
+      },
+    },
+    update: {},
+    create: {
+      userId: user.id,
+      roleSlug: 'superadmin',
     },
   });
 

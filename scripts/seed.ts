@@ -10,6 +10,18 @@ async function hashPassword(password: string): Promise<string> {
 async function main() {
   console.log('Seeding database with test data...');
 
+  await prisma.role.createMany({
+    data: [
+      { slug: 'superadmin', label: 'Super Admin' },
+      { slug: 'admin', label: 'Admin' },
+      { slug: 'staff', label: 'Staff' },
+      { slug: 'parent', label: 'Parent' },
+      { slug: 'tutor', label: 'Tutor' },
+      { slug: 'student', label: 'Student' },
+    ],
+    skipDuplicates: true,
+  });
+
   // Create initial superadmin user
   console.log('Creating superadmin user...');
   try {
@@ -17,9 +29,11 @@ async function main() {
       where: { email: 'admin@9jacodekids.com' },
     });
 
-    if (!existingAdmin) {
+    let adminUser = existingAdmin;
+
+    if (!adminUser) {
       const hashedPassword = await hashPassword('Admin@123');
-      await prisma.user.create({
+      adminUser = await prisma.user.create({
         data: {
           email: 'admin@9jacodekids.com',
           password: hashedPassword,
@@ -27,12 +41,45 @@ async function main() {
           lastName: 'Admin',
           role: 'SUPERADMIN',
           isActive: true,
+          assignedRoles: {
+            create: {
+              roleSlug: 'superadmin',
+            },
+          },
         },
       });
       console.log('✅ Superadmin user created: admin@9jacodekids.com');
     } else {
+      adminUser = await prisma.user.update({
+        where: { id: adminUser.id },
+        data: {
+          role: 'SUPERADMIN',
+          isActive: true,
+        },
+      });
       console.log('ℹ️  Superadmin user already exists');
     }
+
+    await prisma.userRoleAssignment.deleteMany({
+      where: {
+        userId: adminUser.id,
+        roleSlug: { in: ['admin', 'staff'] },
+      },
+    });
+
+    await prisma.userRoleAssignment.upsert({
+      where: {
+        userId_roleSlug: {
+          userId: adminUser.id,
+          roleSlug: 'superadmin',
+        },
+      },
+      update: {},
+      create: {
+        userId: adminUser.id,
+        roleSlug: 'superadmin',
+      },
+    });
   } catch (error) {
     console.error('Error creating superadmin:', error);
   }
