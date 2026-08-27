@@ -22,7 +22,7 @@ export function fetchWithAuth(
       localStorage.removeItem('authToken');
       localStorage.removeItem('authLastActivityAt');
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+        window.location.replace('/login');
       }
     }
 

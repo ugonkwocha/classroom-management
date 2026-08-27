@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FiCheckCircle,
   FiCreditCard,
@@ -201,6 +202,7 @@ async function uploadProof(file: File | null, payload: Record<string, string>) {
 }
 
 export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { canEditPayments?: boolean }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('import');
   const [mappings, setMappings] = useState<FluentFormMapping[]>([]);
   const [imports, setImports] = useState<ConfirmedRegistrationImport[]>([]);
@@ -706,7 +708,7 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = `/?tab=families&familyId=${encodeURIComponent(duplicatePaymentNotice.familyId || '')}`;
+                  router.push(`/?tab=families&familyId=${encodeURIComponent(duplicatePaymentNotice.familyId || '')}`);
                 }}
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white hover:bg-rose-700"
               >
