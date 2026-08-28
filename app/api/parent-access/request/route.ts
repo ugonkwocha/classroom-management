@@ -7,6 +7,7 @@ import {
   getParentAccessExpiry,
   hashParentAccessToken,
   normalizeParentAccessEmail,
+  resolveParentAccessOrigin,
   resolveParentClaimIdentity,
 } from '@/lib/parent-access';
 import { sendParentPortalActivationEmail } from '@/lib/email';
@@ -92,7 +93,12 @@ export async function POST(request: NextRequest) {
     ]);
 
     const recipientName = `${guardians[0].firstName} ${guardians[0].lastName}`.trim();
-    const activationUrl = buildParentActivationUrl(token, request.nextUrl.origin);
+    const publicOrigin = resolveParentAccessOrigin({
+      requestOrigin: request.nextUrl.origin,
+      forwardedHost: request.headers.get('x-forwarded-host'),
+      forwardedProto: request.headers.get('x-forwarded-proto'),
+    });
+    const activationUrl = buildParentActivationUrl(token, publicOrigin);
     const delivery = await sendParentPortalActivationEmail({
       recipient: { email, name: recipientName },
       activationUrl,

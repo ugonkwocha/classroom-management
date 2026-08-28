@@ -8,6 +8,7 @@ import {
   hashParentAccessToken,
   isParentAccessTokenValid,
   normalizeParentAccessEmail,
+  resolveParentAccessOrigin,
   resolveParentClaimIdentity,
 } from '@/lib/parent-access';
 
@@ -34,11 +35,27 @@ describe('parent account claim security', () => {
   });
 
   it('keeps activation links on the environment that received the request', () => {
-    process.env.NEXT_PUBLIC_APP_URL = 'https://www.9jacodekids.com';
+    const origin = resolveParentAccessOrigin({
+      requestOrigin: 'https://localhost:3000',
+      forwardedHost: 'staging.9jacodekids.com',
+      forwardedProto: 'https',
+      configuredOrigin: 'https://localhost:3000',
+    });
 
-    expect(buildParentActivationUrl('token value', 'https://staging.9jacodekids.com/')).toBe(
+    expect(buildParentActivationUrl('token value', origin)).toBe(
       'https://staging.9jacodekids.com/parent-activate?token=token%20value'
     );
+  });
+
+  it('does not trust an arbitrary forwarded host for password setup links', () => {
+    expect(
+      resolveParentAccessOrigin({
+        requestOrigin: 'https://localhost:3000',
+        forwardedHost: 'attacker.example',
+        forwardedProto: 'https',
+        configuredOrigin: 'https://portal.9jacodekids.com',
+      })
+    ).toBe('https://portal.9jacodekids.com');
   });
 
   it('routes additive staff accounts to staff and parent-only accounts to the parent portal', () => {

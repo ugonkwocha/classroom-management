@@ -20,8 +20,55 @@ export function getParentAccessExpiry(now = new Date()): Date {
   return new Date(now.getTime() + PARENT_ACCESS_EXPIRY_MINUTES * 60 * 1000);
 }
 
-export function buildParentActivationUrl(token: string, requestOrigin?: string | null): string {
-  const baseUrl = (requestOrigin || getAppBaseUrl()).replace(/\/$/, '');
+type ParentAccessOriginInput = {
+  requestOrigin?: string | null;
+  forwardedHost?: string | null;
+  forwardedProto?: string | null;
+  configuredOrigin?: string | null;
+};
+
+function parseOrigin(value?: string | null): URL | null {
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function isAcademyHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return normalized === '9jacodekids.com' || normalized.endsWith('.9jacodekids.com');
+}
+
+export function resolveParentAccessOrigin({
+  requestOrigin,
+  forwardedHost,
+  forwardedProto,
+  configuredOrigin = getAppBaseUrl(),
+}: ParentAccessOriginInput): string {
+  const proxyHost = forwardedHost?.split(',')[0]?.trim();
+  const proxyProtocol = forwardedProto?.split(',')[0]?.trim().replace(/:$/, '') || 'https';
+  const forwardedOrigin = parseOrigin(proxyHost ? `${proxyProtocol}://${proxyHost}` : null);
+  const requestUrl = parseOrigin(requestOrigin);
+  const configuredUrl = parseOrigin(configuredOrigin);
+
+  for (const candidate of [forwardedOrigin, requestUrl]) {
+    if (candidate && isAcademyHostname(candidate.hostname)) {
+      candidate.protocol = 'https:';
+      return candidate.origin;
+    }
+  }
+
+  if (configuredUrl && !['localhost', '127.0.0.1', '::1'].includes(configuredUrl.hostname)) {
+    return configuredUrl.origin;
+  }
+
+  return requestUrl?.origin || configuredUrl?.origin || 'http://localhost:3000';
+}
+
+export function buildParentActivationUrl(token: string, origin?: string | null): string {
+  const baseUrl = (origin || getAppBaseUrl()).replace(/\/$/, '');
   return `${baseUrl}/parent-activate?token=${encodeURIComponent(token)}`;
 }
 
