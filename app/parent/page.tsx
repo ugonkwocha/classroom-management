@@ -25,6 +25,16 @@ type ParentEnrollment = {
   paymentStatus: 'PENDING' | 'CONFIRMED' | 'COMPLETED';
   confirmedAmount: number;
   lastPaymentConfirmedAt: string | null;
+  attendance: { total: number; present: number; late: number; absent: number; excused: number };
+  latestProgressUpdate: null | {
+    rating: 'EXCEEDING' | 'ON_TRACK' | 'NEEDS_SUPPORT';
+    summary: string;
+    strengths: string | null;
+    focusAreas: string | null;
+    createdAt: string;
+    sessionTitle: string;
+    sessionHeldAt: string;
+  };
   program: {
     id: string;
     name: string;
@@ -40,6 +50,13 @@ type ParentEnrollment = {
     meetLink: string | null;
     course: { id: string; name: string };
     tutorName: string | null;
+    latestSession: null | {
+      title: string;
+      topics: string;
+      summary: string | null;
+      homework: string | null;
+      heldAt: string;
+    };
   };
 };
 
@@ -228,17 +245,58 @@ export default function ParentDashboardPage() {
                               )}
 
                               {enrollment.class ? (
-                                <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-950">
-                                  <p className="font-black">{enrollment.class.course.name}</p>
-                                  <p className="mt-2 flex items-start gap-2 leading-6"><FiCalendar className="mt-1 shrink-0" /> {enrollment.class.schedule}</p>
-                                  {enrollment.class.slot && <p className="mt-1 text-blue-800">{enrollment.class.slot}</p>}
-                                  <p className="mt-1 text-blue-800">Tutor: {enrollment.class.tutorName || 'To be assigned'}</p>
-                                  {enrollment.class.meetLink && (
-                                    <a href={enrollment.class.meetLink} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700">
-                                      Open class link <FiExternalLink />
-                                    </a>
+                                <>
+                                  <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-950">
+                                    <p className="font-black">{enrollment.class.course.name}</p>
+                                    <p className="mt-2 flex items-start gap-2 leading-6"><FiCalendar className="mt-1 shrink-0" /> {enrollment.class.schedule}</p>
+                                    {enrollment.class.slot && <p className="mt-1 text-blue-800">{enrollment.class.slot}</p>}
+                                    <p className="mt-1 text-blue-800">Tutor: {enrollment.class.tutorName || 'To be assigned'}</p>
+                                    {enrollment.class.meetLink && (
+                                      <a href={enrollment.class.meetLink} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700">
+                                        Open class link <FiExternalLink />
+                                      </a>
+                                    )}
+                                  </div>
+
+                                  {enrollment.class.latestSession && (
+                                    <div className="mt-3 rounded-2xl border border-blue-100 bg-white p-4 text-sm">
+                                      <p className="text-xs font-bold uppercase tracking-wide text-blue-600">Latest class recap</p>
+                                      <p className="mt-2 font-black text-slate-900">{enrollment.class.latestSession.title}</p>
+                                      <p className="mt-1 text-xs text-slate-500">{new Date(enrollment.class.latestSession.heldAt).toLocaleDateString()}</p>
+                                      <p className="mt-3 leading-6 text-slate-700"><strong>Topics:</strong> {enrollment.class.latestSession.topics}</p>
+                                      {enrollment.class.latestSession.summary && <p className="mt-2 leading-6 text-slate-600">{enrollment.class.latestSession.summary}</p>}
+                                      {enrollment.class.latestSession.homework && <p className="mt-2 rounded-xl bg-amber-50 p-3 leading-6 text-amber-900"><strong>Next step:</strong> {enrollment.class.latestSession.homework}</p>}
+                                    </div>
                                   )}
-                                </div>
+
+                                  {enrollment.attendance.total > 0 && (
+                                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+                                      <p className="font-black text-slate-900">Attendance</p>
+                                      <p className="mt-2 text-slate-600">
+                                        {enrollment.attendance.present} present · {enrollment.attendance.late} late · {enrollment.attendance.absent} absent · {enrollment.attendance.excused} excused
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {enrollment.latestProgressUpdate && (
+                                    <div className="mt-3 rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm text-violet-950">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <p className="font-black">Latest tutor update</p>
+                                        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-violet-700">
+                                          {enrollment.latestProgressUpdate.rating === 'EXCEEDING'
+                                            ? 'Exceeding expectations'
+                                            : enrollment.latestProgressUpdate.rating === 'ON_TRACK'
+                                              ? 'On track'
+                                              : 'Needs support'}
+                                        </span>
+                                      </div>
+                                      <p className="mt-2 text-xs font-bold text-violet-600">{enrollment.latestProgressUpdate.sessionTitle}</p>
+                                      <p className="mt-2 leading-6 text-violet-900">{enrollment.latestProgressUpdate.summary}</p>
+                                      {enrollment.latestProgressUpdate.strengths && <p className="mt-2"><strong>Strength:</strong> {enrollment.latestProgressUpdate.strengths}</p>}
+                                      {enrollment.latestProgressUpdate.focusAreas && <p className="mt-1"><strong>Focus next:</strong> {enrollment.latestProgressUpdate.focusAreas}</p>}
+                                    </div>
+                                  )}
+                                </>
                               ) : (
                                 <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">The academy is still assigning this enrollment to a class.</p>
                               )}

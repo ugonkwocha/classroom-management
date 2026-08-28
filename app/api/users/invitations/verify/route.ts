@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
         role: true,
         status: true,
         expiresAt: true,
+        targetTeacherId: true,
+        targetTeacher: {
+          select: { status: true, userId: true },
+        },
       },
     });
 
@@ -37,7 +41,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'This invitation is invalid or has expired' }, { status: 404 });
     }
 
-    return NextResponse.json(invitation);
+    if (
+      invitation.role === 'TUTOR' &&
+      (!invitation.targetTeacherId || invitation.targetTeacher?.status !== 'ACTIVE' || invitation.targetTeacher.userId)
+    ) {
+      return NextResponse.json({ error: 'This tutor invitation is no longer available' }, { status: 409 });
+    }
+
+    const { targetTeacher: _targetTeacher, ...preview } = invitation;
+    return NextResponse.json(preview);
   } catch (error) {
     console.error('Verify invitation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

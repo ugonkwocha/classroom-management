@@ -8,12 +8,7 @@ import { PERMISSIONS } from '@/lib/permissions';
 import { UserForm } from './UserForm';
 import { UserList } from './UserList';
 import { FiMail, FiPlus, FiSearch, FiShield, FiSlash, FiTrash2, FiUserCheck, FiUsers, FiUserX } from 'react-icons/fi';
-
-function getInvitableRoles(role?: UserRole): UserRole[] {
-  if (role === 'SUPERADMIN') return ['ADMIN', 'STAFF'];
-  if (role === 'ADMIN') return ['STAFF'];
-  return [];
-}
+import { getInvitableRoles } from '@/lib/user-invitations';
 
 function canResetUserPassword(actorRole: UserRole | undefined, targetRole: UserRole): boolean {
   if (actorRole === 'SUPERADMIN') return targetRole === 'ADMIN' || targetRole === 'STAFF';
@@ -240,7 +235,7 @@ export function UserManagement() {
     return (
       <div className="rounded-2xl border border-rose-100 bg-rose-50 px-6 py-14 text-center">
         <p className="text-base font-bold text-rose-700">You do not have permission to invite users.</p>
-        <p className="mt-2 text-sm text-rose-600">Superadmins can invite admins and staff. Admins can invite staff.</p>
+        <p className="mt-2 text-sm text-rose-600">Admins can invite staff and tutors. Superadmins can also invite admins.</p>
       </div>
     );
   }
@@ -436,7 +431,7 @@ export function UserManagement() {
             setEditingUser(undefined);
           }}
           initialData={editingUser}
-          allowedRoles={editingUser ? ['SUPERADMIN', 'ADMIN', 'STAFF'] : allowedInviteRoles}
+          allowedRoles={editingUser ? ['SUPERADMIN', 'ADMIN', 'STAFF', 'TUTOR'] : allowedInviteRoles}
         />
       </Modal>
     </div>

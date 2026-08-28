@@ -30,7 +30,7 @@ export function UserList({
           <FiUser className="h-6 w-6" />
         </div>
         <p className="text-base font-bold text-slate-950">No users found</p>
-        <p className="mt-1 text-sm text-slate-500">Invite an admin or staff member to manage access.</p>
+        <p className="mt-1 text-sm text-slate-500">Invite an admin, staff member, or tutor to the appropriate workspace.</p>
       </div>
     );
   }

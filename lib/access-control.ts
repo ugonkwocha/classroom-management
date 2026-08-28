@@ -45,6 +45,7 @@ export interface PortalAccessDataSource {
   teacher: FindFirstDelegate;
   student: QueryDelegate;
   class: FindFirstDelegate;
+  classSession: FindFirstDelegate;
   programEnrollment: FindFirstDelegate;
 }
 
@@ -66,6 +67,9 @@ const defaultDataSource: PortalAccessDataSource = {
   },
   class: {
     findFirst: (args) => prisma.class.findFirst(args),
+  },
+  classSession: {
+    findFirst: (args) => prisma.classSession.findFirst(args),
   },
   programEnrollment: {
     findFirst: (args) => prisma.programEnrollment.findFirst(args),
@@ -236,6 +240,38 @@ export async function requireTutorClassAccess(
   }
 
   return { scope: 'tutor' as const, roleSlugs, teacher, classRecord };
+}
+
+export async function requireTutorSessionAccess(
+  userId: string,
+  sessionId: string,
+  source: PortalAccessDataSource = defaultDataSource
+) {
+  const roleSlugs = await getUserRoleSlugs(userId, source);
+
+  if (hasInternalRole(roleSlugs)) {
+    const session = await source.classSession.findFirst({
+      where: { id: sessionId },
+      select: { id: true, classId: true, recordedById: true },
+    });
+    if (!session) throw new AccessDeniedError('Class session was not found', 'NOT_FOUND');
+    return { scope: 'internal' as const, roleSlugs, session };
+  }
+
+  const teacher = await requireTutorProfile(userId, source);
+  const session = await source.classSession.findFirst({
+    where: {
+      id: sessionId,
+      class: {
+        teacherId: teacher.id,
+        isArchived: false,
+      },
+    },
+    select: { id: true, classId: true, recordedById: true },
+  });
+
+  if (!session) throw new AccessDeniedError('Assigned class session was not found', 'NOT_FOUND');
+  return { scope: 'tutor' as const, roleSlugs, teacher, session };
 }
 
 export async function requireTutorStudentAccess(

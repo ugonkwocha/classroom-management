@@ -23,19 +23,19 @@ export function getInvitationExpiry(): Date {
 
 export function canInviteRole(inviterRole: UserRole, invitedRole: UserRole): boolean {
   if (inviterRole === 'SUPERADMIN') {
-    return invitedRole === 'ADMIN' || invitedRole === 'STAFF';
+    return invitedRole === 'ADMIN' || invitedRole === 'STAFF' || invitedRole === 'TUTOR';
   }
 
   if (inviterRole === 'ADMIN') {
-    return invitedRole === 'STAFF';
+    return invitedRole === 'STAFF' || invitedRole === 'TUTOR';
   }
 
   return false;
 }
 
 export function getInvitableRoles(inviterRole: UserRole | undefined): UserRole[] {
-  if (inviterRole === 'SUPERADMIN') return ['ADMIN', 'STAFF'];
-  if (inviterRole === 'ADMIN') return ['STAFF'];
+  if (inviterRole === 'SUPERADMIN') return ['ADMIN', 'STAFF', 'TUTOR'];
+  if (inviterRole === 'ADMIN') return ['STAFF', 'TUTOR'];
   return [];
 }
 
@@ -49,5 +49,6 @@ export function getAppBaseUrl(requestOrigin?: string | null): string {
 }
 
 export function buildInvitationUrl(token: string, requestOrigin?: string | null): string {
-  return `${getAppBaseUrl(requestOrigin)}/accept-invite?token=${encodeURIComponent(token)}`;
+  const baseUrl = (requestOrigin || getAppBaseUrl()).replace(/\/$/, '');
+  return `${baseUrl}/accept-invite?token=${encodeURIComponent(token)}`;
 }

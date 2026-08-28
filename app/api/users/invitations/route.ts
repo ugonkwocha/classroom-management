@@ -14,6 +14,7 @@ import {
 import { rateLimit } from '@/lib/rate-limit';
 import type { UserRole } from '@/types';
 import { logEmailDelivery } from '@/lib/email-logs';
+import { resolveParentAccessOrigin } from '@/lib/parent-access';
 
 const invitationSelect = {
   id: true,
@@ -26,6 +27,7 @@ const invitationSelect = {
   acceptedAt: true,
   createdAt: true,
   updatedAt: true,
+  targetTeacherId: true,
   invitedBy: {
     select: {
       id: true,
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     checkPermission(sessionUser.role, PERMISSIONS.READ_USERS);
 
-    const roleFilter = sessionUser.role === 'SUPERADMIN' ? ['ADMIN', 'STAFF'] : ['STAFF'];
+    const roleFilter = sessionUser.role === 'SUPERADMIN' ? ['ADMIN', 'STAFF', 'TUTOR'] : ['STAFF', 'TUTOR'];
 
     const invitations = await prisma.userInvitation.findMany({
       where: {
@@ -88,8 +90,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const email = normalizeInviteEmail(body.email || '');
-    const firstName = String(body.firstName || '').trim();
-    const lastName = String(body.lastName || '').trim();
+    let firstName = String(body.firstName || '').trim();
+    let lastName = String(body.lastName || '').trim();
     const role = body.role as UserRole;
 
     if (!email || !firstName || !lastName || !role) {
@@ -107,6 +109,31 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json({ error: 'A user with this email already exists' }, { status: 400 });
+    }
+
+    let targetTeacherId: string | null = null;
+    if (role === 'TUTOR') {
+      const teacher = await prisma.teacher.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+        select: { id: true, firstName: true, lastName: true, status: true, userId: true },
+      });
+
+      if (!teacher) {
+        return NextResponse.json(
+          { error: 'Create the tutor in the Tutor Directory with this email before sending portal access.' },
+          { status: 400 }
+        );
+      }
+      if (teacher.status !== 'ACTIVE') {
+        return NextResponse.json({ error: 'Only active tutors can receive portal access.' }, { status: 400 });
+      }
+      if (teacher.userId) {
+        return NextResponse.json({ error: 'This tutor already has a linked portal account.' }, { status: 400 });
+      }
+
+      targetTeacherId = teacher.id;
+      firstName = teacher.firstName;
+      lastName = teacher.lastName;
     }
 
     const inviter = await prisma.user.findUnique({
@@ -142,12 +169,18 @@ export async function POST(request: NextRequest) {
           tokenHash,
           expiresAt,
           invitedById: inviter.id,
+          targetTeacherId,
         },
         select: invitationSelect,
       });
     });
 
-    const invitationUrl = buildInvitationUrl(token, request.headers.get('origin'));
+    const invitationOrigin = resolveParentAccessOrigin({
+      requestOrigin: request.nextUrl.origin,
+      forwardedHost: request.headers.get('x-forwarded-host'),
+      forwardedProto: request.headers.get('x-forwarded-proto'),
+    });
+    const invitationUrl = buildInvitationUrl(token, invitationOrigin);
     const emailDelivery = await sendUserInvitationEmail({
       recipient: {
         email,

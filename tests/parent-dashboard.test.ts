@@ -27,6 +27,21 @@ describe('parent dashboard view model', () => {
           dateOfBirth: new Date('2014-04-10T00:00:00.000Z'),
           isReturningStudent: true,
           email: 'private-student@example.com',
+          attendanceRecords: [
+            { status: 'PRESENT', session: { classId: 'class-1', heldAt: new Date('2026-08-20T14:00:00.000Z') } },
+            { status: 'LATE', session: { classId: 'class-1', heldAt: new Date('2026-08-27T14:00:00.000Z') } },
+          ],
+          progressUpdates: [
+            {
+              classId: 'class-1',
+              rating: 'ON_TRACK',
+              summary: 'Chidi is building confidently with reusable components.',
+              strengths: 'Explains his code clearly.',
+              focusAreas: 'Test more edge cases.',
+              createdAt: new Date('2026-08-27T16:00:00.000Z'),
+              session: { title: 'Reusable components', heldAt: new Date('2026-08-27T14:00:00.000Z') },
+            },
+          ],
           enrollments: [
             {
               id: 'enrollment-1',
@@ -55,6 +70,15 @@ describe('parent dashboard view model', () => {
                 isArchived: true,
                 course: { id: 'course-1', name: 'Robotics' },
                 teacher: { firstName: 'Tola', lastName: 'Adewale' },
+                sessions: [
+                  {
+                    title: 'Reusable components',
+                    topics: 'Props and component composition',
+                    summary: 'Learners built and reused a profile card.',
+                    homework: 'Reuse the card for two more profiles.',
+                    heldAt: new Date('2026-08-27T14:00:00.000Z'),
+                  },
+                ],
               },
             },
             {
@@ -109,7 +133,18 @@ describe('parent dashboard view model', () => {
     expect(result.families[0].children[0].enrollments[0]).toMatchObject({
       confirmedAmount: 40000,
       lastPaymentConfirmedAt: '2026-08-03T00:00:00.000Z',
-      class: { meetLink: null, slot: null, tutorName: 'Tola Adewale' },
+      attendance: { total: 2, present: 1, late: 1, absent: 0, excused: 0 },
+      latestProgressUpdate: {
+        rating: 'ON_TRACK',
+        summary: 'Chidi is building confidently with reusable components.',
+        sessionTitle: 'Reusable components',
+      },
+      class: {
+        meetLink: null,
+        slot: null,
+        tutorName: 'Tola Adewale',
+        latestSession: { title: 'Reusable components', heldAt: '2026-08-27T14:00:00.000Z' },
+      },
     });
 
     const serialized = JSON.stringify(result);

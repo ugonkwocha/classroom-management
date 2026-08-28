@@ -7,6 +7,7 @@ import {
   requireFamilyAccess,
   requireStudentAccess,
   requireTutorClassAccess,
+  requireTutorSessionAccess,
   requireTutorStudentAccess,
   type PortalAccessDataSource,
 } from '@/lib/access-control';
@@ -29,6 +30,9 @@ function createSource(overrides: Partial<PortalAccessDataSource> = {}): PortalAc
       findUnique: vi.fn(async () => null),
     },
     class: {
+      findFirst: vi.fn(async () => null),
+    },
+    classSession: {
       findFirst: vi.fn(async () => null),
     },
     programEnrollment: {
@@ -175,6 +179,30 @@ describe('tutor assignment boundaries', () => {
     });
 
     await expect(requireTutorStudentAccess('tutor-1', 'student-2', source)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it('allows a tutor to update only sessions in an assigned active class', async () => {
+    const source = createSource({
+      ...roleSource(['tutor'], 'TUTOR'),
+      teacher: {
+        findFirst: vi.fn(async () => ({ id: 'teacher-1', userId: 'tutor-1', status: 'ACTIVE' })),
+      },
+      classSession: {
+        findFirst: vi.fn(async (args) =>
+          args.where.id === 'session-1' && args.where.class.teacherId === 'teacher-1'
+            ? { id: 'session-1', classId: 'class-1', recordedById: 'tutor-1' }
+            : null
+        ),
+      },
+    });
+
+    await expect(requireTutorSessionAccess('tutor-1', 'session-1', source)).resolves.toMatchObject({
+      scope: 'tutor',
+      session: { classId: 'class-1' },
+    });
+    await expect(requireTutorSessionAccess('tutor-1', 'session-2', source)).rejects.toMatchObject({
       status: 404,
     });
   });

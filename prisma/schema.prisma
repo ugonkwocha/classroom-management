@@ -34,6 +34,9 @@ model User {
   revokedCertificates          StudentCertificate[]          @relation("CertificateRevoker")
   assignedRoles                UserRoleAssignment[]          @relation("AssignedUserRoles")
   grantedRoles                 UserRoleAssignment[]          @relation("GrantedUserRoles")
+  recordedClassSessions        ClassSession[]                @relation("ClassSessionRecorder")
+  markedAttendance             AttendanceRecord[]            @relation("AttendanceMarker")
+  authoredProgressUpdates      StudentProgressUpdate[]       @relation("ProgressAuthor")
   guardianProfiles             ParentGuardian[]
   teacherProfile               Teacher?
 
@@ -75,24 +78,27 @@ model UserRoleAssignment {
 }
 
 model UserInvitation {
-  id          String           @id @default(cuid())
-  email       String
-  firstName   String
-  lastName    String
-  role        UserRole
-  tokenHash   String           @unique
-  status      InvitationStatus @default(PENDING)
-  invitedById String
-  invitedBy   User             @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  email           String
+  firstName       String
+  lastName        String
+  role            UserRole
+  tokenHash       String           @unique
+  status          InvitationStatus @default(PENDING)
+  invitedById     String
+  invitedBy       User             @relation("UserInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  targetTeacherId String?
+  targetTeacher   Teacher?         @relation("TutorInvitations", fields: [targetTeacherId], references: [id], onDelete: SetNull)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([email])
   @@index([status])
   @@index([expiresAt])
   @@index([invitedById])
+  @@index([targetTeacherId])
 }
 
 enum InvitationStatus {
@@ -150,8 +156,9 @@ model Teacher {
   updatedAt        DateTime      @updatedAt
 
   // Relations
-  classes Class[]
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  classes           Class[]
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  portalInvitations UserInvitation[] @relation("TutorInvitations")
 
   @@index([email])
   @@index([status])
@@ -345,6 +352,8 @@ model Class {
   program             Program                   @relation(fields: [programId], references: [id], onDelete: Cascade)
   teacher             Teacher?                  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   enrollments         ProgramEnrollment[]
+  sessions            ClassSession[]
+  progressUpdates     StudentProgressUpdate[]
   completionDecisions ClassCompletionDecision[]
   certificates        StudentCertificate[]
 
@@ -376,6 +385,8 @@ model Student {
   // Relations
   family                              Family?                            @relation(fields: [familyId], references: [id], onDelete: SetNull)
   enrollments                         ProgramEnrollment[]
+  attendanceRecords                   AttendanceRecord[]
+  progressUpdates                     StudentProgressUpdate[]
   courseHistory                       CourseHistory[]
   paymentRecords                      EnrollmentPaymentRecord[]
   confirmedRegistrationImportChildren ConfirmedRegistrationImportChild[]
@@ -439,6 +450,96 @@ enum PaymentStatus {
   PENDING
   CONFIRMED
   COMPLETED
+}
+
+// ==================== Tutor Class Delivery ====================
+model ClassSession {
+  id            String             @id @default(cuid())
+  classId       String
+  recordedById  String
+  heldAt        DateTime
+  title         String
+  topics        String
+  summary       String?
+  homework      String?
+  status        ClassSessionStatus @default(COMPLETED)
+  parentVisible Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  class           Class                   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  recordedBy      User                    @relation("ClassSessionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  attendance      AttendanceRecord[]
+  progressUpdates StudentProgressUpdate[]
+
+  @@unique([classId, heldAt])
+  @@index([classId, heldAt])
+  @@index([recordedById])
+  @@index([status])
+}
+
+enum ClassSessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model AttendanceRecord {
+  id         String           @id @default(cuid())
+  sessionId  String
+  studentId  String
+  status     AttendanceStatus
+  notes      String?
+  markedById String
+  markedAt   DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  session  ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student  Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  markedBy User         @relation("AttendanceMarker", fields: [markedById], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, markedAt])
+  @@index([markedById])
+  @@index([status])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model StudentProgressUpdate {
+  id            String                @id @default(cuid())
+  sessionId     String
+  classId       String
+  studentId     String
+  authorId      String
+  rating        StudentProgressRating
+  summary       String
+  strengths     String?
+  focusAreas    String?
+  parentVisible Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author  User         @relation("ProgressAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, studentId])
+  @@index([classId, studentId, createdAt])
+  @@index([authorId])
+  @@index([parentVisible])
+}
+
+enum StudentProgressRating {
+  EXCEEDING
+  ON_TRACK
+  NEEDS_SUPPORT
 }
 
 // ==================== Paid Registration Imports ====================

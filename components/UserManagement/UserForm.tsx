@@ -135,9 +135,7 @@ export function UserForm({ onSubmit, onCancel, initialData, allowedRoles }: User
         <p className="mt-1.5 text-xs text-slate-500">
           {initialData
             ? 'Choose the user role for this account.'
-            : roles.includes('ADMIN')
-              ? 'Superadmins can invite admins or staff. Invited users set their own password.'
-              : 'Admins can invite staff. Invited users set their own password.'}
+            : 'Tutor invitations must use the email of an active Tutor Directory record. Invited users set their own password.'}
         </p>
       </div>
 

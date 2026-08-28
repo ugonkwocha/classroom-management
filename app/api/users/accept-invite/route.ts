@@ -4,6 +4,12 @@ import { hashPassword } from '@/lib/auth';
 import { hashInvitationToken } from '@/lib/user-invitations';
 import { rateLimit } from '@/lib/rate-limit';
 
+class InvitationAcceptanceError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const limitedResponse = rateLimit(request, {
@@ -32,6 +38,10 @@ export async function POST(request: NextRequest) {
 
     if (!invitation || invitation.status !== 'PENDING' || invitation.expiresAt < new Date()) {
       return NextResponse.json({ error: 'This invitation is invalid or has expired' }, { status: 400 });
+    }
+
+    if (invitation.role === 'TUTOR' && !invitation.targetTeacherId) {
+      return NextResponse.json({ error: 'This tutor invitation is not linked to a tutor profile' }, { status: 409 });
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -80,6 +90,23 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      if (invitation.role === 'TUTOR') {
+        const linked = await tx.teacher.updateMany({
+          where: {
+            id: invitation.targetTeacherId as string,
+            userId: null,
+            status: 'ACTIVE',
+          },
+          data: { userId: createdUser.id },
+        });
+        if (linked.count !== 1) {
+          throw new InvitationAcceptanceError(
+            'This tutor profile is already linked or is no longer active',
+            409
+          );
+        }
+      }
+
       await tx.userInvitation.update({
         where: { id: invitation.id },
         data: {
@@ -93,6 +120,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
+    if (error instanceof InvitationAcceptanceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('Accept invitation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -63,6 +63,26 @@ export async function getParentDashboard(
               firstName: true,
               lastName: true,
               isReturningStudent: true,
+              attendanceRecords: {
+                where: { session: { parentVisible: true } },
+                select: {
+                  status: true,
+                  session: { select: { classId: true, heldAt: true } },
+                },
+              },
+              progressUpdates: {
+                where: { parentVisible: true, session: { parentVisible: true } },
+                orderBy: { createdAt: 'desc' },
+                select: {
+                  classId: true,
+                  rating: true,
+                  summary: true,
+                  strengths: true,
+                  focusAreas: true,
+                  createdAt: true,
+                  session: { select: { title: true, heldAt: true } },
+                },
+              },
               enrollments: {
                 where: { status: { not: 'DROPPED' } },
                 select: {
@@ -97,6 +117,18 @@ export async function getParentDashboard(
                       isArchived: true,
                       course: { select: { id: true, name: true } },
                       teacher: { select: { firstName: true, lastName: true } },
+                      sessions: {
+                        where: { status: 'COMPLETED', parentVisible: true },
+                        orderBy: { heldAt: 'desc' },
+                        take: 1,
+                        select: {
+                          title: true,
+                          topics: true,
+                          summary: true,
+                          homework: true,
+                          heldAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -141,41 +173,75 @@ export function buildParentDashboardViewModel(guardianProfiles: any[]) {
       firstName: student.firstName,
       lastName: student.lastName,
       isReturningStudent: student.isReturningStudent,
-      enrollments: student.enrollments.map((enrollment: any) => ({
-        id: enrollment.id,
-        batchNumber: enrollment.batchNumber,
-        enrollmentDate: iso(enrollment.enrollmentDate),
-        status: enrollment.status,
-        paymentStatus: enrollment.paymentStatus,
-        confirmedAmount: enrollment.paymentRecords.reduce(
-          (total: number, payment: any) => total + payment.amountConfirmed,
-          0
-        ),
-        lastPaymentConfirmedAt: iso(enrollment.paymentRecords[0]?.createdAt),
-        program: {
-          id: enrollment.program.id,
-          name: enrollment.program.name,
-          season: enrollment.program.season,
-          year: enrollment.program.year,
-          startDate: iso(enrollment.program.startDate),
-        },
-        class: enrollment.class
-          ? {
-              id: enrollment.class.id,
-              name: enrollment.class.name,
-              schedule: enrollment.class.schedule,
-              slot: distinctClassSlot(enrollment.class.schedule, enrollment.class.slot),
-              meetLink:
-                enrollment.status === 'ASSIGNED' && !enrollment.class.isArchived
-                  ? enrollment.class.meetLink
+      enrollments: student.enrollments.map((enrollment: any) => {
+        const classId = enrollment.class?.id;
+        const attendanceRecords = (student.attendanceRecords || []).filter(
+          (record: any) => record.session.classId === classId
+        );
+        const latestProgress = (student.progressUpdates || []).find(
+          (update: any) => update.classId === classId
+        );
+
+        return {
+          id: enrollment.id,
+          batchNumber: enrollment.batchNumber,
+          enrollmentDate: iso(enrollment.enrollmentDate),
+          status: enrollment.status,
+          paymentStatus: enrollment.paymentStatus,
+          confirmedAmount: enrollment.paymentRecords.reduce(
+            (total: number, payment: any) => total + payment.amountConfirmed,
+            0
+          ),
+          lastPaymentConfirmedAt: iso(enrollment.paymentRecords[0]?.createdAt),
+          attendance: {
+            total: attendanceRecords.length,
+            present: attendanceRecords.filter((record: any) => record.status === 'PRESENT').length,
+            late: attendanceRecords.filter((record: any) => record.status === 'LATE').length,
+            absent: attendanceRecords.filter((record: any) => record.status === 'ABSENT').length,
+            excused: attendanceRecords.filter((record: any) => record.status === 'EXCUSED').length,
+          },
+          latestProgressUpdate: latestProgress
+            ? {
+                rating: latestProgress.rating,
+                summary: latestProgress.summary,
+                strengths: latestProgress.strengths,
+                focusAreas: latestProgress.focusAreas,
+                createdAt: iso(latestProgress.createdAt),
+                sessionTitle: latestProgress.session.title,
+                sessionHeldAt: iso(latestProgress.session.heldAt),
+              }
+            : null,
+          program: {
+            id: enrollment.program.id,
+            name: enrollment.program.name,
+            season: enrollment.program.season,
+            year: enrollment.program.year,
+            startDate: iso(enrollment.program.startDate),
+          },
+          class: enrollment.class
+            ? {
+                id: enrollment.class.id,
+                name: enrollment.class.name,
+                schedule: enrollment.class.schedule,
+                slot: distinctClassSlot(enrollment.class.schedule, enrollment.class.slot),
+                meetLink:
+                  enrollment.status === 'ASSIGNED' && !enrollment.class.isArchived
+                    ? enrollment.class.meetLink
+                    : null,
+                course: enrollment.class.course,
+                tutorName: enrollment.class.teacher
+                  ? `${enrollment.class.teacher.firstName} ${enrollment.class.teacher.lastName}`.trim()
                   : null,
-              course: enrollment.class.course,
-              tutorName: enrollment.class.teacher
-                ? `${enrollment.class.teacher.firstName} ${enrollment.class.teacher.lastName}`.trim()
-                : null,
-            }
-          : null,
-      })),
+                latestSession: enrollment.class.sessions[0]
+                  ? {
+                      ...enrollment.class.sessions[0],
+                      heldAt: iso(enrollment.class.sessions[0].heldAt),
+                    }
+                  : null,
+              }
+            : null,
+        };
+      }),
     })),
   }));
 
