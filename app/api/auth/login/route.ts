@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     if (limitedResponse) return limitedResponse;
 
     const body = await request.json();
-    const { email, password } = body;
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
 
     if (!email || !password) {
       return NextResponse.json(
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
 
     if (!user) {

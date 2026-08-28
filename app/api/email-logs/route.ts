@@ -12,6 +12,7 @@ const VALID_EVENT_TYPES = [
   'USER_INVITATION',
   'PASSWORD_RESET',
   'CERTIFICATE_DELIVERY',
+  'PARENT_PORTAL_ACTIVATION',
 ] as const;
 
 export async function GET(request: NextRequest) {

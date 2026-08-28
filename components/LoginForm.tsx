@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getAuthenticatedHome } from '@/lib/parent-access';
 import { Button } from '@/components/ui';
 import { FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail, FiShield } from 'react-icons/fi';
 
@@ -22,8 +24,8 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      router.push('/?tab=dashboard');
+      const result = await login(email, password);
+      router.push(getAuthenticatedHome(result.user.roleSlugs));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -154,9 +156,13 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <p className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-medium leading-5 text-slate-500">
-          Need access? Ask a superadmin or admin to send you an invitation.
-        </p>
+        <div className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-medium leading-5 text-slate-500">
+          <p>Parent or guardian?</p>
+          <Link href="/parent-access" className="text-sm font-bold text-blue-600 hover:text-blue-700">
+            Claim or create your parent account
+          </Link>
+          <p className="border-t border-slate-200 pt-3">Staff and tutors join through academy-issued invitations.</p>
+        </div>
       </section>
     </div>
   );

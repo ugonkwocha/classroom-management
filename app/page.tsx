@@ -49,6 +49,7 @@ import { EmailLogsManagement } from '@/components/EmailLogsManagement';
 import { EmailTemplatesManagement } from '@/components/EmailTemplatesManagement';
 import { ConfirmedRegistrationsManagement } from '@/components/ConfirmedRegistrationsManagement';
 import { CertificateSettingsManagement } from '@/components/CertificateSettingsManagement';
+import { getAuthenticatedHome } from '@/lib/parent-access';
 
 type Tab =
   | 'dashboard'
@@ -443,6 +444,7 @@ function HomeContent() {
   const canReadEmailLogs = hasPermission(PERMISSIONS.READ_EMAIL_LOGS);
   const canReadEmailTemplates = hasPermission(PERMISSIONS.READ_EMAIL_TEMPLATES);
   const canReadConfirmedRegistrations = hasPermission(PERMISSIONS.READ_CONFIRMED_REGISTRATIONS);
+  const isInternalUser = user?.roleSlugs?.some((role) => ['superadmin', 'admin', 'staff'].includes(role)) ?? false;
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: FiGrid },
@@ -475,6 +477,11 @@ function HomeContent() {
       return;
     }
 
+    if (!isLoading && isAuthenticated && !isInternalUser) {
+      router.replace(getAuthenticatedHome(user?.roleSlugs));
+      return;
+    }
+
     const tabParam = searchParams.get('tab') as Tab;
     const validTabs: Tab[] = [
       'dashboard',
@@ -504,10 +511,10 @@ function HomeContent() {
       setSelectedStudentId(studentId);
       setActiveTab('students');
     }
-  }, [searchParams, isAuthenticated, isLoading, router]);
+  }, [searchParams, isAuthenticated, isInternalUser, isLoading, router, user?.roleSlugs]);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated) {
+    if (isLoading || !isAuthenticated || !isInternalUser) {
       setAlerts([]);
       setAreAlertsLoading(false);
       hasLoadedAlertsRef.current = false;
@@ -599,7 +606,7 @@ function HomeContent() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [canReadConfirmedRegistrations, canReadEmailLogs, canReadUsers, isAuthenticated, isLoading]);
+  }, [canReadConfirmedRegistrations, canReadEmailLogs, canReadUsers, isAuthenticated, isInternalUser, isLoading]);
 
   useEffect(() => {
     const handleGlobalShortcut = (event: KeyboardEvent) => {
@@ -628,7 +635,7 @@ function HomeContent() {
   }, []);
 
   const loadGlobalSearchCatalog = async () => {
-    if (hasLoadedGlobalSearchRef.current || isGlobalSearchLoading || !isAuthenticated) return;
+    if (hasLoadedGlobalSearchRef.current || isGlobalSearchLoading || !isAuthenticated || !isInternalUser) return;
 
     hasLoadedGlobalSearchRef.current = true;
     setIsGlobalSearchLoading(true);
@@ -747,6 +754,17 @@ function HomeContent() {
   };
 
   const currentPage = pageMeta[activeTab];
+
+  if (isLoading || !isAuthenticated || !isInternalUser) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f5f7fb]">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+          <p className="mt-4 text-sm text-slate-600">Loading application...</p>
+        </div>
+      </main>
+    );
+  }
 
   const sidebarContent = (
     <div className="flex min-h-full flex-col bg-[#05204a] text-white">

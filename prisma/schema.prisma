@@ -120,6 +120,20 @@ model PasswordResetToken {
   @@index([usedAt])
 }
 
+model ParentAccessToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
 // ==================== Teachers ====================
 model Teacher {
   id               String        @id @default(cuid())
@@ -674,6 +688,7 @@ enum EmailEventType {
   USER_INVITATION
   PASSWORD_RESET
   CERTIFICATE_DELIVERY
+  PARENT_PORTAL_ACTIVATION
 }
 
 // ==================== Class Completion & Certificates ====================

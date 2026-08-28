@@ -4,16 +4,17 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { LoginForm } from '@/components/LoginForm';
+import { getAuthenticatedHome } from '@/lib/parent-access';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      router.push('/?tab=dashboard');
+      router.push(getAuthenticatedHome(user?.roleSlugs));
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, user?.roleSlugs]);
 
   if (isLoading) {
     return (

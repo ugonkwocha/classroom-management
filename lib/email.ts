@@ -69,6 +69,13 @@ interface PasswordResetEmailParams {
   expiresAt: string;
 }
 
+interface ParentPortalActivationEmailParams {
+  recipient: EmailRecipient;
+  activationUrl: string;
+  expiresAt: string;
+  accountExists: boolean;
+}
+
 interface CertificateEmailParams {
   recipient: EmailRecipient;
   studentName: string;
@@ -794,6 +801,61 @@ function buildUserInvitationEmail(params: UserInvitationEmailParams) {
 export async function sendUserInvitationEmail(params: UserInvitationEmailParams): Promise<EmailResponse> {
   const email = buildUserInvitationEmail(params);
   return sendTransactionalEmail(params.recipient, email);
+}
+
+function buildParentPortalActivationEmail(params: ParentPortalActivationEmailParams) {
+  const safeName = escapeHtml(params.recipient.name || 'there');
+  const safeActivationUrl = escapeHtml(params.activationUrl);
+  const safeExpiresAt = escapeHtml(params.expiresAt);
+  const actionLabel = params.accountExists ? 'Connect Parent Access' : 'Set Up Parent Portal';
+  const subject = 'Set up your 9jacodekids parent portal';
+  const accountCopy = params.accountExists
+    ? 'You already have a 9jacodekids Academy login. Use this secure link to connect your parent access, then sign in with your existing password.'
+    : 'Use this secure link to confirm your email and create your parent portal password.';
+
+  const html = `
+    <div style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+        <div style="background:#06244a;border-radius:18px;padding:24px;color:#ffffff;">
+          <div style="font-size:22px;font-weight:800;letter-spacing:.2px;">9jacodekids Academy</div>
+          <div style="margin-top:6px;color:#bfdbfe;font-size:14px;">Parent Portal</div>
+        </div>
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;margin-top:18px;padding:28px;">
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#0f172a;">Your child’s learning, in one place</h1>
+          <p style="margin:0 0 18px;color:#475569;font-size:15px;line-height:1.65;">Hello ${safeName},</p>
+          <p style="margin:0 0 22px;color:#475569;font-size:15px;line-height:1.65;">${accountCopy}</p>
+          <a href="${safeActivationUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">${actionLabel}</a>
+          <p style="margin:18px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+            This link expires on ${safeExpiresAt}. If you did not request it, you can ignore this email.
+          </p>
+          <p style="margin:14px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+            Link: <a href="${safeActivationUrl}" style="color:#2563eb;">${safeActivationUrl}</a>
+          </p>
+        </div>
+        <p style="margin:18px 0 0;text-align:center;color:#94a3b8;font-size:12px;">Sent by 9jacodekids Academy.</p>
+      </div>
+    </div>
+  `;
+
+  const text = [
+    '9jacodekids Academy Parent Portal',
+    '',
+    `Hello ${params.recipient.name || 'there'},`,
+    accountCopy,
+    '',
+    `${actionLabel}: ${params.activationUrl}`,
+    `Expires: ${params.expiresAt}`,
+    '',
+    'If you did not request this link, you can ignore this email.',
+  ].join('\n');
+
+  return { subject, html, text };
+}
+
+export async function sendParentPortalActivationEmail(
+  params: ParentPortalActivationEmailParams
+): Promise<EmailResponse> {
+  return sendTransactionalEmail(params.recipient, buildParentPortalActivationEmail(params));
 }
 
 function buildPasswordResetEmail(params: PasswordResetEmailParams) {

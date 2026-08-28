@@ -14,7 +14,8 @@ export type EmailEventType =
   | 'TUTOR_ROSTER_UPDATE'
   | 'USER_INVITATION'
   | 'PASSWORD_RESET'
-  | 'CERTIFICATE_DELIVERY';
+  | 'CERTIFICATE_DELIVERY'
+  | 'PARENT_PORTAL_ACTIVATION';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
 export type RegistrationImportSource = 'FLUENT_FORM_IMPORT' | 'EXISTING_FAMILY';
 export type ConfirmedRegistrationImportStatus = 'PROCESSED' | 'NEEDS_REVIEW' | 'FAILED';
