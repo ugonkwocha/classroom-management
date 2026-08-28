@@ -36,7 +36,7 @@ type ParentEnrollment = {
     id: string;
     name: string;
     schedule: string;
-    slot: string;
+    slot: string | null;
     meetLink: string | null;
     course: { id: string; name: string };
     tutorName: string | null;
@@ -231,7 +231,7 @@ export default function ParentDashboardPage() {
                                 <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-950">
                                   <p className="font-black">{enrollment.class.course.name}</p>
                                   <p className="mt-2 flex items-start gap-2 leading-6"><FiCalendar className="mt-1 shrink-0" /> {enrollment.class.schedule}</p>
-                                  <p className="mt-1 text-blue-800">{enrollment.class.slot}</p>
+                                  {enrollment.class.slot && <p className="mt-1 text-blue-800">{enrollment.class.slot}</p>}
                                   <p className="mt-1 text-blue-800">Tutor: {enrollment.class.tutorName || 'To be assigned'}</p>
                                   {enrollment.class.meetLink && (
                                     <a href={enrollment.class.meetLink} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700">

@@ -50,7 +50,7 @@ describe('parent dashboard view model', () => {
                 id: 'class-1',
                 name: 'Robotics A',
                 schedule: 'Saturdays at 10:00 AM',
-                slot: '10:00 AM - 12:00 PM',
+                slot: '  SATURDAYS at 10:00 AM ',
                 meetLink: 'https://meet.example/private',
                 isArchived: true,
                 course: { id: 'course-1', name: 'Robotics' },
@@ -109,7 +109,7 @@ describe('parent dashboard view model', () => {
     expect(result.families[0].children[0].enrollments[0]).toMatchObject({
       confirmedAmount: 40000,
       lastPaymentConfirmedAt: '2026-08-03T00:00:00.000Z',
-      class: { meetLink: null, tutorName: 'Tola Adewale' },
+      class: { meetLink: null, slot: null, tutorName: 'Tola Adewale' },
     });
 
     const serialized = JSON.stringify(result);

@@ -18,6 +18,11 @@ function iso(value: Date | string | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
+function distinctClassSlot(schedule: string, slot: string): string | null {
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+  return normalize(schedule) === normalize(slot) ? null : slot;
+}
+
 export async function getParentDashboard(
   userId: string,
   source: ParentDashboardDataSource = defaultSource
@@ -159,7 +164,7 @@ export function buildParentDashboardViewModel(guardianProfiles: any[]) {
               id: enrollment.class.id,
               name: enrollment.class.name,
               schedule: enrollment.class.schedule,
-              slot: enrollment.class.slot,
+              slot: distinctClassSlot(enrollment.class.schedule, enrollment.class.slot),
               meetLink:
                 enrollment.status === 'ASSIGNED' && !enrollment.class.isArchived
                   ? enrollment.class.meetLink
