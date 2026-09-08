@@ -20,6 +20,7 @@ import {
 } from 'react-icons/fi';
 import { useCourses, useFamilies, usePricing, usePrograms } from '@/lib/hooks';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { findFluentFormOptionMapping } from '@/lib/fluent-form-option-matching';
 import { allocateConfirmedAmount } from '@/lib/payment-allocation';
 import type {
   ConfirmedRegistrationImport,
@@ -162,7 +163,7 @@ function getMappedSelectedOptions(registration: ExternalRegistration | null, map
 
   return selectedOptions.map((optionText) => ({
     optionText,
-    mapping: activeMappings.find((option) => option.sourceOptionText === optionText) || null,
+    mapping: findFluentFormOptionMapping(activeMappings, optionText) || null,
   }));
 }
 
@@ -464,11 +465,19 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
         note: importForm.paymentProofNote || 'Proof attached during confirmed registration import',
       });
       const familyName = data.import?.family?.displayName;
+      const crmSyncStatus = data.import?.crmSyncStatus;
+      const crmStatusText = crmSyncStatus === 'SYNCED'
+        ? ' The configured paid tag was created if needed and applied in FluentCRM.'
+        : crmSyncStatus === 'FAILED'
+          ? ` The CMS import succeeded, but FluentCRM tagging failed${data.import?.crmError ? `: ${data.import.crmError}` : '.'} Use Retry CRM in Import History after checking the WordPress sync endpoint.`
+          : crmSyncStatus === 'SKIPPED'
+            ? ' The CMS import succeeded, but FluentCRM tagging was skipped because no paid tag was available.'
+            : '';
       setSuccessDialog({
         title: data.duplicate ? 'Registration already imported' : 'Paid registration imported',
         text: data.duplicate
           ? `This registration was already imported${familyName ? ` into ${familyName}` : ''}.`
-          : `Paid registration imported successfully${familyName ? ` into ${familyName}` : ''}.`,
+          : `Paid registration imported successfully${familyName ? ` into ${familyName}` : ''}.${crmStatusText}`,
       });
       setSelectedRegistration(null);
       setIncludedChildIndexes([]);
@@ -512,7 +521,10 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
         isActive: true,
         optionMappings: [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
       });
-      setSuccessDialog({ title: 'Form mapping saved', text: 'The Fluent Form mapping has been updated successfully.' });
+      setSuccessDialog({
+        title: 'Form mapping saved',
+        text: 'The mapping is ready. Its paid FluentCRM tag will be created, if needed, and applied when the first paid registration is imported successfully.',
+      });
       await loadMappings();
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to save mapping' });
@@ -1005,7 +1017,11 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
                 {programs.map((program: Program) => <option key={program.id} value={program.id}>{program.name}</option>)}
               </select>
               <input value={mappingForm.leadTag} onChange={(event) => setMappingForm((current) => ({ ...current, leadTag: event.target.value }))} placeholder="Lead tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-              <input required value={mappingForm.paidTag} onChange={(event) => setMappingForm((current) => ({ ...current, paidTag: event.target.value }))} placeholder="Paid tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Form-level paid CRM tag</span>
+                <input required value={mappingForm.paidTag} onChange={(event) => setMappingForm((current) => ({ ...current, paidTag: event.target.value }))} placeholder="Paid tag" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                <span className="mt-1 block text-xs leading-5 text-slate-500">The tag is created in FluentCRM, if needed, and applied when the first paid registration using it imports successfully.</span>
+              </label>
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>

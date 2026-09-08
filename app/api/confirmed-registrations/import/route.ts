@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getActiveSessionUser } from '@/lib/auth';
+import { findFluentFormOptionMapping } from '@/lib/fluent-form-option-matching';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import {
   ensureConfirmedEnrollment,
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
       const childProgramId = child.programId || mapping.programId;
       const sourceOptionText = toOptionalText((child as any).sourceOptionText);
       const mappedOption = sourceOptionText
-        ? activeOptionMappings.find((option) => option.sourceOptionText === sourceOptionText)
+        ? findFluentFormOptionMapping(activeOptionMappings, sourceOptionText)
         : null;
       const childBatch = mappedOption?.batchNumber || toPositiveInt(child.batchNumber, 0);
 
