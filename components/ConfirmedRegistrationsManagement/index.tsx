@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FiCheckCircle,
@@ -12,6 +12,7 @@ import {
   FiPlus,
   FiRefreshCw,
   FiSearch,
+  FiSend,
   FiSettings,
   FiTrash2,
   FiUpload,
@@ -29,6 +30,7 @@ import type {
   PriceType,
   Program,
 } from '@/types';
+import { ReturningCustomerEnrollment } from './ReturningCustomerEnrollment';
 
 type WorkspaceTab = 'import' | 'existing-family' | 'mappings' | 'history';
 
@@ -202,7 +204,13 @@ async function uploadProof(file: File | null, payload: Record<string, string>) {
   return response.json();
 }
 
-export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { canEditPayments?: boolean }) {
+export function ConfirmedRegistrationsManagement({
+  canEditPayments = false,
+  canManageOverrides = false,
+}: {
+  canEditPayments?: boolean;
+  canManageOverrides?: boolean;
+}) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('import');
   const [mappings, setMappings] = useState<FluentFormMapping[]>([]);
@@ -240,25 +248,6 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
     isActive: true,
     optionMappings: [{ sourceOptionText: '', batchNumber: 1, paidTag: '', isActive: true }],
   });
-
-  const [existingFamilyForm, setExistingFamilyForm] = useState({
-    familyId: '',
-    existingStudentId: '',
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    programId: '',
-    batchNumber: 1,
-    priceType: 'FULL_PRICE' as PriceType,
-    confirmedAmount: 0,
-    paidTag: '',
-    paymentProofNote: '',
-  });
-
-  const selectedFamily = useMemo(
-    () => families.find((family) => family.id === existingFamilyForm.familyId),
-    [existingFamilyForm.familyId, families]
-  );
 
   const loadMappings = useCallback(async () => {
     const response = await fetchWithAuth('/api/fluent-form-mappings');
@@ -328,6 +317,31 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
       });
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to update enrollment payment details' });
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleResendConfirmation = async (item: ConfirmedRegistrationImport) => {
+    setIsBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetchWithAuth(`/api/confirmed-registrations/${item.id}/resend-confirmation`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.notification?.error || 'Failed to resend enrollment confirmation');
+      }
+      setSuccessDialog({
+        title: 'Confirmation sent',
+        text: `The paid enrollment confirmation was sent to ${item.parentEmail}.`,
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to resend enrollment confirmation',
+      });
     } finally {
       setIsBusy(false);
     }
@@ -533,62 +547,9 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
     }
   };
 
-  const handleExistingFamilyEnrollment = async (event: FormEvent) => {
-    event.preventDefault();
-    setIsBusy(true);
-    setMessage(null);
-    setSuccessDialog(null);
-    try {
-      const response = await fetchWithAuth(`/api/families/${existingFamilyForm.familyId}/paid-enrollments`, {
-        method: 'POST',
-        body: JSON.stringify({
-          programId: existingFamilyForm.programId,
-          batchNumber: existingFamilyForm.batchNumber,
-          confirmedAmount: Number(existingFamilyForm.confirmedAmount),
-          paidTag: existingFamilyForm.paidTag,
-          paymentProofNote: existingFamilyForm.paymentProofNote,
-          children: [
-            existingFamilyForm.existingStudentId
-              ? { existingStudentId: existingFamilyForm.existingStudentId, priceType: existingFamilyForm.priceType, priceAmount: Number(existingFamilyForm.confirmedAmount) }
-              : {
-                  firstName: existingFamilyForm.firstName,
-                  lastName: existingFamilyForm.lastName,
-                  dateOfBirth: existingFamilyForm.dateOfBirth || null,
-                  priceType: existingFamilyForm.priceType,
-                  priceAmount: Number(existingFamilyForm.confirmedAmount),
-                },
-          ],
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to add paid enrollment');
-      await uploadProof(proofFile, {
-        paymentRecordId: data.records?.[0]?.id || '',
-        enrollmentId: data.records?.[0]?.enrollmentId || '',
-        note: existingFamilyForm.paymentProofNote,
-      });
-      setSuccessDialog({ title: 'Paid enrollment added', text: 'The existing family enrollment has been saved successfully.' });
-      setProofFile(null);
-      setExistingFamilyForm((current) => ({
-        ...current,
-        existingStudentId: '',
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
-        confirmedAmount: 0,
-        paymentProofNote: '',
-      }));
-      await Promise.all([loadImports(), mutateFamilies()]);
-    } catch (error) {
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to add paid enrollment' });
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const tabs: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
     { id: 'import', label: 'Import Paid Registration', icon: <FiDatabase /> },
-    { id: 'existing-family', label: 'Existing Family Enrollment', icon: <FiUsers /> },
+    { id: 'existing-family', label: 'Returning Customer Enrollment', icon: <FiUsers /> },
     { id: 'mappings', label: 'Form Mappings', icon: <FiSettings /> },
     { id: 'history', label: 'Import History', icon: <FiCreditCard /> },
   ];
@@ -969,39 +930,15 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
 
       {activeTab === 'existing-family' && (
         <SectionCard>
-          <Header title="Add paid enrollment to existing family" subtitle="Use this for returning customers or existing families. No Fluent Forms import is needed." icon={<FiUsers className="h-5 w-5" />} />
-          <form onSubmit={handleExistingFamilyEnrollment} className="grid gap-4 p-5 lg:grid-cols-2">
-            <select required value={existingFamilyForm.familyId} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, familyId: event.target.value, existingStudentId: '' }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-              <option value="">Choose family</option>
-              {families.map((family) => <option key={family.id} value={family.id}>{family.displayName}</option>)}
-            </select>
-            <select value={existingFamilyForm.existingStudentId} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, existingStudentId: event.target.value }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" disabled={!selectedFamily}>
-              <option value="">Add new sibling or choose existing child</option>
-              {selectedFamily?.students?.map((student) => <option key={student.id} value={student.id}>{student.firstName} {student.lastName}</option>)}
-            </select>
-            {!existingFamilyForm.existingStudentId && (
-              <>
-                <input value={existingFamilyForm.firstName} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, firstName: event.target.value }))} placeholder="New child first name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                <input value={existingFamilyForm.lastName} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, lastName: event.target.value }))} placeholder="New child last name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                <input type="date" value={existingFamilyForm.dateOfBirth} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, dateOfBirth: event.target.value }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-              </>
-            )}
-            <select required value={existingFamilyForm.programId} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, programId: event.target.value }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-              <option value="">Choose program</option>
-              {programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
-            </select>
-            <input type="number" min={1} value={existingFamilyForm.batchNumber} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, batchNumber: Number(event.target.value) }))} placeholder="Batch" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-            <select value={existingFamilyForm.priceType} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, priceType: event.target.value as PriceType }))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-              {priceOptions.map((option) => <option key={option.type} value={option.type}>{option.label}</option>)}
-            </select>
-            <input required type="number" min={1} value={existingFamilyForm.confirmedAmount || ''} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, confirmedAmount: Number(event.target.value) }))} placeholder="Confirmed amount" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-            <input value={existingFamilyForm.paidTag} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, paidTag: event.target.value }))} placeholder="FluentCRM paid tag" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-            <textarea value={existingFamilyForm.paymentProofNote} onChange={(event) => setExistingFamilyForm((current) => ({ ...current, paymentProofNote: event.target.value }))} placeholder="Payment proof note" className="rounded-xl border border-slate-200 px-4 py-3 text-sm lg:col-span-2" />
-            <input type="file" accept="image/*,application/pdf" onChange={(event) => setProofFile(event.target.files?.[0] || null)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm lg:col-span-2" />
-            <button disabled={isBusy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white lg:col-span-2">
-              <FiCheckCircle /> Add confirmed paid enrollment
-            </button>
-          </form>
+          <Header title="Returning customer enrollment" subtitle="Find an existing or historical family, review current details, and record only confirmed paid enrollments." icon={<FiUsers className="h-5 w-5" />} />
+          <ReturningCustomerEnrollment
+            programs={programs}
+            priceOptions={priceOptions}
+            canManageOverrides={canManageOverrides}
+            onCompleted={async () => {
+              await Promise.all([loadImports(), mutateFamilies()]);
+            }}
+          />
         </SectionCard>
       )}
 
@@ -1179,7 +1116,7 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
 
       {activeTab === 'history' && (
         <SectionCard>
-          <Header title="Paid import history" subtitle="Only paid/imported customers appear here." icon={<FiCreditCard className="h-5 w-5" />} />
+          <Header title="Paid enrollment history" subtitle="Only confirmed paid Fluent Forms imports and returning-customer transactions appear here." icon={<FiCreditCard className="h-5 w-5" />} />
           <div className="overflow-x-auto p-5">
             <table className="min-w-full text-left text-sm">
               <thead className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -1195,7 +1132,7 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
               <tbody className="divide-y divide-slate-100">
                 {imports.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-4 font-bold text-slate-950">{item.parentFirstName} {item.parentLastName}<p className="mt-1 font-normal text-slate-500">{item.parentEmail || item.parentPhone}</p></td>
+                    <td className="px-4 py-4 font-bold text-slate-950">{item.parentFirstName} {item.parentLastName}<p className="mt-1 font-normal text-slate-500">{item.parentEmail || item.parentPhone}</p><Pill className={item.source === 'RETURNING_CUSTOMER' ? 'mt-2 border-violet-100 bg-violet-50 text-violet-700' : 'mt-2 border-blue-100 bg-blue-50 text-blue-700'}>{item.source === 'RETURNING_CUSTOMER' ? 'Returning customer' : item.source === 'EXISTING_FAMILY' ? 'Existing family' : 'Fluent Forms'}</Pill></td>
                     <td className="px-4 py-4 text-slate-600">{item.program?.name}</td>
                     <td className="px-4 py-4 text-slate-600">{item.children?.length || 0}</td>
                     <td className="px-4 py-4 text-slate-600">{formatCurrency(item.confirmedAmount)}</td>
@@ -1227,6 +1164,16 @@ export function ConfirmedRegistrationsManagement({ canEditPayments = false }: { 
                           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"
                         >
                           <FiRefreshCw /> Retry CRM
+                        </button>
+                      )}
+                      {item.source === 'RETURNING_CUSTOMER' && item.parentEmail && (
+                        <button
+                          type="button"
+                          onClick={() => handleResendConfirmation(item)}
+                          disabled={isBusy}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50"
+                        >
+                          <FiSend /> Resend confirmation
                         </button>
                       )}
                       </div>

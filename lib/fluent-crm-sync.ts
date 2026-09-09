@@ -144,20 +144,33 @@ export async function syncPaymentRecordToCrm(paymentRecordId: string) {
   if (!record) throw new Error('Payment record not found');
 
   const guardian = record.family.guardians.find((item) => item.isPrimary) || record.family.guardians[0];
+  const relatedRecords = record.importId
+    ? await prisma.enrollmentPaymentRecord.findMany({ where: { importId: record.importId } })
+    : [record];
+  const paidTags = [...new Set(relatedRecords.map((item) => item.crmTag).filter((tag): tag is string => Boolean(tag?.trim())))];
   const result = await syncPaidCustomerToCrm({
     parentEmail: guardian?.email || record.import?.parentEmail,
     parentPhone: guardian?.phone || record.import?.parentPhone,
     parentFirstName: guardian?.firstName || record.import?.parentFirstName,
     parentLastName: guardian?.lastName || record.import?.parentLastName,
-    paidTag: record.crmTag || record.import?.crmTag,
+    paidTags: paidTags.length > 0 ? paidTags : undefined,
+    paidTag: paidTags.length === 0 ? record.crmTag || record.import?.crmTag : undefined,
   });
 
-  return prisma.enrollmentPaymentRecord.update({
-    where: { id: paymentRecordId },
-    data: {
-      crmSyncStatus: result.status,
-      crmContactId: result.contactId || null,
-      crmError: result.error || null,
-    },
-  });
+  const updateData = {
+    crmSyncStatus: result.status,
+    crmContactId: result.contactId || null,
+    crmError: result.error || null,
+  };
+  await prisma.$transaction([
+    prisma.enrollmentPaymentRecord.updateMany({
+      where: record.importId ? { importId: record.importId } : { id: paymentRecordId },
+      data: updateData,
+    }),
+    ...(record.importId
+      ? [prisma.confirmedRegistrationImport.update({ where: { id: record.importId }, data: updateData })]
+      : []),
+  ]);
+
+  return prisma.enrollmentPaymentRecord.findUniqueOrThrow({ where: { id: paymentRecordId } });
 }

@@ -50,6 +50,10 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       const schedule = initialData?.batchSchedules?.find((item) => item.batchNumber === batchNumber);
       return toDateInputValue(schedule?.endDate);
     }),
+    batchPaidCrmTags: Array.from({ length: initialData?.batches || 1 }, (_, index) => {
+      const batchNumber = index + 1;
+      return initialData?.batchSchedules?.find((item) => item.batchNumber === batchNumber)?.paidCrmTag || '';
+    }),
   });
 
   const [newSlot, setNewSlot] = useState('');
@@ -103,6 +107,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
             batchNumber: index + 1,
             startDate,
             endDate: formData.batchEndDates[index] || null,
+            paidCrmTag: formData.batchPaidCrmTags[index]?.trim() || null,
           }))
           .filter((schedule) => Boolean(schedule.startDate)),
       });
@@ -120,6 +125,7 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
       startDate: '',
       batchStartDates: [''],
       batchEndDates: [''],
+      batchPaidCrmTags: [''],
     });
     setNewSlot('');
     setErrors({});
@@ -211,7 +217,11 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
             { length: batches },
             (_, index) => formData.batchEndDates[index] || ''
           );
-          setFormData({ ...formData, batches, batchStartDates, batchEndDates });
+          const batchPaidCrmTags = Array.from(
+            { length: batches },
+            (_, index) => formData.batchPaidCrmTags[index] || ''
+          );
+          setFormData({ ...formData, batches, batchStartDates, batchEndDates, batchPaidCrmTags });
         }}
         error={errors.batches}
       />
@@ -252,6 +262,20 @@ export function ProgramForm({ onSubmit, onCancel, initialData, isLoading = false
                   error={errors[`batchEndDate-${batchNumber}`]}
                 />
               </div>
+              <Input
+                label="Paid FluentCRM Tag"
+                type="text"
+                placeholder={`e.g., Paid ${formData.season || 'Program'} ${formData.year} B${batchNumber}`}
+                value={formData.batchPaidCrmTags[index] || ''}
+                onChange={(event) => {
+                  const batchPaidCrmTags = [...formData.batchPaidCrmTags];
+                  batchPaidCrmTags[index] = event.target.value;
+                  setFormData({ ...formData, batchPaidCrmTags });
+                }}
+              />
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Required when staff record a form-free returning-customer payment for this batch.
+              </p>
             </div>;
           })}
         </div>

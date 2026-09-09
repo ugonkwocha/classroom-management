@@ -2,6 +2,7 @@ export type ProgramBatchSchedulePayload = {
   batchNumber: number;
   startDate: Date;
   endDate: Date | null;
+  paidCrmTag: string | null;
 };
 
 export class ProgramBatchScheduleValidationError extends Error {
@@ -46,7 +47,8 @@ export function parseProgramBatchSchedules(
       throw new ProgramBatchScheduleValidationError(`Batch ${batchNumber} end date cannot be before its start date.`);
     }
 
-    schedules.set(batchNumber, { batchNumber, startDate, endDate });
+    const paidCrmTag = typeof item?.paidCrmTag === 'string' ? item.paidCrmTag.trim() || null : null;
+    schedules.set(batchNumber, { batchNumber, startDate, endDate, paidCrmTag });
   }
 
   return [...schedules.values()].sort((a, b) => a.batchNumber - b.batchNumber);

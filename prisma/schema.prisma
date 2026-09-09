@@ -251,6 +251,7 @@ model ProgramBatchSchedule {
   batchNumber Int
   startDate   DateTime
   endDate     DateTime?
+  paidCrmTag  String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -732,6 +733,7 @@ model ImportActivityLog {
 enum RegistrationImportSource {
   FLUENT_FORM_IMPORT
   EXISTING_FAMILY
+  RETURNING_CUSTOMER
 }
 
 enum ConfirmedRegistrationImportStatus {
@@ -790,6 +792,7 @@ enum EmailEventType {
   PASSWORD_RESET
   CERTIFICATE_DELIVERY
   PARENT_PORTAL_ACTIVATION
+  PAID_ENROLLMENT_CONFIRMATION
 }
 
 // ==================== Class Completion & Certificates ====================

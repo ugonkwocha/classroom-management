@@ -87,6 +87,19 @@ interface CertificateEmailParams {
   pdf: Uint8Array;
 }
 
+interface PaidEnrollmentConfirmationEmailParams {
+  recipient: EmailRecipient;
+  programName: string;
+  programYear: number;
+  enrollments: Array<{
+    studentName: string;
+    batchNumber: number;
+    priceLabel: string;
+    amount: number;
+  }>;
+  totalAmount: number;
+}
+
 type EmailProvider = 'zeptomail' | 'resend' | 'disabled';
 
 type BuiltEmail = {
@@ -958,6 +971,54 @@ export async function sendCertificateEmail(params: CertificateEmailParams): Prom
       content: params.pdf,
       mimeType: 'application/pdf',
     }],
+  });
+}
+
+export async function sendPaidEnrollmentConfirmationEmail(
+  params: PaidEnrollmentConfirmationEmailParams
+): Promise<EmailResponse> {
+  const money = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  });
+  const subject = `Enrollment confirmed: ${params.programName}`;
+  const rows = params.enrollments.map((enrollment) => `
+    <tr>
+      <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${escapeHtml(enrollment.studentName)}</td>
+      <td style="padding:12px;border-bottom:1px solid #e2e8f0;">Batch ${enrollment.batchNumber}</td>
+      <td style="padding:12px;border-bottom:1px solid #e2e8f0;">${escapeHtml(enrollment.priceLabel)}</td>
+      <td style="padding:12px;border-bottom:1px solid #e2e8f0;text-align:right;">${money.format(enrollment.amount)}</td>
+    </tr>
+  `).join('');
+  const textRows = params.enrollments
+    .map((enrollment) => `${enrollment.studentName} - Batch ${enrollment.batchNumber} - ${enrollment.priceLabel} - ${money.format(enrollment.amount)}`)
+    .join('\n');
+  const greeting = params.recipient.name ? `Hello ${escapeHtml(params.recipient.name)},` : 'Hello,';
+
+  return sendTransactionalEmail(params.recipient, {
+    subject,
+    html: `
+      <div style="margin:0;background:#f8fafc;padding:32px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+        <div style="margin:0 auto;max-width:680px;overflow:hidden;border:1px solid #dbe3ef;background:#ffffff;">
+          <div style="background:#092b57;padding:24px;color:#ffffff;">
+            <div style="font-size:22px;font-weight:700;">9jacodekids Academy</div>
+            <div style="margin-top:6px;font-size:14px;color:#dbeafe;">Confirmed paid enrollment</div>
+          </div>
+          <div style="padding:28px;">
+            <p style="margin:0 0 16px;font-size:16px;">${greeting}</p>
+            <p style="margin:0 0 20px;line-height:1.6;color:#334155;">We have confirmed the following enrollment${params.enrollments.length === 1 ? '' : 's'} for ${escapeHtml(params.programName)} ${params.programYear}.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <thead><tr style="background:#eff6ff;text-align:left;"><th style="padding:12px;">Student</th><th style="padding:12px;">Batch</th><th style="padding:12px;">Price</th><th style="padding:12px;text-align:right;">Amount</th></tr></thead>
+              <tbody>${rows}</tbody>
+              <tfoot><tr><td colspan="3" style="padding:14px 12px;font-weight:700;">Total confirmed</td><td style="padding:14px 12px;text-align:right;font-weight:700;">${money.format(params.totalAmount)}</td></tr></tfoot>
+            </table>
+            <p style="margin:22px 0 0;line-height:1.6;color:#475569;">Class assignment and meeting details will be sent separately when placement is complete.</p>
+          </div>
+        </div>
+      </div>
+    `,
+    text: `${params.recipient.name ? `Hello ${params.recipient.name},` : 'Hello,'}\n\nWe have confirmed the following enrollment${params.enrollments.length === 1 ? '' : 's'} for ${params.programName} ${params.programYear}.\n\n${textRows}\n\nTotal confirmed: ${money.format(params.totalAmount)}\n\nClass assignment and meeting details will be sent separately when placement is complete.`,
   });
 }
 

@@ -48,10 +48,12 @@ export async function findMatchingFamilies({
   email,
   phone,
   phoneCountryCode,
+  includeArchived = false,
 }: {
   email?: string | null;
   phone?: string | null;
   phoneCountryCode?: string | null;
+  includeArchived?: boolean;
 }) {
   const emailNormalized = normalizeEmail(email);
   const phoneNormalized = normalizePhone(phone);
@@ -60,7 +62,7 @@ export async function findMatchingFamilies({
 
   return prisma.family.findMany({
     where: {
-      isArchived: false,
+      ...(!includeArchived ? { isArchived: false } : {}),
       guardians: {
         some: {
           OR: [

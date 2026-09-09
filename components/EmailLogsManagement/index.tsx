@@ -35,6 +35,7 @@ const eventLabels: Record<EmailEventType, string> = {
   PASSWORD_RESET: 'Password reset',
   CERTIFICATE_DELIVERY: 'Certificate delivery',
   PARENT_PORTAL_ACTIVATION: 'Parent portal activation',
+  PAID_ENROLLMENT_CONFIRMATION: 'Paid enrollment confirmation',
 };
 
 function formatLabel(value: string) {
@@ -219,6 +220,7 @@ export function EmailLogsManagement() {
               <option value="USER_INVITATION">User invitation</option>
               <option value="PASSWORD_RESET">Password reset</option>
               <option value="CERTIFICATE_DELIVERY">Certificate delivery</option>
+              <option value="PAID_ENROLLMENT_CONFIRMATION">Paid enrollment confirmation</option>
               <option value="PARENT_PORTAL_ACTIVATION">Parent portal activation</option>
             </select>
 
@@ -293,7 +295,7 @@ export function EmailLogsManagement() {
                       {log.sentAt && <p className="mt-1 text-xs text-emerald-600">Sent {formatDate(log.sentAt)}</p>}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {log.eventType === 'CLASS_ASSIGNMENT' && (
+                      {(log.eventType === 'CLASS_ASSIGNMENT' || log.eventType === 'PAID_ENROLLMENT_CONFIRMATION') && (
                         <button
                           type="button"
                           onClick={() => handleResend(log)}

@@ -4,6 +4,7 @@ import { getActiveSessionUser } from '@/lib/auth';
 import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { sendEnrollmentAssignmentNotification } from '@/lib/enrollment-notifications';
 import { sendStoredCertificate } from '@/lib/certificate-service';
+import { sendPaidEnrollmentConfirmation } from '@/lib/paid-enrollment-confirmation';
 
 export async function POST(
   request: NextRequest,
@@ -39,9 +40,21 @@ export async function POST(
       return NextResponse.json({ success: notification.success, notification });
     }
 
+    if (log.eventType === 'PAID_ENROLLMENT_CONFIRMATION') {
+      const payload = log.payload && typeof log.payload === 'object' && !Array.isArray(log.payload)
+        ? log.payload as Record<string, unknown>
+        : {};
+      const importId = typeof payload.importId === 'string' ? payload.importId : null;
+      if (!importId) {
+        return NextResponse.json({ error: 'This confirmation log is missing its paid enrollment reference' }, { status: 400 });
+      }
+      const notification = await sendPaidEnrollmentConfirmation(importId, sessionUser.userId, { resendOfLogId: log.id });
+      return NextResponse.json({ success: notification.success, notification });
+    }
+
     if (log.eventType !== 'CLASS_ASSIGNMENT') {
       return NextResponse.json(
-        { error: 'Only class assignment emails can be resent from this screen for now' },
+        { error: 'This email type cannot be resent from this screen' },
         { status: 400 }
       );
     }

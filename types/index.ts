@@ -15,9 +15,10 @@ export type EmailEventType =
   | 'USER_INVITATION'
   | 'PASSWORD_RESET'
   | 'CERTIFICATE_DELIVERY'
-  | 'PARENT_PORTAL_ACTIVATION';
+  | 'PARENT_PORTAL_ACTIVATION'
+  | 'PAID_ENROLLMENT_CONFIRMATION';
 export type EmailLogStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'DELIVERED' | 'BOUNCED';
-export type RegistrationImportSource = 'FLUENT_FORM_IMPORT' | 'EXISTING_FAMILY';
+export type RegistrationImportSource = 'FLUENT_FORM_IMPORT' | 'EXISTING_FAMILY' | 'RETURNING_CUSTOMER';
 export type ConfirmedRegistrationImportStatus = 'PROCESSED' | 'NEEDS_REVIEW' | 'FAILED';
 export type CrmSyncStatus = 'PENDING' | 'SYNCED' | 'FAILED' | 'SKIPPED';
 
@@ -132,6 +133,7 @@ export interface ProgramBatchSchedule {
   batchNumber: number;
   startDate: string;
   endDate?: string | null;
+  paidCrmTag?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
