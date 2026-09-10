@@ -103,6 +103,8 @@ FLUENTCRM_SYNC_ENDPOINT="https://example.com/wp-json/9ck/v1/fluentcrm/sync-paid-
 FLUENTCRM_SYNC_SECRET="shared-secret-for-sync-endpoint"
 ```
 
+The WordPress API user must have permission to view Fluent Forms entries. The returning-customer workflow uses that read-only access to find historical registrations by parent or child name; email, phone, and advanced submission-ID searches continue through the normalized registration endpoint.
+
 To create or reset the default superadmin during staging setup, temporarily set:
 
 ```env

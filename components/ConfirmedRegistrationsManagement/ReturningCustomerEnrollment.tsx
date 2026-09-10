@@ -165,7 +165,7 @@ export function ReturningCustomerEnrollment({
 }) {
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState('');
-  const [searchKind, setSearchKind] = useState<'contact' | 'submission'>('contact');
+  const [submissionQuery, setSubmissionQuery] = useState('');
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
   const [familyMode, setFamilyMode] = useState<'existing' | 'new'>('new');
   const [selectedFamily, setSelectedFamily] = useState<SearchFamily | null>(null);
@@ -196,6 +196,7 @@ export function ReturningCustomerEnrollment({
   const reset = () => {
     setStep(1);
     setQuery('');
+    setSubmissionQuery('');
     setSearchResponse(null);
     setFamilyMode('new');
     setSelectedFamily(null);
@@ -313,12 +314,11 @@ export function ReturningCustomerEnrollment({
     setMessage(null);
   };
 
-  const handleSearch = async (event: FormEvent) => {
-    event.preventDefault();
+  const runSearch = async (searchQuery: string, kind: 'contact' | 'submission') => {
     setIsBusy(true);
     setMessage(null);
     try {
-      const params = new URLSearchParams({ q: query.trim(), kind: searchKind });
+      const params = new URLSearchParams({ q: searchQuery.trim(), kind });
       const response = await fetchWithAuth(`/api/returning-customers/search?${params.toString()}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Search failed');
@@ -331,6 +331,16 @@ export function ReturningCustomerEnrollment({
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    await runSearch(query, 'contact');
+  };
+
+  const handleSubmissionSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    await runSearch(submissionQuery, 'submission');
   };
 
   const updateGuardianField = (field: keyof Omit<GuardianDraft, 'updateFields'>, value: string) => {
@@ -532,19 +542,29 @@ export function ReturningCustomerEnrollment({
 
       {step === 1 && (
         <div className="space-y-5 p-5">
-          <form onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[170px_1fr_auto]">
-            <select value={searchKind} onChange={(event) => setSearchKind(event.target.value as 'contact' | 'submission')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm">
-              <option value="contact">Name or contact</option>
-              <option value="submission">Submission ID</option>
-            </select>
+          <div>
+            <h3 className="font-bold text-slate-950">Find a returning customer</h3>
+            <p className="mt-1 text-sm text-slate-500">Search the CMS and WordPress history using details the customer can provide.</p>
+          </div>
+          <form onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_auto]">
             <div className="relative">
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input required minLength={3} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={searchKind === 'submission' ? 'WordPress submission ID' : 'Parent name, email, or phone'} className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm" />
+              <input required minLength={3} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Parent or child name, email, or phone number" aria-label="Search returning customers" className="w-full rounded-xl border border-slate-200 py-3 pl-11 pr-4 text-sm" />
             </div>
             <button disabled={isBusy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
               <FiSearch /> {isBusy ? 'Searching...' : 'Search'}
             </button>
           </form>
+
+          <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer text-sm font-bold text-slate-700">Advanced: search by WordPress submission ID</summary>
+            <form onSubmit={handleSubmissionSearch} className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+              <input required minLength={3} value={submissionQuery} onChange={(event) => setSubmissionQuery(event.target.value)} placeholder="WordPress submission ID" aria-label="WordPress submission ID" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <button disabled={isBusy} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 disabled:opacity-50">
+                <FiSearch /> Search ID
+              </button>
+            </form>
+          </details>
 
           {searchResponse?.hint && <p className="text-sm text-slate-500">{searchResponse.hint}</p>}
           {searchResponse?.wordpressError && (
@@ -581,7 +601,7 @@ export function ReturningCustomerEnrollment({
                     <button type="button" key={`${registration.sourceFormId}-${registration.sourceSubmissionId}`} onClick={() => selectHistory(registration)} className="w-full rounded-xl border border-slate-200 p-4 text-left transition hover:border-violet-300 hover:bg-violet-50">
                       <p className="font-bold text-slate-950">{registration.parentFirstName} {registration.parentLastName}</p>
                       <p className="mt-1 text-sm text-slate-500">{registration.parentEmail || registration.parentPhone}</p>
-                      <p className="mt-3 text-xs font-semibold text-slate-500">Submission {registration.sourceSubmissionId} · {registration.children.length} child{registration.children.length === 1 ? '' : 'ren'}</p>
+                      <p className="mt-3 text-xs font-semibold text-slate-500">Historical registration · {registration.children.length} child{registration.children.length === 1 ? '' : 'ren'}</p>
                       {!!registration.matchingFamilies?.length && <p className="mt-2 text-xs font-bold text-blue-700">Matches {registration.matchingFamilies.length} CMS family record{registration.matchingFamilies.length === 1 ? '' : 's'}</p>}
                     </button>
                   ))}

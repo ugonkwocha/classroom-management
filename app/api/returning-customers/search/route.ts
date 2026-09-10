@@ -5,6 +5,7 @@ import { checkPermission, PERMISSIONS } from '@/lib/permissions';
 import { normalizeEmail, normalizePhone } from '@/lib/family-utils';
 import { searchExternalRegistrations } from '@/lib/wordpress-registrations';
 import { findMatchingFamilies } from '@/lib/paid-registration-utils';
+import { resolveExternalRegistrationLookup } from '@/lib/returning-customer-search';
 
 function familySearchWhere(query: string) {
   const terms = query.split(/\s+/).map((term) => term.trim()).filter(Boolean);
@@ -21,7 +22,17 @@ function familySearchWhere(query: string) {
         { students: { some: { lastName: { contains: term, mode: 'insensitive' as const } } } },
       ]),
       ...(query.includes('@') ? [{ guardians: { some: { emailNormalized: { contains: email } } } }] : []),
-      ...(phone.length >= 5 ? [{ guardians: { some: { phoneNormalized: { contains: phone } } } }] : []),
+      ...(query.includes('@') ? [
+        { students: { some: { email: { contains: query, mode: 'insensitive' as const } } } },
+        { students: { some: { parentEmail: { contains: query, mode: 'insensitive' as const } } } },
+      ] : []),
+      ...(phone.length >= 5 ? [
+        { guardians: { some: { phoneNormalized: { contains: phone } } } },
+        { students: { some: { phone: { contains: query } } } },
+        { students: { some: { phone: { contains: phone } } } },
+        { students: { some: { parentPhone: { contains: query } } } },
+        { students: { some: { parentPhone: { contains: phone } } } },
+      ] : []),
     ],
   };
 }
@@ -70,44 +81,34 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
-    const normalizedPhone = normalizePhone(query);
-    const canSearchWordPress = kind === 'submission' || query.includes('@') || normalizedPhone.length >= 7;
     let wordpressResults: Array<Record<string, unknown>> = [];
     let wordpressError: string | null = null;
 
-    if (canSearchWordPress) {
-      try {
-        const external = await searchExternalRegistrations(
-          kind === 'submission'
-            ? { submissionId: query }
-            : query.includes('@')
-              ? { email: query }
-              : { phone: query }
-        );
-        wordpressResults = await Promise.all(
-          external.slice(0, 20).map(async (registration) => ({
-            ...registration,
-            matchingFamilies: await findMatchingFamilies({
-              email: registration.parentEmail,
-              phone: registration.parentPhone,
-              phoneCountryCode: registration.parentPhoneCountryCode,
-              includeArchived: true,
-            }),
-          }))
-        );
-      } catch (error) {
-        wordpressError = error instanceof Error ? error.message : 'WordPress history lookup failed';
-      }
+    try {
+      const external = await searchExternalRegistrations(
+        resolveExternalRegistrationLookup(query, kind)
+      );
+      wordpressResults = await Promise.all(
+        external.slice(0, 20).map(async (registration) => ({
+          ...registration,
+          matchingFamilies: await findMatchingFamilies({
+            email: registration.parentEmail,
+            phone: registration.parentPhone,
+            phoneCountryCode: registration.parentPhoneCountryCode,
+            includeArchived: true,
+          }),
+        }))
+      );
+    } catch (error) {
+      wordpressError = error instanceof Error ? error.message : 'WordPress history lookup failed';
     }
 
     return NextResponse.json({
       cmsFamilies,
       wordpressResults,
-      wordpressLookupAttempted: canSearchWordPress,
+      wordpressLookupAttempted: true,
       wordpressError,
-      hint: !canSearchWordPress && kind === 'contact'
-        ? 'CMS names were searched. Use the parent email or phone to include WordPress history.'
-        : null,
+      hint: null,
     });
   } catch (error) {
     return NextResponse.json(
