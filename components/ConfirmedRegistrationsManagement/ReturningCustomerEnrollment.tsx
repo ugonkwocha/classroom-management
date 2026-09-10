@@ -689,10 +689,22 @@ export function ReturningCustomerEnrollment({
                     </label>
                   )}
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    <input value={student.firstName} onChange={(event) => updateStudent(student.key, 'firstName', event.target.value)} placeholder="First name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                    <input value={student.lastName} onChange={(event) => updateStudent(student.key, 'lastName', event.target.value)} placeholder="Last name" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                    <input type="email" value={student.email} onChange={(event) => updateStudent(student.key, 'email', event.target.value)} placeholder="Student email (optional)" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                    <input type="date" value={student.dateOfBirth} onChange={(event) => updateStudent(student.key, 'dateOfBirth', event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold uppercase text-slate-500">First name</span>
+                      <input value={student.firstName} onChange={(event) => updateStudent(student.key, 'firstName', event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Last name</span>
+                      <input value={student.lastName} onChange={(event) => updateStudent(student.key, 'lastName', event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Student email (optional)</span>
+                      <input type="email" value={student.email} onChange={(event) => updateStudent(student.key, 'email', event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Date of birth (optional)</span>
+                      <input type="date" value={student.dateOfBirth} onChange={(event) => updateStudent(student.key, 'dateOfBirth', event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    </label>
                   </div>
                   {student.existingStudentId && (() => {
                     const cmsStudent = selectedFamily?.students?.find((item) => item.id === student.existingStudentId);
